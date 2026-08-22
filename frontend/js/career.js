@@ -24,6 +24,9 @@ window.CareerPage = (() => {
   let specTab = 'quant';
   let loadError = null;
   let jobPage = 1; // 직업 목록 페이지 (2차 분류를 바꾸면 1로 되돌린다)
+  /* 지금 펼쳐 본 직업 묶음(job-groups.js 의 id). null 이면 묶음 전체를 편다.
+     묶음 정의가 없는 2차 분류에서는 쓰이지 않는다. */
+  let currentGroup = null;
 
   /* 분류를 아직 안 받았으면 받아오고, 받고 나면 사이드바와 본문을 다시 그린다.
      페이지 부팅이 아니라 **로드맵에 처음 들어올 때** 호출된다. */
@@ -304,6 +307,14 @@ window.CareerPage = (() => {
         </div>`;
     }
 
+    /* 이 분류에 '비슷한 직업끼리 묶은' 정의가 있으면 그쪽으로 간다.
+       정의가 없는 분류는 아래 연봉순 목록 그대로다 — 2차 분류 76개에 전부 묶음을
+       만들 수는 없고, 만들지 않은 곳이 고장 나 보이면 안 된다. */
+    const groups = typeof JobGroups !== 'undefined'
+      ? JobGroups.forMiddle(currentMajor, middle.code)
+      : null;
+    if (groups) return groupedJobSelect(middle, groups);
+
     const jobs = [...middle.jobs].sort(
       (a, b) => (b.avgWage ?? 0) - (a.avgWage ?? 0),
     );
@@ -333,6 +344,248 @@ window.CareerPage = (() => {
       </div>
       ${pager(page, pages)}`;
   }
+
+  /* ── 그룹으로 묶은 직업 선택 ───────────────────────────────
+
+     2차 분류 하나에 직업이 37개(경영·행정·사무직)까지 들어간다. 연봉순으로 한 줄에
+
+     깔면 회계사 옆에 속기사가 서서, "이 중 내가 갈 만한 갈래"를 고를 수가 없다.
+
+     비슷한 직업끼리 묶고 그룹 안에서 1..n 번호를 붙인다.
+
+
+
+     페이지 나누기(pager)는 쓰지 않는다 — 묶음 자체가 이미 목록을 나눈 구조인데
+
+     거기에 페이지까지 걸면 "2페이지에 있는 그룹"이 생겨서 전체가 한눈에 안 들어온다. */
+
+  function groupedJobSelect(middle, groups) {
+
+    /* 그룹 정의에 없는 직업(데이터가 나중에 추가된 경우)은 버리지 않고 따로 모은다.
+
+       조용히 빠뜨리면 목록에서 사라진 것을 아무도 모른다. */
+
+    const ungrouped = middle.jobs.filter(
+
+      (j) => !JobGroups.groupOfJob(currentMajor, middle.code, j.name),
+
+    );
+
+    const shown = currentGroup
+
+      ? groups.filter((g) => g.id === currentGroup)
+
+      : groups;
+
+
+
+    const chip = (id, label, on) =>
+
+      `<button class="jg-chip ${on ? 'is-on' : ''}" onclick="CareerPage.selectGroup(${id === null ? 'null' : `'${id}'`})">${esc(label)}</button>`;
+
+
+
+    return `
+
+      <div class="section-title">직업 선택
+
+        <span class="scope-tag">비슷한 직업끼리 ${groups.length}개 묶음 · 직업 ${middle.jobs.length}개</span>
+
+      </div>
+
+      <div class="jg-chips">
+
+        ${chip(null, '전체', !currentGroup)}
+
+        ${groups.map((g) => chip(g.id, `${g.no}. ${g.name}`, currentGroup === g.id)).join('')}
+
+      </div>
+
+      ${shown.map((g) => groupBlock(g, middle)).join('')}
+
+      ${
+
+        ungrouped.length && !currentGroup
+
+          ? `<div class="jg-group">
+
+               <div class="jg-group-h">
+
+                 <span class="jg-group-no">–</span>
+
+                 <div class="jg-group-t">
+
+                   <div class="jg-group-name">그 밖의 직업</div>
+
+                   <div class="jg-group-desc">아직 묶음에 넣지 않은 직업이에요. js/job-groups.js 에 추가하면 됩니다.</div>
+
+                 </div>
+
+                 <span class="jg-group-n">${ungrouped.length}개</span>
+
+               </div>
+
+               <div class="jg-jobs">${ungrouped.map((j, i) => jobRow(j, i + 1)).join('')}</div>
+
+             </div>`
+
+          : ''
+
+      }`;
+
+  }
+
+
+
+  function groupBlock(g, middle) {
+
+    /* 그룹 정의의 직업 순서를 그대로 쓴다(대체로 연봉·대표성 순). 번호는 그 순서다 —
+
+       화면에서 매번 다시 정렬하면 "3번 직업"이 볼 때마다 달라진다. */
+
+    const rows = g.jobs
+
+      .map((def, i) => {
+
+        const job = middle.jobs.find(
+
+          (j) => JobGroups.norm(j.name) === JobGroups.norm(def.name),
+
+        );
+
+        return job ? jobRow(job, i + 1) : '';
+
+      })
+
+      .join('');
+
+
+
+    return `
+
+      <div class="jg-group ${currentGroup === g.id ? 'is-on' : ''}">
+
+        <div class="jg-group-h">
+
+          <span class="jg-group-no">${g.no}</span>
+
+          <div class="jg-group-t">
+
+            <div class="jg-group-name">${esc(g.name)}
+
+              <span class="jg-group-sub">${esc(g.sub)}</span>
+
+            </div>
+
+            <div class="jg-group-desc">${esc(g.desc)}</div>
+
+          </div>
+
+          <span class="jg-group-n">${g.jobs.length}개</span>
+
+        </div>
+
+        <div class="jg-jobs">${rows}</div>
+
+      </div>`;
+
+  }
+
+
+
+  /* ── 로드맵 화면의 머리 — 직업 갈아타기 + 돌아가기 ─────────
+
+     화면을 나누면 "다른 직업을 보려면 어디로 가나"가 사라진다. 지금 직업이 속한
+
+     묶음의 목록을 로드맵 위에 얹어 그 자리에서 갈아타게 하고, 묶음 칩 줄 끝의
+
+     남는 자리에 돌아가기를 둔다(칩과 같은 줄이라 새 줄을 만들지 않는다).
+
+
+
+     묶음 정의가 없는 2차 분류는 직업이 50개까지라 목록을 얹지 않는다 —
+
+     로드맵을 보러 왔는데 목록이 화면을 다 덮는다. 돌아가기만 둔다. */
+
+  function jobSwitcher(middle, job) {
+
+    const back = `
+
+      <button class="jg-back" onclick="CareerPage.backToJobs()">
+
+        <i class="ti ti-arrow-left"></i> 직업 목록으로
+
+      </button>`;
+
+
+
+    const groups = typeof JobGroups !== 'undefined'
+
+      ? JobGroups.forMiddle(currentMajor, middle.code)
+
+      : null;
+
+    if (!groups) return `<div class="jg-chips jg-chips--roadmap">${back}</div>`;
+
+
+
+    /* 기본은 **지금 보고 있는 직업의 묶음**이다. 칩으로 다른 묶음을 누르면 그쪽
+
+       목록으로 갈아탄다(로드맵은 직업을 고를 때까지 그대로 남는다). */
+
+    const own = JobGroups.groupOfJob(currentMajor, middle.code, job.name);
+
+    const shown =
+
+      groups.find((g) => g.id === currentGroup) || own || groups[0];
+
+
+
+    return `
+
+      <div class="jg-chips jg-chips--roadmap">
+
+        ${groups
+
+          .map(
+
+            (g) => `<button class="jg-chip ${g.id === shown.id ? 'is-on' : ''}"
+
+              onclick="CareerPage.selectGroup('${g.id}')">${g.no}. ${esc(g.name)}</button>`,
+
+          )
+
+          .join('')}
+
+        ${back}
+
+      </div>
+
+      ${groupBlock(shown, middle)}`;
+
+  }
+
+
+
+  function jobRow(job, no) {
+
+    return `
+
+      <button class="jg-job ${currentJob === job.code ? 'is-on' : ''}"
+
+              onclick="CareerPage.selectJob('${job.code}')">
+
+        <span class="jg-job-no">${no}.</span>
+
+        <span class="jg-job-name">${esc(job.name)}</span>
+
+        <span class="jg-job-wage">${KECO.wageText(job.avgWage)}</span>
+
+      </button>`;
+
+  }
+
+
 
   /* 페이지 번호 줄. 페이지가 많아지면 현재 위치 주변만 보여주고 양끝을 남긴다
      (1 … 4 5 6 … 12 형태) — 번호를 다 깔면 줄이 넘친다. */
@@ -422,6 +675,7 @@ window.CareerPage = (() => {
        임금 정보의 출처·한계(전체 재직자 기준·신입 초봉 아님)는 직업 카드 쪽으로
        남겨 둔다. */
     const head = `
+      ${jobSwitcher(middle, job)}
       ${corpTabBar(corpCounts)}
       <div class="section-title">${esc(middle.name)} 선배 스펙
         ${agg.empty ? '' : `<span class="scope-tag">${esc(scope)} · n = ${agg.count}명</span>`}
@@ -746,6 +1000,7 @@ window.CareerPage = (() => {
       currentMiddle = code;
       currentJob = null;
       jobPage = 1;
+      currentGroup = null;      // 분류가 바뀌면 남의 갈래 묶음이 열려 있으면 안 된다
       specTab = 'quant';
       render({ anchor: '.job-grid, .empty-block' });
     },
@@ -770,6 +1025,18 @@ window.CareerPage = (() => {
       }
       render();
     },
+    /* 묶음 칩. 같은 칩을 다시 누르면 전체로 돌아간다 — 좁힌 것을 푸는 길이
+       칩 줄 안에 있어야 '전체' 를 찾아 헤매지 않는다. */
+    selectGroup(id) {
+      currentGroup = currentGroup === id ? null : id;
+      render({ anchor: '.jg-chips, .job-grid' });
+    },
+    /* 로드맵에서 직업 목록으로 되돌아간다. 묶음은 그대로 둔다 — 방금 보던 갈래를
+       다시 찾게 하면 고른 이유를 잃는다. */
+    backToJobs() {
+      currentJob = null;
+      render({ anchor: '.jg-chips, .job-grid' });
+    },
     goToCas() { navigate('dashboard'); },
     goJobPage(n) {
       jobPage = Math.max(1, n);
@@ -785,6 +1052,7 @@ window.CareerPage = (() => {
       if (n === 2) {
         currentJob = null;
       }
+      if (n === 1) currentGroup = null;
       render({ toTop: n === 1 });
     },
     switchTab(t) {

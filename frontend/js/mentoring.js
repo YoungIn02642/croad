@@ -11,213 +11,79 @@ const PALETTE = {
   blue:   { bg:'#E6F1FB', ink:'#0C447C' },
   teal:   { bg:'#E0F2F1', ink:'#0F5C57' },
 };
-const TAGCOLOR = {
-  'IT·개발':   { bg:'#EEEDFE', ink:'#3C3489' },
-  '핀테크':    { bg:'#E1F5EE', ink:'#085041' },
-  '컨설팅':    { bg:'#FAECE7', ink:'#712B13' },
-  '창업':      { bg:'#FBEAF0', ink:'#72243E' },
-  '대기업':    { bg:'#E6F1FB', ink:'#0C447C' },
-  '마케팅':    { bg:'#FBF1DF', ink:'#8A5A12' },
-};
 
-/* ── mentors (search + profile) ─────────────────────────── */
-const MENTORS = [
-  {
-    id:'kim', name:'김민준', cohort:'20학번', tag:'IT·개발', cat:'IT·개발', pal:'purple',
-    company:'카카오', role:'프론트엔드 엔지니어', cas:94, sessions:12, rating:4.8, similarity:78,
-    path:'멋사 11기 → 네이버 인턴 → 카카오 FE',
-    years:2, modes:['온라인'],
-    specialties:['프론트엔드','React','비전공 취업','포트폴리오'],
-    intro:'부트츠칔프로 시작해 네이버 인턴을 거쳐 카카오 FE로 합격했어요. 비전공·신입 포트폴리오 준비를 도와드려요.',
-    timeline:[
-      { c:'#534AB7', t:'카카오 FE 엔지니어',    d:'2024.03 ~ 현재', s:'커머스 플랫폼 프론트엔드 개발' },
-      { c:'#AFA9EC', t:'네이버 인턴십',         d:'2023.07 ~ 2023.08', s:'사내 디자인 시스템 컴포넌트 구축' },
-      { c:'#CECBF6', t:'멋쟁이사자처럼 11기',   d:'2022.03 ~ 2022.12', s:'웹 서비스 2건 출시, 해커톤 수상' },
-      { c:'#E0DCF7', t:'컴퓨터공학과 입학',     d:'2020.03', s:'' },
-    ],
-  },
-  {
-    id:'lee', name:'이서연', cohort:'19학번', tag:'핀테크', cat:'금융', pal:'green',
-    company:'토스', role:'데이터 분석가', cas:91, sessions:9, rating:4.9, similarity:71,
-    path:'통계학회 → 신한 인턴 → 토스 DA',
-    years:3, modes:['온라인','오프라인'],
-    specialties:['데이터분석','SQL','A/B테스트','통계'],
-    intro:'통계학과에서 데이터 직무로 진로를 잡았어요. 분석 포트폴리오와 면접 준비를 함께 준비해요.',
-    timeline:[
-      { c:'#16855f', t:'토스 데이터 분석가',    d:'2023.09 ~ 현재', s:'결제 퍼널 분석 및 A/B 테스트 설계' },
-      { c:'#7FCBB3', t:'신한은행 인턴십',       d:'2022.12 ~ 2023.02', s:'리테일 고객 세그먼트 분석' },
-      { c:'#CDE9DE', t:'통계분석 학회',         d:'2021.03 ~ 2022.06', s:'학회장, 캐글 대회 입상' },
-      { c:'#E3F2EC', t:'통계학과 입학',         d:'2019.03', s:'' },
-    ],
-  },
-  {
-    id:'park', name:'박지훈', cohort:'18학번', tag:'컨설팅', cat:'컨설팅', pal:'orange',
-    company:'맥킨지', role:'전략 컨설턴트', cas:96, sessions:21, rating:4.7, similarity:64,
-    path:'경영학회 → BCG 인턴 → 맥킨지',
-    years:4, modes:['오프라인','온라인'],
-    specialties:['전략컨설팅','케이스면접','자소서첨삭','문제해결'],
-    intro:'경영학회에서 케이스 스터디를 운영하며 컨설팅 커리어를 준비했어요. 케이스 면접과 자소서 프레임을 집어드려요.',
-    timeline:[
-      { c:'#B85C2E', t:'맥킨지 전략 컨설턴트',  d:'2022.07 ~ 현재', s:'대기업 신사업 전략 프로젝트 다수' },
-      { c:'#D99B73', t:'BCG 인턴십',           d:'2021.06 ~ 2021.08', s:'리테일 디지털 전환 케이스' },
-      { c:'#EBC8B0', t:'경영전략 학회',         d:'2019.03 ~ 2021.05', s:'케이스 스터디 운영, 공모전 대상' },
-      { c:'#F4E2D5', t:'경영학과 입학',         d:'2018.03', s:'' },
-    ],
-  },
-  {
-    id:'choi', name:'최유진', cohort:'17학번', tag:'창업', cat:'창업', pal:'pink',
-    company:'스타트업', role:'대표 · CEO', cas:89, sessions:7, rating:4.6, similarity:52,
-    path:'창업동아리 → 시드 투자 → 시리즈 A',
-    years:5, modes:['온라인'],
-    specialties:['창업','IR·투자유치','B2B SaaS','팀빌딩'],
-    intro:'교내 창업동아리에서 시작해 시리즈 A까지 왜어냈어요. 창업 아이디어 검증과 투자 유치 경험을 나눠요.',
-    timeline:[
-      { c:'#B23A5E', t:'스타트업 창업 · CEO',   d:'2021.01 ~ 현재', s:'B2B SaaS, 시리즈 A 60억 유치' },
-      { c:'#D98FA9', t:'시드 투자 유치',        d:'2020.09', s:'엔젤 라운드 5억 원' },
-      { c:'#EFC8D5', t:'교내 창업동아리',       d:'2018.03 ~ 2020.08', s:'대표, 창업경진대회 우승' },
-      { c:'#F7E2EA', t:'경영학과 입학',         d:'2017.03', s:'' },
-    ],
-  },
-  {
-    id:'jung', name:'정태윤', cohort:'19학번', tag:'대기업', cat:'대기업', pal:'blue',
-    company:'삼성전자', role:'백엔드 엔지니어', cas:90, sessions:11, rating:4.8, similarity:69,
-    path:'알고리즘 동아리 → 삼성 인턴 → 정직원',
-    years:3, modes:['온라인'],
-    specialties:['백엔드','대용량 트래픽','CS 전공지식','코딩테스트'],
-    intro:'알고리즘 동아리를 거쳐 삼성전자 백엔드로 입사했어요. 코딩테스트와 CS 면접을 집중 코칭해드려요.',
-    timeline:[
-      { c:'#1F5C99', t:'삼성전자 백엔드',       d:'2023.06 ~ 현재', s:'대용량 트래픽 서버 개발' },
-      { c:'#6FA3CC', t:'삼성 SW 인턴십',        d:'2022.07 ~ 2022.08', s:'사내 플랫폼 API 개발' },
-      { c:'#B6D3E8', t:'알고리즘 동아리',       d:'2020.03 ~ 2022.06', s:'ICPC 본선 진출' },
-      { c:'#DCEAF4', t:'컴퓨터공학과 입학',     d:'2019.03', s:'' },
-    ],
-  },
-  {
-    id:'han', name:'한소희', cohort:'18학번', tag:'마케팅', cat:'마케팅', pal:'teal',
-    company:'배달의민족', role:'브랜드 마케터', cas:88, sessions:8, rating:4.7, similarity:58,
-    path:'마케팅 학회 → CJ 인턴 → 우아한형제들',
-    years:4, modes:['온라인','오프라인'],
-    specialties:['브랜드마케팅','캐페인기획','SNS마케팅','공모전'],
-    intro:'마케팅 학회와 CJ 인턴을 거쳐 배민 브랜드 마케터가 됐어요. 직무 탐색과 공모전 포트폴리오를 도와드려요.',
-    timeline:[
-      { c:'#0F6B63', t:'우아한형제들 마케터',   d:'2022.09 ~ 현재', s:'브랜드 캠페인 기획 및 운영' },
-      { c:'#5FAEA4', t:'CJ제일제당 인턴십',     d:'2021.07 ~ 2021.09', s:'신제품 SNS 마케팅' },
-      { c:'#AED9D2', t:'마케팅 연합 학회',      d:'2019.03 ~ 2021.06', s:'공모전 3회 수상' },
-      { c:'#DBEFEC', t:'미디어학과 입학',       d:'2018.03', s:'' },
-    ],
-  },
-];
+/* ── 멘토 (멘토 찾기 · 멘토 상세) ────────────────────────────
+   ── 예전에는 여기 가짜 멘토 102명이 박혀 있었다 (2026-08-22 걷어냄) ──
+   손으로 쓴 6명 + 그걸 NCS 24분야로 불려 만든 96명이었고, 별점·후기·상담 횟수·
+   예약 가능 일정까지 멘토 id 로 난수를 만들어 채웠다. 그래서 두 가지가 동시에 틀렸다.
 
-const CATEGORIES = ['사업관리','경영·회계·사무','금융·보험','교육·자연·사회과학','법률·경찰·소방·교도·국방','보건·의료','사회복지·종교','문화·예술·디자인·방송','운전·운송','영업판매','경비·청소','이용·숙박·여행·오락·스포츠','음식서비스','건설','기계','재료','화학·바이오','섬유·의복','전기·전자','정보통신','식품가공','인쇄·목재·가구·공예','환경·에너지·안전','농림어업'];
-const CAT_NO = {}; CATEGORIES.forEach((c,i)=>{ CAT_NO[c] = String(i+1).padStart(2,'0'); });
+     ① **멘토가 멘토 페이지를 채워도 목록에 안 떴다.** 화면이 서버를 보지 않았다
+        (사용자 지적). 실제 회원과 화면이 아예 이어져 있지 않았던 것이다.
+     ② 후배가 그 별점과 후기를 **진짜로 읽었다.** 4.8점·후기 12건은 화면을 채우려고
+        만든 숫자인데, 멘토를 고르는 근거로 쓰인다.
 
-/* ── NCS 24 분야별 멘토 데이터 풀 ────────────────────────────
-   이름을 NCS 로 두면 js/ncs.js 의 window.NCS(직업 분류 카탈로그)를 가린다.
-   최상위 const 는 window 에 붙지 않으면서 전역 스코프를 차지하기 때문. */
-const MENTOR_POOL = {
-  '사업관리':{roles:['사업기획 담당','PMO','경영기획','사업개발'],cos:['대기업 전략실','종합상사','공기업 기획처','IT기업 기획실','스타트업 사업팀'],specs:[['사업기획','사업계획서','예산관리','KPI설계'],['PMO','프로젝트관리','일정관리','리스크관리'],['경영기획','전략수립','시장분석','IR']],topics:['사업기획 직무 취업 준비 상담','경영기획 자소서·직무 이해','PMO·프로젝트관리 커리어 상담']},
-  '경영·회계·사무':{roles:['재무회계 담당','인사(HR) 담당','경영관리','총무','전략 컨설턴트'],cos:['회계법인','대기업 재무팀','컨설팅펌','중견기업 경영지원','공공기관'],specs:[['재무회계','결산','세무','ERP'],['관리회계','원가','예산','엑셀모델링'],['인사','채용','노무','급여'],['전략컨설팅','케이스면접','자소서첨삭','문제해결']],topics:['회계·재무 직무 취업 상담','인사(HR) 직무 준비','컨설팅 케이스 면접 코칭']},
-  '금융·보험':{roles:['데이터 분석가','은행원','IB 애널리스트','퀀트','핀테크 PM','보험계리사'],cos:['시중은행','증권사','자산운용사','보험사','핀테크','카카오뱅크'],specs:[['데이터분석','SQL','통계','태블로'],['퀀트','파이썬','금융공학','리스크'],['IB','재무모델링','밸류에이션','엑셀'],['계리','보험수리','리스크','통계']],topics:['금융권 취업 자소서·직무 상담','데이터 분석가 커리어·포폴 첨삭','IB·자산운용 취업 준비']},
-  '교육·자연·사회과학':{roles:['교사','교육기획','연구원','에듀테크 기획'],cos:['학교','교육기업','연구소','에듀테크 스타트업','공공연구원'],specs:[['교직','임용','수업설계','교육과정'],['교육기획','콘텐츠','커리큘럼','LMS'],['연구','논문','데이터분석','실험설계']],topics:['임용·교직 진로 상담','교육기업(에듀테크) 취업 준비','대학원·연구직 진로 상담']},
-  '법률·경찰·소방·교도·국방':{roles:['법무 담당','공무원','경찰관','컴플라이언스'],cos:['로펌','기업 법무팀','공공기관','정부부처'],specs:[['법무','계약검토','컴플라이언스','계약서'],['공무원시험','행정법','PSAT','면접'],['경찰·소방','체력','형사법','면접']],topics:['법무 직무·로스쿨 진로 상담','공무원·공공기관 취업 준비','경찰·소방 채용 준비']},
-  '보건·의료':{roles:['간호사','제약 MR','의료기기 RA','병원행정','임상연구'],cos:['대학병원','제약사','의료기기사','바이오기업','CRO'],specs:[['간호','국가고시','병원실무','케이스'],['제약영업','MR','디테일링','제품지식'],['의료기기','RA','인허가','품질'],['임상','QA','GMP','밸리데이션']],topics:['간호·보건 국가고시·취업 상담','제약·바이오 취업 준비','의료기기 인허가(RA) 직무 상담']},
-  '사회복지·종교':{roles:['사회복지사','상담사','NGO 활동가','복지기획'],cos:['복지관','공공기관','NGO','재단','상담센터'],specs:[['사회복지','자격증','사례관리','실습'],['상담','심리','케이스','코칭'],['NGO','모금','캠페인','기획']],topics:['사회복지사 취업·실습 상담','상담·심리 진로 상담','NGO·비영리 취업 준비']},
-  '문화·예술·디자인·방송':{roles:['UX 디자이너','브랜드 디자이너','방송 PD','콘텐츠 기획','영상 편집'],cos:['디자인 에이전시','방송사','콘텐츠 기업','게임사','미디어 스타트업'],specs:[['UX/UI','피그마','포트폴리오','프로토타입'],['브랜드디자인','BX','그래픽','아이덴티티'],['영상','편집','촬영','기획'],['콘텐츠기획','SNS','카피','유튜브']],topics:['디자인 포트폴리오 리뷰·취업 상담','방송·콘텐츠 PD 취업 준비','영상·크리에이터 커리어 상담']},
-  '운전·운송':{roles:['물류기획','운송관리','항공운항','모빌리티 PM'],cos:['물류기업','항공사','택배사','모빌리티 스타트업','해운사'],specs:[['물류','SCM','운송','재고관리'],['항공','운항','지상직','서비스'],['모빌리티','운영','기획','데이터']],topics:['물류·SCM 직무 취업 상담','항공사 취업 준비','모빌리티 스타트업 커리어']},
-  '영업판매':{roles:['B2B 영업','MD','영업기획','세일즈'],cos:['제조기업','유통기업','커머스','IT기업','FMCG'],specs:[['B2B영업','제안','고객관리','협상'],['MD','상품기획','소싱','매입'],['세일즈','영업기획','실적관리','CRM']],topics:['영업·세일즈 직무 취업 상담','MD·상품기획 취업 준비','B2B 영업 커리어 상담']},
-  '경비·청소':{roles:['시설관리','안전관리','경비운영','환경관리'],cos:['시설관리기업','빌딩관리','공공기관','제조현장'],specs:[['시설관리','전기','설비','안전'],['산업안전','위험성평가','자격증','점검'],['경비·보안','관제','운영','대응']],topics:['시설·안전관리 직무 취업 상담','산업안전 자격·취업 준비','시설관리 커리어 상담']},
-  '이용·숙박·여행·오락·스포츠':{roles:['호텔리어','여행상품 기획','스포츠 마케팅','레저 운영'],cos:['호텔','여행사','스포츠구단','레저기업','리조트'],specs:[['호텔','객실','F&B','서비스'],['여행','상품기획','OP','인솔'],['스포츠마케팅','이벤트','스폰서','운영']],topics:['호텔·서비스직 취업 상담','여행·항공 서비스 취업 준비','스포츠 마케팅 커리어']},
-  '음식서비스':{roles:['F&B 매니저','외식기획','조리·셰프','프랜차이즈 SV'],cos:['외식기업','프랜차이즈','호텔 F&B','식품기업','카페 브랜드'],specs:[['F&B','매장운영','서비스','관리'],['외식기획','메뉴','브랜드','운영'],['조리','위생','메뉴개발','자격증']],topics:['외식·F&B 직무 취업 상담','프랜차이즈 운영 커리어','조리·셰프 진로 상담']},
-  '건설':{roles:['건축설계','시공관리','토목엔지니어','건설안전'],cos:['건설사','설계사무소','엔지니어링','공기업','디벨로퍼'],specs:[['건축설계','CAD','BIM','인허가'],['시공','공정관리','현장','안전'],['토목','구조','측량','적산'],['건설안전','산업안전','자격증','점검']],topics:['건설·시공관리 직무 취업 상담','건축설계 포트폴리오 상담','건설안전기사·취업 준비']},
-  '기계':{roles:['기계설계','생산기술','품질엔지니어','설비엔지니어'],cos:['자동차사','중공업','기계제조','부품사','로봇기업'],specs:[['기계설계','CATIA','공차','도면'],['생산기술','공정','자동화','라인'],['품질','측정','SPC','불량분석']],topics:['기계설계 직무 취업 상담','생산기술·설비 취업 준비','품질엔지니어 커리어 상담']},
-  '재료':{roles:['재료연구원','금속엔지니어','소재개발','품질분석'],cos:['철강사','소재기업','배터리사','반도체소재','세라믹기업'],specs:[['금속','열처리','물성','분석'],['소재개발','실험','평가','특성'],['품질','신뢰성','분석','불량']],topics:['소재·재료 연구직 취업 상담','금속·신소재 취업 준비','배터리 소재 커리어 상담']},
-  '화학·바이오':{roles:['공정엔지니어','연구원','QA/QC','바이오 생산'],cos:['화학사','제약사','바이오기업','정유사','배터리사'],specs:[['화공','공정','플랜트','안전'],['바이오','세포배양','생산','GMP'],['QA/QC','분석','밸리데이션','인허가']],topics:['화학·화공 직무 취업 상담','바이오·제약 생산직 준비','QA/QC 직무 커리어 상담']},
-  '섬유·의복':{roles:['패션 MD','생산·패턴','소재기획','리테일 MD'],cos:['패션기업','의류 브랜드','섬유기업','리테일','SPA브랜드'],specs:[['패션MD','상품기획','소싱','트렌드'],['생산','패턴','QC','공장관리'],['소재','원단','기획','개발']],topics:['패션 MD 취업 상담','의류 생산·소싱 직무 준비','패션 브랜드 커리어 상담']},
-  '전기·전자':{roles:['반도체 엔지니어','회로설계','하드웨어','공정엔지니어'],cos:['삼성전자','SK하이닉스','LG전자','전장부품사','디스플레이사'],specs:[['반도체','공정','소자','수율'],['회로설계','PCB','아날로그','디지털'],['하드웨어','임베디드','펌웨어','테스트']],topics:['반도체 공정·소자 직무 취업 상담','회로·하드웨어 설계 취업 준비','전기전자 대기업 인적성·면접']},
-  '정보통신':{roles:['백엔드 엔지니어','프론트엔드 엔지니어','데이터 엔지니어','보안 엔지니어','네트워크'],cos:['네이버','카카오','라인','토스','통신사','쿠팡'],specs:[['백엔드','Spring','JPA','대용량'],['프론트엔드','TypeScript','React','포트폴리오'],['데이터','파이프라인','SQL','클라우드'],['보안','네트워크','침해대응','자격증']],topics:['개발자 취업 모의면접·포폴 리뷰','코딩테스트·CS 전공지식 코칭','비전공 개발 취업 로드맵']},
-  '식품가공':{roles:['식품연구원','품질관리','생산관리','식품 MD'],cos:['식품기업','유가공사','제과사','급식기업','음료기업'],specs:[['식품개발','관능','배합','공정'],['QA/QC','HACCP','위생','분석'],['생산관리','공정','라인','수율']],topics:['식품 연구개발 직무 취업 상담','식품 품질관리(HACCP) 준비','식품기업 취업 커리어 상담']},
-  '인쇄·목재·가구·공예':{roles:['가구디자인','제품기획','생산관리','공예작가'],cos:['가구기업','인테리어사','제조사','공방','리빙 브랜드'],specs:[['가구디자인','3D','도면','목공'],['제품기획','소재','생산','QC'],['공예','핸드메이드','브랜딩','공방운영']],topics:['가구·제품 디자인 취업 상담','제조·생산관리 직무 준비','공예·창작 커리어 상담']},
-  '환경·에너지·안전':{roles:['환경엔지니어','안전관리자','에너지 기획','ESG 담당'],cos:['환경기업','발전사','엔지니어링','대기업 ESG','신재생기업'],specs:[['환경','수질','대기','폐기물'],['산업안전','위험성평가','자격증','점검'],['에너지','신재생','플랜트','효율'],['ESG','탄소','보고서','평가']],topics:['환경·안전 직무 취업 상담','산업안전기사·안전관리자 준비','에너지·ESG 커리어 상담']},
-  '농림어업':{roles:['스마트팜 기획','농식품 MD','산림기사','수산기획'],cos:['농식품기업','스마트팜','농어촌공사','협동조합','애그테크 스타트업'],specs:[['스마트팜','ICT','재배','데이터'],['농식품유통','MD','물류','수출'],['산림','조경','측량','자격증']],topics:['스마트팜·애그테크 취업 상담','농식품 유통·MD 직무 준비','산림·수산 공기업 취업 준비']},
-};
+   지금은 서버가 원본이다(GET /api/mentors → repo.mentors.list).
+   **프로필을 채운 멘토만** 내려온다 — 소개글도 전문분야도 없는 카드를 눌러 봐야
+   후배에게 아무것도 없기 때문이다.
 
-/* 기존 6명을 NCS 분야로 재태깅 */
-const CAT_REMAP = {'IT·개발':'정보통신','금융':'금융·보험','컨설팅':'경영·회계·사무','마케팅':'문화·예술·디자인·방송','대기업':'전기·전자','창업':'사업관리'};
-MENTORS.forEach((m,i)=>{
-  if (CAT_REMAP[m.cat]) { m.cat = CAT_REMAP[m.cat]; m.tag = m.cat; }
-  m.topic = m.topic || (MENTOR_POOL[m.cat]?.topics||['커리어 상담'])[0];
-  m.reviews = m.reviews || Math.max(6, Math.round(m.sessions*1.6 + (i*3)%11));
-});
+   ── 없는 값은 만들지 않는다 (사용자 결정) ──
+   별점·후기 수·상담 인원·학번·상담 주제는 채울 데이터가 없다(멘토링 신청 0건).
+   0으로 채우거나 '아직 없음' 을 늘어놓는 대신 **칸 자체를 없앴다.** 카드에는
+   근거가 있는 것만 남는다: 이름 · 직무 · 회사 · 경력 연차 · 전문분야 · 소개글. */
+let MENTORS = [];
+let mentorsLoaded = false;
+let mentorsError = null;
 
-/* NCS 24개 분야 × 4명 멘토 자동 생성 */
-(function expandMentorPool(){
-  const FIRST = ['서준','도윤','하은','지아','시우','예린','우진','수아','건우','다은','현우','유나','재원','소연','민서','지호','채원','승현','가은','태호','수빈','동현','예은','준서','하린','시윤','로운','지안','서아','유준'];
-  const LAST  = ['강','조','윤','장','임','한','오','서','신','권','황','안','송','류','전','홍','고','문','양','손','배','백','허','유','남','심'];
-  const PALS = ['purple','green','orange','pink','blue','teal'];
-  const MODES = [['온라인'],['온라인','오프라인'],['오프라인','온라인']];
-  let seed = 7;
-  const rnd = (n)=>{ seed = (seed*9301 + 49297) % 233280; return Math.floor((seed/233280)*n); };
-  let idx = 0;
-  CATEGORIES.forEach(cat=>{
-    const F = MENTOR_POOL[cat]; if (!F) return;
-    for (let k=0; k<4; k++){
-      idx++;
-      const name = LAST[rnd(LAST.length)] + FIRST[rnd(FIRST.length)];
-      const role = F.roles[k % F.roles.length];
-      const company = F.cos[(k+idx) % F.cos.length];
-      const specialties = F.specs[k % F.specs.length];
-      const years = 1 + rnd(6);
-      const sessions = 5 + rnd(30);
-      const rating = Math.round((42 + rnd(8)))/10;
-      const cohort = (15 + rnd(7)) + '학번';
-      MENTORS.push({
-        id: 'g'+idx, name, cohort, tag: cat, cat, pal: PALS[idx % PALS.length],
-        company, role, cas: 80+rnd(18), sessions, rating,
-        similarity: 45+rnd(45), years, modes: MODES[rnd(MODES.length)],
-        reviews: 5 + rnd(120), specialties,
-        topic: F.topics[k % F.topics.length],
-        path: `${specialties[0]} 준비 → ${company} ${role}`,
-        intro: `${company}에서 ${role}로 일하고 있어요. ${specialties[0]}·${specialties[1]} 중심으로 취업 준비를 도와드려요.`,
-        timeline: [
-          { c:'#534AB7', t:`${company} ${role}`, d:`${2026-years}.03 ~ 현재`, s:`${specialties[0]} 실무 담당` },
-          { c:'#AFA9EC', t:'현직 전 인턴십', d:`${2025-years}.07 ~ ${2025-years}.08`, s:`${specialties[1]} 관련 인턴` },
-          { c:'#CECBF6', t:'학회 · 동아리 활동', d:`${2023-years}.03 ~ ${2025-years}.02`, s:`${specialties[2]||specialties[0]} 프로젝트 수행` },
-          { c:'#E0DCF7', t:`${cohort} 입학`, d:`20${cohort.slice(0,2)}.03`, s:'' },
-        ],
-      });
-    }
-  });
-})();
-
-/* ── 멘토 후기(리뷰) 생성 ────────────────────────────────── */
-const REVIEW_TEMPLATES = [
-  '{spec} 관련 질문에 정말 구체적으로 답해주셨어요. 준비 방향이 명확해졌습니다.',
-  '{company} 합격까지의 과정을 솔직하게 들려주셔서 큰 도움이 됐어요.',
-  '포트폴리오 피드백이 날카로웠어요. 바로 수정해서 서류 합격했습니다!',
-  '면접에서 자주 나오는 질문을 짚어주셔서 실전에서 당황하지 않았어요.',
-  '막연했던 {role} 직무가 이제 확실히 그려져요. 감사합니다.',
-  '현직자 시선의 조언이라 인터넷 정보와는 차원이 달랐습니다.',
-  '자소서 첨삭 덕분에 지원 동기가 훨씬 설득력 있어졌어요.',
-  '실무에서 쓰는 툴과 공부 우선순위를 알려주셔서 시간을 아꼈어요.',
-  '30분이 짧게 느껴질 만큼 알찬 상담이었어요. 재신청하고 싶어요.',
-  '{spec} 공부를 어디서부터 시작할지 막막했는데 로드맵을 잡아주셨어요.',
-];
-const REVIEW_FIRST = ['민지','서현','준영','지우','현서','예나','도현','수민','태민','하윤','지훈','유진','시원','채은','건희','나연'];
-function reviewsFor(m){
-  let h = 0; for (const ch of m.id) h = (h*31 + ch.charCodeAt(0)) % 100000;
-  const rnd = (n)=>{ h = (h*9301 + 49297) % 233280; return Math.floor((h/233280)*n); };
-  const count = 3 + rnd(4); // 3~6개
-  const spec = (m.specialties&&m.specialties[0])||'직무';
-  const out = [];
-  for (let i=0;i<count;i++){
-    const name = REVIEW_FIRST[rnd(REVIEW_FIRST.length)];
-    const cohort = (18 + rnd(6)) + '학번';
-    const tmpl = REVIEW_TEMPLATES[(rnd(REVIEW_TEMPLATES.length))];
-    const text = tmpl.replace('{spec}', spec).replace('{company}', m.company).replace('{role}', m.role);
-    const rating = rnd(10) < 7 ? 5 : 4;
-    const mo = 1 + rnd(6), dy = 1 + rnd(27);
-    out.push({ name, cohort, rating, text, date: `2026.${String(mo).padStart(2,'0')}.${String(dy).padStart(2,'0')}` });
+async function loadMentors() {
+  if (mentorsLoaded) return MENTORS;
+  try {
+    MENTORS = await DB.mentors();
+    mentorsError = null;
+  } catch (e) {
+    MENTORS = [];
+    mentorsError = e.message || '멘토 목록을 불러오지 못했어요.';
   }
+  mentorsLoaded = true;
+  return MENTORS;
+}
+
+/* 멘토가 새로 프로필을 채웠을 수 있으므로 다음에 들어올 때 다시 받는다.
+   멘토 페이지에서 저장한 뒤 '멘토 찾기'로 가면 바로 보여야 한다. */
+function invalidateMentors() { mentorsLoaded = false; }
+window.invalidateMentors = invalidateMentors;
+
+/* ── 분야 분류 ────────────────────────────────────────────────
+   커리어 로드맵·스펙 입력과 **같은 KECO 1차 분류**를 쓴다(사용자 결정).
+   예전에는 여기만 NCS 24분야였는데, 멘토 스펙에 실제로 저장되는 값은 KECO 라
+   둘을 잇는 번역표가 필요했다. 분류를 하나로 모으면 그 자리가 사라진다.
+
+   목록은 KECO.load() 가 받아 온다(비동기). 아직 안 왔으면 칩 없이 전체만 보여준다 —
+   분류를 못 받았다고 멘토 목록까지 막을 이유는 없다. */
+function mentorCategories() {
+  return (window.KECO && KECO.MAJORS) ? KECO.MAJORS() : [];
+}
+function categoryName(code) {
+  return mentorCategories().find(M => M.code === code)?.name || '';
+}
+
+/* 아바타 색 — 예전에는 시드 데이터에 pal 이 박혀 있었다. 실제 회원에는 그런 칸이
+   없고 만들 이유도 없어서, 아이디에서 결정론적으로 고른다(같은 사람은 늘 같은 색). */
+/* PAL_KEYS 는 아래 '내 멘토링' 쪽에서 이미 만들어 둔 것을 쓴다(같은 팔레트다).
+   const 라 선언은 뒤에 있지만, 이 함수는 화면을 그릴 때 불리므로 문제되지 않는다. */
+function palOf(id) {
+  let h = 0;
+  for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) % 997;
+  return PAL_KEYS[h % PAL_KEYS.length];
+}
+
+/* 예약 가능 일정 — 멘토가 멘토 페이지에서 연 날짜 그대로다(profiles.availability).
+   예전에는 멘토 id 로 난수를 굴려 만들었다. 후배가 그 시간에 신청을 넣어도
+   멘토는 그런 시간을 연 적이 없다. */
+function availabilityFor(m) {
+  const out = new Map();
+  (m?.availability || []).forEach(s => {
+    if (s?.date && Array.isArray(s.times) && s.times.length) out.set(s.date, [...s.times]);
+  });
   return out;
 }
 
@@ -283,7 +149,14 @@ function tlDetails(s){
   return `<ul class="tl-detail">${items.map(x=>`<li>${escapeHTML(x)}</li>`).join('')}</ul>`;
 }
 function avatarStyle(pal){ const p = PALETTE[pal]||PALETTE.purple; return `background:${p.bg};color:${p.ink};`; }
-function tagStyle(tag){ const c = TAGCOLOR[tag]||TAGCOLOR['IT·개발']; return `background:${c.bg};color:${c.ink};`; }
+/* 멘토가 사진을 올렸으면 사진, 아니면 이름 첫 글자다.
+   사진은 profiles.avatar 의 data: URI 라 따로 받아올 것이 없다. */
+function avatarHtml(m, cls){
+  if (m.avatar) {
+    return `<img class="avatar ${cls} avatar--img" src="${escapeHTML(m.avatar)}" alt="" loading="lazy" />`;
+  }
+  return `<div class="avatar ${cls}" style="${avatarStyle(palOf(m.id))}">${escapeHTML(initial(m.name))}</div>`;
+}
 function starsHTML(n){
   let h = '<span class="stars">';
   for (let i=1;i<=5;i++) h += `<i class="ti ti-star-filled ${i<=Math.round(n)?'fill':''}"></i>`;
@@ -319,7 +192,7 @@ function onEnterMentoringPage(page){
     if (window.CASRadar) CASRadar.render();
     animateDashboard();
   }
-  if (page==='search')    renderSearch();
+  if (page==='search')    enterSearch();
   if (page==='mentoring') {
     // 내 멘토링 내역·메모·평점은 개인 데이터다. 비로그인 상태에서 예시(SEED)가
     // 마치 내 기록처럼 보이던 문제 → 로그인 게이트로 가린다.
@@ -704,21 +577,44 @@ window.renderRoadmapNext = renderRoadmapNext;
 let searchFilter = '전체';
 let searchQuery = '';
 
+/* 멘토 찾기에 들어올 때 — 목록과 분류를 받아 오고 나서 그린다.
+   예전에는 배열이 파일에 박혀 있어서 그냥 renderSearch() 만 부르면 됐다.
+
+   ── 먼저 '불러오는 중'을 띄운다 ──
+   기다리는 동안 아무것도 없으면 '멘토가 없는 화면' 과 구분되지 않는다.
+   그 순간에 나가 버리는 사람이 생긴다. */
+async function enterSearch(){
+  const grid = $('#mentor-grid');
+  if (grid && !MENTORS.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="t">멘토를 불러오는 중…</div></div>`;
+  }
+  /* 분류(KECO)는 200KB 라 다른 화면에서 이미 받았을 수 있다. KECO.load() 는
+     두 번 불러도 한 번만 받는다(keco.js). 실패해도 목록은 그려야 한다. */
+  await Promise.all([loadMentors(), (window.KECO ? KECO.load().catch(()=>{}) : null)]);
+  initSearchFilters();
+  renderSearch();
+}
+
+/* 필터 선택지는 **지금 있는 멘토에서 뽑는다.** 예전에는 가짜 멘토 102명에서
+   뽑아서, 목록에 없는 회사·전문분야가 드롭다운에 가득했다(고르면 0명).
+   분야 칩만 KECO 분류 전체를 깐다 — 아직 멘토가 없는 분야도 "여긴 없구나" 가
+   보여야 하고, 칩이 멘토 수에 따라 늘었다 줄었다 하면 화면이 흔들린다. */
 function initSearchFilters(){
   const chipBox = $('#filter-chips');
   if (chipBox){
+    const cats = mentorCategories();
     chipBox.innerHTML = `<span class="chip on" data-cat="전체" onclick="setFilter('전체')">전체</span>` +
-      CATEGORIES.map(c=>`<span class="chip" data-cat="${c}" onclick="setFilter('${c}')"><span class="chip-no">${CAT_NO[c]}</span>${c}</span>`).join('');
+      cats.map(M=>`<span class="chip" data-cat="${M.code}" onclick="setFilter('${M.code}')"><span class="chip-no">${String(M.no).padStart(2,'0')}</span>${escapeHTML(M.name)}</span>`).join('');
     chipBox.addEventListener('scroll', updateChipsArrows);
     initChipsDrag();
     setTimeout(updateChipsArrows, 0);
   }
-  const companies = [...new Set(MENTORS.map(m=>m.company))];
+  const companies = [...new Set(MENTORS.map(m=>m.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
   const cSel = $('#f-company');
-  if (cSel) cSel.innerHTML = `<option value="all">전체</option>` + companies.map(c=>`<option value="${c}">${c}</option>`).join('');
-  const specs = [...new Set(MENTORS.flatMap(m=>m.specialties||[]))];
+  if (cSel) cSel.innerHTML = `<option value="all">전체</option>` + companies.map(c=>`<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`).join('');
+  const specs = [...new Set(MENTORS.flatMap(m=>m.specialties||[]))].sort((a,b)=>a.localeCompare(b,'ko'));
   const sSel = $('#f-spec');
-  if (sSel) sSel.innerHTML = `<option value="all">전체</option>` + specs.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if (sSel) sSel.innerHTML = `<option value="all">전체</option>` + specs.map(s=>`<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
 }
 let searchPage = 1;
 const PER_PAGE = 9;
@@ -734,31 +630,39 @@ function getFilteredMentors(){
   const sortBy   = $('#sort-by') ? $('#sort-by').value : 'recommend';
 
   let list = MENTORS.filter(m=>{
-    if (searchFilter!=='전체' && m.cat!==searchFilter) return false;
+    /* 분야는 멘토 스펙의 KECO 1차 코드로 거른다. 안 고른 멘토는 '전체' 에서만 보인다 —
+       임의로 아무 분야에 넣으면 그 분야를 고른 후배에게 엉뚱한 선배가 뜬다. */
+    if (searchFilter!=='전체' && m.jobMajor!==searchFilter) return false;
     if (fCompany!=='all' && m.company!==fCompany) return false;
-    if (fExp!=='all' && String(expBucket(m.years||1))!==fExp) return false;
+    /* 경력을 안 적은 멘토(years=null)는 연차 필터를 걸면 빠진다. 1년차로 치면
+       '경력 없음' 과 '1년차' 가 한 칸에 섞인다. */
+    if (fExp!=='all' && (m.years==null || String(expBucket(m.years))!==fExp)) return false;
     if (fMode!=='all' && !(m.modes||[]).includes(fMode)) return false;
     if (fSpec!=='all' && !(m.specialties||[]).includes(fSpec)) return false;
     if (searchQuery){
-      const hay = [m.name, m.company, m.role, m.tag, m.cat, m.topic, ...(m.specialties||[]), m.intro].join(' ').toLowerCase();
+      const hay = [m.name, m.company, m.role, categoryName(m.jobMajor),
+                   ...(m.specialties||[]), m.intro].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(searchQuery)) return false;
     }
     return true;
   });
+  /* ── 정렬에서 평점·멘토링 횟수를 없앴다 (2026-08-22) ──
+     그 두 값은 가짜 멘토에게만 있던 숫자다. 실제 멘토링 신청은 아직 0건이라
+     정렬 기준으로 쓸 수 있는 것이 없다. 남은 것은 경력 연차와 기본 순서다. */
   list = list.slice().sort((a,b)=>{
-    if (sortBy==='rating')   return b.rating - a.rating;
-    if (sortBy==='sessions') return b.sessions - a.sessions;
-    if (sortBy==='career')   return (b.years||0) - (a.years||0);
-    return (b.rating*10 + b.sessions) - (a.rating*10 + a.sessions); // 추천순
+    if (sortBy==='career') return (b.years||0) - (a.years||0);
+    /* 기본순 — 프로필을 더 채운 사람이 위로 온다. 후배가 눌러서 읽을 게 많은
+       카드가 먼저 보이는 것이고, 멘토에게는 채울수록 노출된다는 뜻이 된다. */
+    return profileFill(b) - profileFill(a);
   });
   return list;
 }
 
-function ratingStarsMini(n){
-  const full = Math.round(n);
-  let h = '';
-  for (let i=0;i<5;i++) h += `<i class="ti ti-star-filled" style="color:${i<full?'#FFB020':'#E3E3E6'}"></i>`;
-  return h;
+/* 프로필을 얼마나 채웠나. 정렬 기준으로만 쓴다(화면에 숫자로 나가지 않는다). */
+function profileFill(m){
+  return (m.intro ? 2 : 0) + Math.min(4, (m.specialties||[]).length)
+       + Math.min(3, (m.timeline||[]).length) + ((m.availability||[]).length ? 2 : 0)
+       + (m.company ? 1 : 0) + (m.role ? 1 : 0);
 }
 
 function renderSearch(){
@@ -767,7 +671,17 @@ function renderSearch(){
 
   const grid = $('#mentor-grid');
   if (!list.length){
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="ic"><i class="ti ti-search-off"></i></div><div class="t">조건에 맞는 멘토가 없어요</div><div class="d">필터를 바꿔 다시 시도해 보세요</div></div>`;
+    /* ── '아직 아무도 없다' 와 '필터에 안 걸린다' 를 구분한다 ──
+       멘토가 0명인데 "필터를 바꿔 보세요" 라고 하면, 후배는 있지도 않은 조건을
+       계속 바꿔 본다. 목록 자체가 비었을 때는 그렇게 말한다. */
+    grid.innerHTML = mentorsError
+      ? `<div class="empty-state" style="grid-column:1/-1"><div class="ic"><i class="ti ti-plug-connected-x"></i></div>
+           <div class="t">멘토 목록을 불러오지 못했어요</div><div class="d">${escapeHTML(mentorsError)}</div></div>`
+      : !MENTORS.length
+      ? `<div class="empty-state" style="grid-column:1/-1"><div class="ic"><i class="ti ti-user-search"></i></div>
+           <div class="t">아직 등록된 멘토가 없어요</div>
+           <div class="d">멘토가 마이페이지의 <b>멘토 페이지</b>에서 소개글과 전문분야를 채우면 여기에 나타납니다.</div></div>`
+      : `<div class="empty-state" style="grid-column:1/-1"><div class="ic"><i class="ti ti-search-off"></i></div><div class="t">조건에 맞는 멘토가 없어요</div><div class="d">필터를 바꿔 다시 시도해 보세요</div></div>`;
     $('#mentor-pager').innerHTML = '';
     return;
   }
@@ -777,27 +691,24 @@ function renderSearch(){
   const start = (searchPage-1)*PER_PAGE;
   const pageItems = list.slice(start, start+PER_PAGE);
 
+  /* 카드에는 **멘토가 실제로 적은 것만** 넣는다. 별점·후기·상담 인원·학번·상담 주제는
+     예전 가짜 멘토에게만 있던 값이라 통째로 뺐다(2026-08-22, 사용자 결정).
+     빈 값은 줄 자체를 그리지 않는다 — '—' 를 늘어놓으면 카드가 미완성으로 보인다. */
   grid.innerHTML = pageItems.map(m=>`
-    <div class="mentor-card" onclick="openProfile('${m.id}')">
-      <div class="mc-topic">${m.topic}</div>
+    <div class="mentor-card" onclick="openProfile('${escapeHTML(m.id)}')">
+      <div class="mc-topic">${escapeHTML(categoryName(m.jobMajor) || '분야 미정')}</div>
       <div class="mc-body">
         <div class="mc-info">
-          <div class="mc-name">${maskName(m.name)} · ${m.cohort}</div>
-          <div class="mc-line"><i class="ti ti-briefcase"></i>${m.role}</div>
-          <div class="mc-line"><i class="ti ti-stairs-up"></i>경력 ${m.years}년차</div>
-          <div class="mc-line mc-company"><i class="ti ti-building-skyscraper"></i>${m.company}</div>
+          <div class="mc-name">${maskName(m.name)}</div>
+          ${m.role ? `<div class="mc-line"><i class="ti ti-briefcase"></i>${escapeHTML(m.role)}</div>` : ''}
+          ${m.years ? `<div class="mc-line"><i class="ti ti-stairs-up"></i>경력 ${m.years}년차</div>` : ''}
+          ${m.company ? `<div class="mc-line mc-company"><i class="ti ti-building-skyscraper"></i>${escapeHTML(m.company)}</div>` : ''}
         </div>
-        <div class="avatar mc-avatar" style="${avatarStyle(m.pal)}">${initial(m.name)}</div>
+        ${avatarHtml(m, 'mc-avatar')}
       </div>
-      <div class="mc-rating">
-        <span class="mc-stars">${ratingStarsMini(m.rating)}</span>
-        <b>${m.rating.toFixed(1)}</b>
-        <span class="mc-count">(${m.reviews})</span>
-        <span class="mc-dot">·</span>
-        <span class="mc-mem"><i class="ti ti-users"></i>${m.sessions}명</span>
-      </div>
+      ${m.intro ? `<div class="mc-intro">${escapeHTML(m.intro)}</div>` : ''}
       <div class="mc-tagbox">
-        ${(m.specialties||[]).slice(0,4).map(s=>`<span class="mc-hashtag"># ${s}</span>`).join('')}
+        ${(m.specialties||[]).slice(0,4).map(s=>`<span class="mc-hashtag"># ${escapeHTML(s)}</span>`).join('')}
       </div>
     </div>`).join('');
 
@@ -869,34 +780,6 @@ function initChipsDrag(){
   }, true);
 }
 
-/* ── 멘토 예약 가능 일정 ──────────────────────────────────────
-   진짜 출처는 멘토 페이지에서 저장하는 profiles.availability 다.
-   **그런데 지금 MENTORS 는 전부 시드 목업이라 프로필이 없다**(파일 머리주석 참고).
-   그래서 후기(reviewsFor)와 같은 방식으로 멘토 id 에서 결정론적으로 만든다 —
-   같은 멘토는 언제 봐도 같은 일정이라 화면이 흔들리지 않는다.
-
-   목업을 실제 회원으로 바꿀 때 이 함수만 API 호출로 갈아끼우면 된다. */
-const SLOT_HOURS = ['10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '19:00', '20:00'];
-
-function availabilityFor(m) {
-  let h = 0; for (const ch of m.id) h = (h * 31 + ch.charCodeAt(0)) % 100000;
-  const rnd = n => { h = (h * 9301 + 49297) % 233280; return Math.floor((h / 233280) * n); };
-
-  const out = new Map();
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  /* 앞으로 6주. 멘토 페이지에서 3개월까지 열 수 있지만, 목업은 6주면 충분하다. */
-  for (let i = 1; i <= 42; i++) {
-    const d = new Date(today); d.setDate(d.getDate() + i);
-    if (d.getDay() === 0) continue;                 // 일요일은 비운다
-    if (rnd(10) < 5) continue;                      // 절반쯤만 연다
-    const times = SLOT_HOURS.filter(() => rnd(10) < 4);
-    if (!times.length) continue;
-    out.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-            times);
-  }
-  return out;
-}
-
 /* ════════════ MENTOR PROFILE ════════════ */
 let currentMentor = null;
 let selectedFormat = 0;
@@ -911,45 +794,72 @@ const FORMATS = [
   { id:'onsite60', ic:'ti-users',     name:'대면 60분', price:'45,000원', cost:45000 },
   { id:'text',     ic:'ti-message-2', name:'텍스트',    price:'12,000원', cost:12000 },
 ];
-function openProfile(id){
+/* 타임라인 점 색깔. 위에서 아래로 옅어진다(최근이 진하다).
+   예전에는 시드 데이터에 색이 박혀 있었는데, 멘토 페이지는 색을 받지 않는다. */
+const TL_DOTS = ['#534AB7', '#AFA9EC', '#CECBF6', '#E0DCF7'];
+
+/* 이 멘토가 열어 둔 멘토링 형식만 추린다. 하나도 안 골랐으면 전부 보여준다 —
+   형식을 안 고른 것이지 '아무것도 안 한다' 는 뜻은 아니다. */
+function offeredFormats(m){
+  const all = FORMATS.map((f, i) => ({ f, i }));
+  const picked = all.filter(({ f }) => (m.modes || []).includes(f.id));
+  return picked.length ? picked : all;
+}
+
+async function openProfile(id){
+  /* 주소로 바로 들어오면 목록을 아직 안 받았을 수 있다. 그때 여기서 받는다 —
+     예전에는 배열이 파일에 박혀 있어서 이럴 일이 없었다. */
+  await loadMentors();
   currentMentor = MENTORS.find(m=>m.id===id);
-  selectedFormat = 0;
   const m = currentMentor;
-  const reviews = reviewsFor(m);
-  const rvAvg = reviews.reduce((a,r)=>a+r.rating,0)/reviews.length;
+  /* 기본 선택은 **이 멘토가 여는 첫 형식**이다. 늘 0(화상 30분)으로 두면
+     화상을 안 하는 멘토에게 화상 신청이 만들어진다. */
+  selectedFormat = m ? offeredFormats(m)[0].i : 0;
+  if (!m){
+    $('#profile-body').innerHTML = `
+      <div class="back-bar" onclick="navigate('search')"><i class="ti ti-arrow-left"></i>멘토 찾기로 돌아가기</div>
+      <div class="empty-state"><div class="ic"><i class="ti ti-user-off"></i></div>
+        <div class="t">멘토를 찾을 수 없어요</div>
+        <div class="d">프로필이 내려갔거나 주소가 바뀐 것 같아요.</div></div>`;
+    navigate('profile');
+    return;
+  }
   $('#profile-body').innerHTML = `
     <div class="back-bar" onclick="navigate('search')"><i class="ti ti-arrow-left"></i>멘토 찾기로 돌아가기</div>
     <div class="card profile-hero">
       <div class="ph-top">
-        <div class="avatar ph-avatar" style="${avatarStyle(m.pal)}">${initial(m.name)}</div>
+        ${avatarHtml(m, 'ph-avatar')}
         <div class="ph-id">
           <div class="ph-name-row">
-            <span class="ph-name">${maskName(m.name)} · ${m.cohort}</span>
-            <span class="mc-tag" style="${tagStyle(m.tag)}">${m.tag}</span>
+            <span class="ph-name">${maskName(m.name)}</span>
+            ${m.jobMajor ? `<span class="mc-tag">${escapeHTML(categoryName(m.jobMajor))}</span>` : ''}
           </div>
-          <div class="ph-job">${m.company} · ${m.role} · 경력 ${m.years}년차</div>
-          <div class="ph-stats">
-            <span><b>${m.sessions}</b>회 멘토링</span>
-            <span class="ph-stars">${starsHTML(m.rating)} <b>${m.rating}</b> / 5.0</span>
-          </div>
-          <div class="ph-specs">${(m.specialties||[]).map(s=>`<span class="mc-spec">${s}</span>`).join('')}</div>
+          <!-- 회사·직무·경력은 멘토가 적은 것만 잇는다. 안 적은 칸을 '—' 로 채우면
+               적지 않은 것인지 없는 것인지 후배가 알 수 없다. -->
+          <div class="ph-job">${[m.company, m.role, m.years ? `경력 ${m.years}년차` : null]
+            .filter(Boolean).map(escapeHTML).join(' · ')}</div>
+          <div class="ph-specs">${(m.specialties||[]).map(s=>`<span class="mc-spec">${escapeHTML(s)}</span>`).join('')}</div>
         </div>
       </div>
     </div>
     <div class="profile-grid">
       <div class="card pp-card">
+        <!-- 타임라인을 안 적은 멘토도 있다. 빈 제목만 남기면 고장으로 읽힌다.
+             점 색깔(t.c)은 예전 시드에만 있던 값이라 이제 순서로 정한다 —
+             멘토 페이지(#mypage/mentor)는 색을 받지 않는다. -->
+        ${(m.timeline||[]).length ? `
         <div class="pp-title">경력 타임라인</div>
         <div class="timeline">
-          ${m.timeline.map(t=>`
+          ${m.timeline.map((t,i)=>`
             <div class="tl-item">
-              <div class="tl-dot" style="background:${t.c}"></div>
+              <div class="tl-dot" style="background:${TL_DOTS[Math.min(i, TL_DOTS.length-1)]}"></div>
               <div class="tl-main">
-                <span class="tl-title">${t.t}</span>
-                <span class="tl-date">${t.d}</span>
+                <span class="tl-title">${escapeHTML(t.t||'')}</span>
+                <span class="tl-date">${escapeHTML(t.d||'')}</span>
               </div>
               ${tlDetails(t.s)}
             </div>`).join('')}
-        </div>
+        </div>` : ''}
 
         <!-- 소개글은 경력 아래에 둔다. 후배가 읽는 순서가 그렇다 —
              어떤 경력인지 먼저 보고, 그 사람이 하는 말을 읽는다.
@@ -965,7 +875,7 @@ function openProfile(id){
         <div class="pp-title">멘토링 신청</div>
         <div class="field">
           <div class="field-lab">희망 분야</div>
-          <div class="field-select"><span>${m.role} 취업 준비</span><i class="ti ti-chevron-down"></i></div>
+          <div class="field-select"><span>${escapeHTML(m.role || categoryName(m.jobMajor) || '커리어')} 취업 준비</span><i class="ti ti-chevron-down"></i></div>
         </div>
         <!-- ① 날짜 → ② 시간 → ③ 형식 → ④ 하고 싶은 말 순서다.
              멘토가 연 날짜만 고를 수 있고, 날짜를 골라야 그 날의 시간이 나온다. -->
@@ -977,11 +887,13 @@ function openProfile(id){
           <div class="field-lab" id="req-time-lab">시간 선택</div>
           <div class="mp-time-grid" id="req-times"></div>
         </div>
+        <!-- 멘토가 고른 형식만 보여준다. 멘토 페이지에서 '화상 30분' 만 열었는데
+             후배가 대면 60분을 신청하면, 결제까지 하고 나서 거절당한다. -->
         <div class="field">
           <div class="field-lab">멘토링 형식 선택</div>
           <div class="format-opts" id="format-opts">
-            ${FORMATS.map((f,i)=>`
-              <div class="format-opt ${i===0?'on':''}" data-i="${i}" onclick="selectFormat(${i})">
+            ${offeredFormats(m).map(({ f, i }, k)=>`
+              <div class="format-opt ${k===0?'on':''}" data-i="${i}" onclick="selectFormat(${i})">
                 <div class="fo-ic"><i class="ti ${f.ic}"></i></div>
                 <div class="fo-name">${f.name}</div>
                 <div class="fo-price">${f.price}</div>
@@ -990,33 +902,15 @@ function openProfile(id){
         </div>
         <div class="field">
           <div class="field-lab">하고 싶은 말</div>
-          <textarea id="req-msg" placeholder="${m.role} 직무로 ${m.company}에 어떻게 합격하셨는지, 준비 과정에서 가장 도움이 된 경험이 무엇인지 듣고 싶습니다."></textarea>
+          <textarea id="req-msg" placeholder="${escapeHTML(
+            m.company ? `${m.company}에 어떻게 합격하셨는지, 준비 과정에서 가장 도움이 된 경험이 무엇인지 듣고 싶습니다.`
+                      : '어떤 준비 과정을 거치셨는지, 지금 제가 무엇부터 하면 좋을지 듣고 싶습니다.')}"></textarea>
         </div>
         <div class="cost-row">
           <span class="lab">예상 비용</span>
-          <span class="val" id="req-cost">${FORMATS[0].price}</span>
+          <span class="val" id="req-cost">${FORMATS[selectedFormat].price}</span>
         </div>
         <button class="btn-brand btn-submit-req" onclick="submitRequest()"><i class="ti ti-send"></i>멘토 신청 보내기</button>
-      </div>
-    </div>
-    <div class="card pp-card reviews-card">
-      <div class="rv-head">
-        <div class="pp-title" style="margin:0">멘토링 후기 <span class="rv-count">${reviews.length}</span></div>
-        <div class="rv-avg">${starsHTML(rvAvg)} <b>${rvAvg.toFixed(1)}</b><span>/ 5.0</span></div>
-      </div>
-      <div class="rv-list">
-        ${reviews.map(r=>`
-          <div class="rv-item">
-            <div class="rv-avatar">${initial(r.name)}</div>
-            <div class="rv-body">
-              <div class="rv-top">
-                <span class="rv-name">${maskName(r.name)} · ${r.cohort}</span>
-                <span class="rv-stars-mini">${ratingStarsMini(r.rating)}</span>
-              </div>
-              <div class="rv-text">${r.text}</div>
-              <div class="rv-date">${r.date}</div>
-            </div>
-          </div>`).join('')}
       </div>
     </div>`;
   /* innerHTML 을 넣은 뒤에 달력을 채운다 — 먼저 부르면 그릴 자리가 아직 없다. */
@@ -1169,7 +1063,8 @@ async function payAndApply(){
 
   try {
     const { request } = await api('POST', '/api/mentoring/requests', {
-      mentorId: m.id, mentorName: m.name, format: f.id, message: msg,
+      /* mentorName 은 안 보낸다 — 서버가 목록에서 찾아 채운다(routes/mentoring.js). */
+      mentorId: m.id, format: f.id, message: msg,
       slotDate: reqDate, slotTime: reqTime,
     });
 
@@ -1497,7 +1392,8 @@ function initMentoring(){
   $$('.modal-overlay').forEach(ov=>ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('on'); }));
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') $$('.modal-overlay').forEach(m=>m.classList.remove('on')); });
   renderGap('cert');
-  initSearchFilters();
+  /* 멘토 목록·분류는 '멘토 찾기' 에 들어갈 때 받는다(enterSearch). 부팅 때 받으면
+     그 화면에 안 가는 사람에게도 요청이 나간다. */
 }
 
 window.Mentoring = { init: initMentoring, onEnter: onEnterMentoringPage };

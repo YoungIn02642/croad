@@ -463,6 +463,10 @@ window.MentorProfile = (() => {
         modes,
         availability,
       });
+      /* 멘토 찾기 목록은 이제 서버가 원본이고 한 번 받으면 캐시된다.
+         방금 채운 프로필이 그 화면에 바로 보이려면 캐시를 버려야 한다 —
+         안 그러면 "저장했는데 멘토 찾기에 안 뜬다" 가 그대로 재현된다. */
+      if (typeof invalidateMentors === 'function') invalidateMentors();
       ok.style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {

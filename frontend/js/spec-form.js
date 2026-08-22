@@ -334,10 +334,15 @@ window.SpecForm = (() => {
     // ── 자격증 편집기
     certState = [...(spec.certs || [])];
     certMeta  = { ...(spec.certMeta || {}) };
+    /* 무엇이 '이미 저장된' 발급기관인지 따로 기억한다. 저장된 것은 텍스트로 굳히고
+       [수정]을 눌러야 다시 고칠 수 있게 하려면(사용자 지시), 방금 화면에서 채운
+       값과 서버에서 받아 온 값을 구분해야 한다. */
+    certMetaSaved = { ...(spec.certMeta || {}) };
+    certSavedNames = [...(spec.certs || [])];
+    certEditing = new Set();
     certKnown = new Map();
     if (!certState.length) certState.push('');
     paintCerts();
-    paintCertReco(spec.dept || '');
     bindCertWrap();
 
     // ── 어학 · 제2외국어 편집기
@@ -357,7 +362,15 @@ window.SpecForm = (() => {
     });
 
     // ── 직무 분류 (커리어 로드맵과 같은 KECO 트리)
+    /* 저장된 학과 분류를 여기서 먼저 세운다. 예전에는 initMajorSearch() 의 blur 만
+       이 값을 채웠는데, 그 함수는 '이미 판정한 이름'이면 그냥 돌아가므로(중복 호출
+       방지) **다시 들어왔을 때는 영영 null 이었다.** 자격증 추천이 학과를 대비책으로
+       쓰기 시작하면서 그게 바로 드러난다. */
+    deptState = spec.dept || null;
     initJobPicker(spec);
+    /* 추천은 직무·학과가 정해진 뒤에 그린다. initJobPicker 는 await 전에 직무 상태를
+       먼저 세우므로 여기서 부르면 값이 들어와 있다. */
+    paintCertReco();
 
     // ── 이벤트
     document.getElementById('sf-save').addEventListener('click', () => handleSave(user));
@@ -738,7 +751,7 @@ window.SpecForm = (() => {
         hint.textContent = '학과명은 자유롭게 적어도 돼요.';
         lastMajorClassified = null;
         deptState = null;
-        paintCertReco(null);
+        paintCertReco();
         return;
       }
       if (name === lastMajorClassified) return;
@@ -750,7 +763,7 @@ window.SpecForm = (() => {
       /* 학과가 정해지면 그 학과에서 많이 따는 자격증을 칩으로 추천한다.
          예전에는 dept 드롭다운의 change 에 걸려 있었는데, 그 칸을 없앴으므로
          여기서 직접 부른다. */
-      paintCertReco(deptState);
+      paintCertReco();
 
       if (deptState) {
         const label = DEPTS.find(d => d.id === deptState)?.label || deptState;
@@ -988,6 +1001,32 @@ window.SpecForm = (() => {
      certs 는 이름 배열 그대로 두고 옆에 따로 붙인다 — 배열 모양을 바꾸면
      보유율 집계(aggregation.js)와 저장된 옛 스펙이 전부 깨진다. */
   let certMeta = {};
+  /* 서버에서 받아 온(=이미 저장된) 발급기관. 화면에서 방금 채운 값과 구분하려고
+     따로 들고 있다 — 저장된 것만 텍스트로 굳힌다(certLocked 주석). */
+  let certMetaSaved = {};
+  /* 이미 저장돼 있던 자격증명. 이 목록에 있는 줄은 통째로 잠근다. */
+  let certSavedNames = [];
+  let certEditing = new Set();   // [수정]을 눌러 다시 고칠 수 있게 연 자격증 이름
+
+  /* ── 저장된 줄은 통째로 잠근다 (2026-08-22, 사용자 지시) ──────
+     처음에는 발급기관만 굳혔는데, 자격증명은 여전히 검색 입력칸이라 **한 줄 안에서
+     한쪽은 잠겨 있고 한쪽은 고쳐지는** 이상한 상태였다. 이제 이름·발급기관을 같이
+     잠그고 [수정]을 눌러야 둘 다 열린다. 삭제(x)는 잠금과 무관하게 늘 된다 —
+     지우는 건 실수로 눌러도 되돌릴 수 있고, 고치는 것과 성격이 다르다. */
+  function certLocked(i) {
+    const name = (certState[i] || '').trim();
+    if (!name) return false;                    // 아직 안 적은 줄
+    if (certEditing.has(name)) return false;    // [수정]을 눌러 연 줄
+    return certSavedNames.includes(name);
+  }
+
+  /* 시행기관을 알고 있으면 채워 준다. **이미 값이 있으면 건드리지 않는다** —
+     학생이 직접 적은 기관명을 자동값이 덮으면 고친 것이 조용히 되돌아간다. */
+  function fillIssuer(name, issuer) {
+    if (!name || !issuer) return;
+    if (certMeta[name]?.issuer) return;
+    certMeta[name] = { ...(certMeta[name] || {}), issuer };
+  }
 
   function paintCerts() {
     const wrap = document.getElementById('sf-cert-list');
@@ -997,7 +1036,10 @@ window.SpecForm = (() => {
 
   /* 배지만 따로 만든다. 입력 중에는 이것만 갈아끼워야 하기 때문이다 — 아래 주석 참고. */
   function certBadgeHtml(name) {
-    const manual = certMeta[name];
+    /* '직접 입력'의 표시는 **취득일이 있는지**다. 발급기관만 있는 것은 직접 입력이
+       아니다 — 목록에서 고른 자격도 시행기관이 자동으로 채워지기 때문이다(2026-08-21).
+       예전처럼 certMeta 유무로 판단하면 추천 칩으로 넣은 자격까지 '직접 입력'이 된다. */
+    const manual = certMeta[name]?.date;
     const known = certKnown.has(name) ? certKnown.get(name) : undefined;
 
     /* 아직 확인 전(undefined)이면 '목록에 없음' 이라고 단정하지 않는다 —
@@ -1021,20 +1063,35 @@ window.SpecForm = (() => {
   /* 자격증 한 줄의 아랫단(발급기관·취득일). 배지와 같은 이유로 슬롯만 갈아끼운다 —
      목록 전체를 다시 그리면 타이핑 중이던 입력칸과 열려 있던 드롭다운이 날아간다.
 
-     발급기관은 목록에서 고른 자격증에도 **빈칸으로** 내준다. 큐넷 원본에 발급기관
-     필드가 없어서(catalog-db.js searchCerts 주석) 카탈로그로는 못 채우고,
-     추측해서 넣으면 틀린 값이 조용히 저장된다. 선택 입력이라 비워도 저장된다. */
+     ── 발급기관을 이제 채워 준다 (2026-08-21) ──
+     예전에는 목록에서 고른 자격증에도 늘 빈칸을 줬다. 큐넷 원본에 발급기관 필드가
+     없어서(catalog-db.js searchCerts 주석) 카탈로그로 채울 수가 없었기 때문이다.
+     지금은 backend/src/cert-reco.js 의 **시행기관 매핑표**가 아는 것만 채운다 —
+     표에 없으면 여전히 빈칸이다(지어내지 않는다).
+
+     ── 저장된 줄은 통째로 잠근다 (사용자 지시) ──
+     한 번 저장하면 자격증명도 발급기관도 텍스트가 되고, [수정]을 눌러야 둘 다
+     열린다(certLocked). 늘 입력칸이면 저장된 값인지 방금 채워진 값인지 화면에서
+     구분이 안 되고, 목록을 훑다가 실수로 이름을 덮어쓰기도 쉽다. */
   function certDetailHtml(i) {
     const name = (certState[i] || '').trim();
     if (!name) return '';                       // 아직 안 적은 줄에는 아무것도 안 띄운다
 
     const meta = certMeta[name];
-    // 직접 입력분은 취득일까지 있다 — 그때는 모달에서 함께 고치게 둔다
+    /* 직접 입력분은 취득일까지 있다 — 이름·기관·취득일을 한 모달에서 함께 고친다.
+       그래서 여기 [수정]은 잠금을 푸는 게 아니라 모달을 연다. */
     if (meta && meta.date) {
       return `<div class="sf-cert-detail">
         <span><i class="ti ti-building"></i> ${escapeHtml(meta.issuer || '—')}</span>
         <span><i class="ti ti-calendar"></i> ${escapeHtml(meta.date)}</span>
-        <button type="button" class="sf-cert-edit" data-cert-edit="${i}">수정</button>
+      </div>`;
+    }
+    /* 잠긴 줄 — 발급기관도 텍스트다. 안 적은 경우에도 칸을 남겨 둔다.
+       칸이 아예 없으면 나중에 채울 방법이 없는 것으로 보인다. */
+    if (certLocked(i)) {
+      return `<div class="sf-cert-detail">
+        <span class="${meta?.issuer ? '' : 'sf-cert-empty'}">
+          <i class="ti ti-building"></i> ${escapeHtml(meta?.issuer || '발급기관 미입력')}</span>
       </div>`;
     }
     return `<div class="sf-cert-detail">
@@ -1055,13 +1112,31 @@ window.SpecForm = (() => {
 
   function certRowHtml(name, i) {
     const badge = `<span class="sf-cert-badge-slot" id="sf-cert-badge-${i}">${certBadgeHtml(name)}</span>`;
-
-    /* 직접 입력한 자격증은 모달에서 받은 발급기관·취득일을 그대로 보여준다.
-       목록에서 고른 자격증은 발급기관을 **빈칸으로 노출해 직접 적게** 한다 —
-       큐넷 원본에 발급기관 필드가 아예 없어서(catalog-db.js 의 searchCerts 주석)
-       카탈로그로는 채울 수 없고, 그렇다고 추측해서 넣으면 틀린 값이 조용히 저장된다.
-       선택 입력이라 비워 두어도 저장은 된다. */
     const detail = `<div class="sf-cert-detail-slot" id="sf-cert-detail-${i}">${certDetailHtml(i)}</div>`;
+    const remove = `<button type="button" class="sf-act-remove" data-cert-remove data-cert-i="${i}" title="삭제"><i class="ti ti-x"></i></button>`;
+
+    /* 직접 입력분은 이름·발급기관·취득일이 한 묶음이라 **늘 모달에서 고친다.**
+       저장 전이라도 그렇다 — 셋 중 하나만 따로 고칠 수 있게 두면 이름은 바꿨는데
+       취득일은 옛 자격증 것인 줄이 생긴다. */
+    const manual = !!certMeta[name]?.date;
+
+    /* 잠긴 줄 — 이름을 입력칸이 아니라 글자로 보여준다. **입력칸을 readonly 로
+       두지 않고 아예 안 만든다.** readonly 는 눌러도 아무 일이 없어서 고장으로
+       읽히고, data-cert-i 가 남아 있으면 입력 핸들러도 계속 걸린다. */
+    if (manual || certLocked(i)) {
+      const edit = manual
+        ? `<button type="button" class="sf-cert-edit-issuer" data-cert-edit="${i}">수정</button>`
+        : `<button type="button" class="sf-cert-edit-issuer" data-cert-edit-issuer="${i}">수정</button>`;
+      return `<div class="sf-cert-row sf-cert-row--locked">
+          <div class="sf-cert-main">
+            <span class="sf-cert-name">${escapeHtml(name)}</span>
+            ${badge}
+            ${edit}
+            ${remove}
+          </div>
+          ${detail}
+        </div>`;
+    }
 
     return `<div class="sf-cert-row">
         <div class="sf-cert-main">
@@ -1072,23 +1147,74 @@ window.SpecForm = (() => {
             <div class="sf-search-menu" id="sf-cert-menu-${i}" hidden></div>
           </div>
           ${badge}
-          <button type="button" class="sf-act-remove" data-cert-remove data-cert-i="${i}" title="삭제"><i class="ti ti-x"></i></button>
+          ${remove}
         </div>
         ${detail}
       </div>`;
   }
 
-  /* 학과를 고르면 그 학과에서 많이 따는 자격증을 한 번에 넣을 수 있게 칩으로 보여준다.
-     체크박스 그리드를 없애면서 사라진 '뭘 따야 하는지 모르겠는' 학생용 길잡이를 대신한다. */
-  function paintCertReco(deptId) {
+  /* ── 자격증 추천 ──────────────────────────────────────────────
+     "뭘 따야 하는지 모르겠는" 학생에게 주는 길잡이다.
+
+     ── 학과 기준에서 직무 기준으로 옮겼다 (2026-08-21, 사용자 지시) ──
+     예전에는 손으로 쓴 학과 8개짜리 표(Aggregator.CERT_CATALOG)를 봤다. 그래서
+     학과가 그 8개에 안 걸리면 아무것도 안 떴고, 멘토 시드 계정만 dept 가 채워져
+     있어서 화면상 **"멘토에만 추천이 뜬다"** 로 보였다. 이제 서버가
+     **희망 직무**로 뽑고(backend/src/cert-reco.js), 학과는 직무를 아직 안 고른
+     사람을 위한 대비책으로만 쓴다 — 자격증은 학과가 아니라 직무를 따라간다.
+
+     ── 근거를 함께 적는다 ──
+     칩마다 "왜 이게 떴는지"가 붙는다. 채용공고에서 실제로 요구한 자격은 건수를
+     배지로 달고, 나머지는 자격 직무분야가 근거다. 근거 없이 목록만 주면 학생은
+     그걸 사실로 읽고 시험에 돈과 시간을 쓴다.
+
+     ── 늦게 온 응답으로 덮지 않는다 ──
+     직무 칩을 빠르게 여러 번 누르면 요청이 겹친다. 마지막으로 요청한 조건이
+     아니면 버린다 — 안 그러면 방금 고른 직무와 다른 추천이 남는다. */
+  let certRecoData = null;   // 마지막 응답. 칩을 눌렀을 때 시행기관을 여기서 꺼낸다
+  let certRecoSeq = 0;
+
+  const BASIS_LABEL = {
+    jobMiddle: '희망 세부직무 기준',
+    jobMajor: '희망 진출분야 기준',
+    dept: '학과 기준',
+  };
+
+  async function paintCertReco() {
     const box = document.getElementById('sf-cert-reco');
     if (!box) return;
-    const reco = (Aggregator.CERT_CATALOG[deptId] || []).filter(c => !certState.includes(c.id));
-    if (!reco.length) { box.hidden = true; return; }
+
+    const seq = ++certRecoSeq;
+    const data = await DB.recommendCerts({
+      jobMajor: jobMajorState,
+      jobMiddles: midState,
+      dept: deptState,
+    });
+    if (seq !== certRecoSeq) return;      // 그새 다른 직무를 골랐으면 버린다
+
+    certRecoData = data;
+    const reco = (data?.items || []).filter(c => !certState.includes(c.name));
+    if (!reco.length) { box.hidden = true; box.innerHTML = ''; return; }
+
+    /* 공고 근거의 표본 수는 서버가 준 값을 그대로 적는다. 화면에서 문구를 따로
+       만들면 캐시를 다시 받았을 때 두 곳이 갈린다. */
+    const p = data.postings;
+    const note = p && p.total
+      ? `<span class="sf-cert-reco-src">공고 배지는 ${p.source} ${p.total}건 기준</span>`
+      : '';
+
     box.hidden = false;
-    box.innerHTML = `<span class="sf-cert-reco-label">이 학과에서 많이 따는 자격증</span>`
-      + reco.map(c => `<button type="button" class="sf-cert-chip" data-cert-reco="${escapeHtml(c.id)}"
-             ${c.desc ? `title="${escapeHtml(c.desc)}"` : ''}>+ ${escapeHtml(c.id)}</button>`).join('');
+    box.innerHTML = `<span class="sf-cert-reco-label">
+        ${escapeHtml(BASIS_LABEL[data.basis] || '')} 추천 자격증</span>`
+      + reco.map(c => {
+        const why = c.postings
+          ? `채용공고 ${c.postings}건에서 요구 · 직무분야 ${c.field}`
+          : `직무분야 ${c.field}${c.kindLabel ? ` · ${c.kindLabel}` : ''}`;
+        return `<button type="button" class="sf-cert-chip" data-cert-reco="${escapeHtml(c.name)}"
+             title="${escapeHtml(why)}${c.issuer ? ` · 시행 ${c.issuer}` : ''}">+ ${escapeHtml(c.name)}${
+          c.postings ? `<span class="sf-cert-chip-n">공고 ${c.postings}</span>` : ''}</button>`;
+      }).join('')
+      + note;
   }
 
   /* 자격증 검색 — 카탈로그 643종을 메모리에서 찾는다(서버 왕복 없음).
@@ -1111,16 +1237,19 @@ window.SpecForm = (() => {
     certKnown.set(q, exact ? (exact.sub || '') : null);
     if (had !== certKnown.get(q)) paintCertBadge(i);   // 목록 전체를 다시 그리지 않는다
 
-    openSearchMenu(menu, hits.map(c => ({ value: c.name, sub: c.sub })), {
+    /* issuer 는 화면에 글자로 뜨지 않는다(sub 자리에 자격구분·직무분야가 이미 있다).
+       고르는 순간 발급기관 칸을 채우는 데만 쓴다. */
+    openSearchMenu(menu, hits.map(c => ({ value: c.name, sub: c.sub, issuer: c.issuer })), {
       onPick: (v, item) => {
         certState[i] = v;
         certKnown.set(v, item.sub || '');   // 목록에서 골랐으니 확인된 이름이다
         /* 다른 자격증을 고른 것이므로 앞 이름에 붙어 있던 발급기관·취득일은 버린다.
-           남겨 두면 A 자격증에 적은 기관이 B 자격증에 붙는다. 고른 뒤 발급기관을
-           다시 적을 수 있게 아랫단은 빈칸으로 다시 그려진다(paintCerts). */
+           남겨 두면 A 자격증에 적은 기관이 B 자격증에 붙는다. */
         delete certMeta[v];
+        // 시행기관을 아는 자격이면 바로 채운다. 모르면 빈칸이고 직접 적으면 된다
+        fillIssuer(v, item.issuer);
         paintCerts();
-        paintCertReco(deptState);
+        paintCertReco();
       },
       empty: '목록에 없는 자격증이에요',
       footer: `<b>${escapeHtml(q)}</b> 직접 입력`,
@@ -1187,7 +1316,7 @@ window.SpecForm = (() => {
       host.hidden = true;
       host.innerHTML = '';
       paintCerts();
-      paintCertReco(deptState);
+      paintCertReco();
     });
   }
 
@@ -1229,6 +1358,13 @@ window.SpecForm = (() => {
         certMeta[after] = certMeta[before];
         delete certMeta[before];
       }
+      /* 편집 중 표시도 새 이름으로 옮긴다. certEditing 은 이름을 키로 쓰기 때문에,
+         안 옮기면 고치는 도중에 줄이 다시 잠길 수 있다 — 저장돼 있던 다른 이름을
+         쳤을 때 실제로 그렇게 된다. */
+      if (before && after && before !== after && certEditing.has(before)) {
+        certEditing.delete(before);
+        certEditing.add(after);
+      }
       certState[+i] = e.target.value;
       /* 빈 줄에 처음 이름을 적었거나 이름을 통째로 지웠을 때만 아랫단을 다시 그린다.
          글자마다 그리면 발급기관 칸에서 포커스가 튄다. */
@@ -1237,6 +1373,23 @@ window.SpecForm = (() => {
       certTimers[i] = setTimeout(() => suggestCert(+i), 250);
     });
     wrap.addEventListener('click', e => {
+      /* 잠긴 줄을 연다 — 자격증명과 발급기관이 함께 풀린다.
+         직접입력분(취득일까지 있는 것)은 모달로 가야 하므로 그쪽을 **먼저**
+         걸러낸다 — 선택자가 겹친다. */
+      const editIssuer = e.target.closest('[data-cert-edit-issuer]');
+      if (editIssuer) {
+        const i = +editIssuer.dataset.certEditIssuer;
+        const name = (certState[i] || '').trim();
+        if (name) certEditing.add(name);
+        /* 줄 모양이 통째로 바뀌므로 슬롯만 갈지 않고 목록을 다시 그린다.
+           지금은 아무 칸에도 커서가 없어서 다시 그려도 잃을 것이 없다. */
+        paintCerts();
+        // 이름부터 고치러 들어온 경우가 많다. 커서를 자격증명 칸에 둔다
+        const input = wrap.querySelector(`[data-cert-i="${i}"]`);
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+        return;
+      }
+
       const edit = e.target.closest('[data-cert-edit]');
       if (edit) { openCertManual(+edit.dataset.certEdit); return; }
 
@@ -1246,18 +1399,26 @@ window.SpecForm = (() => {
       certState.splice(+btn.dataset.certI, 1);
       if (removed && !certState.includes(removed)) delete certMeta[removed];
       paintCerts();
-      paintCertReco(deptState);
+      paintCertReco();
     });
 
     document.getElementById('sf-cert-reco').addEventListener('click', e => {
       const btn = e.target.closest('[data-cert-reco]');
       if (!btn) return;
       // 빈 줄이 있으면 그 자리를 채운다 — 칩을 눌렀는데 빈 줄이 남아 있으면 지저분하다
+      const name = btn.dataset.certReco;
       const blank = certState.findIndex(c => !c || !c.trim());
-      if (blank >= 0) certState[blank] = btn.dataset.certReco;
-      else certState.push(btn.dataset.certReco);
+      if (blank >= 0) certState[blank] = name;
+      else certState.push(name);
+      /* 추천 목록에 시행기관이 실려 온다. 칩으로 넣은 자격은 발급기관을 다시
+         찾아 적게 하지 않는다 — 그러려고 매핑표를 만들었다. */
+      const reco = certRecoData?.items?.find(c => c.name === name);
+      fillIssuer(name, reco?.issuer);
+      /* 추천은 카탈로그에서 나온 것이라 **목록에 있는 자격이 확실하다.** 배지에
+         '목록에 없음'이 뜨지 않게 확인된 것으로 표시한다(검색으로 고른 것과 같다). */
+      certKnown.set(name, [reco?.kindLabel, reco?.field].filter(Boolean).join(' · '));
       paintCerts();
-      paintCertReco(deptState);
+      paintCertReco();
     });
 
     document.getElementById('sf-cert-add').addEventListener('click', () => {
@@ -1531,6 +1692,9 @@ window.SpecForm = (() => {
       jobMajorState = next;
       paintJobMajors();
       paintMiddles();
+      /* 추천 자격증은 직무를 따라간다. 직무를 바꿨는데 추천이 그대로면 앞 직무의
+         자격을 이 직무의 것으로 읽는다. */
+      paintCertReco();
     });
 
     midHost.addEventListener('click', e => {
@@ -1540,6 +1704,7 @@ window.SpecForm = (() => {
       if (midState.includes(code)) midState = midState.filter(c => c !== code);
       else midState.push(code);
       paintMiddles();
+      paintCertReco();
     });
   }
 
@@ -1634,6 +1799,7 @@ window.SpecForm = (() => {
     }
 
     const certs = collectCerts();
+    const certMetaToSave = collectCertMeta(certs);
 
     const scoreErr = validateScores();
     if (scoreErr) {
@@ -1655,7 +1821,7 @@ window.SpecForm = (() => {
       await DB.upsertSpec({
         dept, major, jobMajor, jobMiddles,
         company, corpType, gpa, gpaMax, certs, scores, activities,
-        certMeta: collectCertMeta(certs),
+        certMeta: certMetaToSave,
         /* 역할별로만 있는 값. 반대 역할의 키는 아예 보내지 않아서
            멘티 스펙에 빈 careers 가, 멘토 스펙에 빈 관심기업이 남지 않게 한다. */
         ...(isMentor
@@ -1674,6 +1840,14 @@ window.SpecForm = (() => {
     /* 페이지 맨 위 초록 상자로 알리던 것을 토스트로 바꿨다. 저장 버튼은 폼
        아래쪽에 있어서, 눌러도 화면 위에서 뜬 안내가 안 보였다(스크롤해 올라가야
        했다). 멘토 신청 안내와 같은 방식으로 통일한다. */
+    /* 저장이 끝났으니 이번에 넣은 자격증을 '저장된 것'으로 굳힌다 — 다음 그리기부터
+       이름·발급기관이 텍스트가 되고 [수정]을 눌러야 열린다(사용자 지시).
+       화면을 다시 열지 않아도 상태가 맞아야 한다. */
+    certMetaSaved = { ...(certMetaToSave || {}) };
+    certSavedNames = [...certs];
+    certEditing = new Set();
+    paintCerts();
+
     if (typeof toast === 'function') toast('스펙 정보를 저장했어요');
     else { success.style.display = 'block'; setTimeout(() => { success.style.display = 'none'; }, 2500); }
     updateNavAuth();

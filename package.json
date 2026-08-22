@@ -10,16 +10,18 @@
     "backend 만 올렸다가 'Cannot find module ../../../frontend/js/cas.js' 로 죽었다.",
     "workspaces 를 쓰면 루트에서 npm ci 한 번으로 backend 의존성까지 깔린다.",
     "",
-    "build 는 DART 기업 색인(6MB)을 받는 단계다. 깃에 넣지 않고 배포 때마다 받는다",
-    "(.gitignore 참고). 키가 없거나 DART 가 죽어 있으면 건너뛰고 배포는 계속된다 —",
-    "그때는 기업분석의 개요·재무·경쟁사 칸만 비고 나머지 기능은 멀쩡하다."
+    "build 는 깃에 넣지 않는 원본 자료를 배포 때마다 받는 단계다(.gitignore 참고).",
+    "  - DART 기업 색인 6MB — 없으면 기업분석의 개요·재무·경쟁사 칸이 빈다",
+    "  - 공공기관 채용공고(잡알리오) — 없으면 회사 리포트의 채용공고 칸이 빈다",
+    "둘 다 --if-possible 이라 키가 없거나 API 가 죽어 있으면 건너뛰고 배포는 계속된다.",
+    "**배포 주기가 곧 이 자료들의 갱신 주기다.** 따로 도는 스케줄러는 없다."
   ],
   "workspaces": [
     "backend"
   ],
   "scripts": {
     "start": "node backend/src/server.js",
-    "build": "node backend/scripts/fetch-dart-corps.js --if-possible",
+    "build": "node backend/scripts/fetch-dart-corps.js --if-possible && node backend/scripts/fetch-alio-jobs.js --if-possible",
     "dev": "npm --workspace backend run dev",
     "test": "for f in test/*.test.js; do node \"$f\" | tail -1; done"
   },

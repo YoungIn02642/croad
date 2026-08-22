@@ -12,6 +12,9 @@ const { CORP_TYPE_ID } = require('./company-classify');
 /* 카탈로그 조회는 DB 에서 한다. 파일 기반 모듈(cert-catalog·major-catalog·
    company-classify·wage-jobs)은 수집·이관 전용으로 남는다 — catalog-db.js 머리주석 참고. */
 const catalog = require('./catalog-db');
+const certReco = require('./cert-reco');
+/* 공공기관 채용공고 캐시. 회사 리포트(routes/companyAnalysis.js)도 같은 모듈을 쓴다. */
+const ALIO = require('./alio-jobs');
 const sectors = require('./company-sectors');
 const POSTING = require('./posting-fetch');
 const OAuth = require('./oauth');
@@ -924,6 +927,69 @@ app.get('/api/certs', ah(async (req, res) => {
   res.json(await catalog.certCatalog());
 }));
 
+/* ── 직무로 모집 중인 공고 (2026-08-22 신규) ───────────────────
+     GET /api/job-postings?jobMajor=0&jobMiddles=03
+
+   CAS 화면이 쓰려고 만들었는데, 2026-08-22 그 띠를 걷어냈다(작업정리 36장).
+   **지금 부르는 화면이 없다.** 신입 필터·마감 판정이 alio-jobs.js 에 모여 있고
+   테스트가 붙어 있어, 직무 단위 목록이 다시 필요해질 때를 위해 남겨 둔다.
+
+   ── 지금은 공공기관 공고뿐이다 ──
+   사람인 키(SARAMIN_ACCESS_KEY)가 비어 있고 워크넷은 개인회원이 막혀 있다
+   (작업정리 10-7). 응답에 그 사실이 reason 으로 실려 나가고, 화면이 그대로
+   보여준다 — 0건을 "이 직무는 채용이 없다" 로 읽게 두지 않는다. */
+app.get('/api/job-postings', ah(async (req, res) => {
+  const jobMiddles = String(req.query.jobMiddles || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 5, 1), 20);
+  res.json(ALIO.jobPostings({
+    jobMajor: req.query.jobMajor,
+    jobMiddles,
+    /* 기본은 신입만. 이 화면을 보는 사람은 대학생이고, 경력 공고가 섞이면
+       "지원할 수 있는 곳" 이 실제보다 많아 보인다. */
+    newcomerOnly: req.query.newcomerOnly !== 'false',
+    limit,
+  }));
+}));
+
+/* ── 멘토 목록 (멘토 찾기) ─────────────────────────────────────
+   2026-08-22 신규. 그전까지 멘토 찾기는 **프론트에 박아 둔 배열 102명**이었다
+   (mentoring.js MENTORS + 자동 생성). 멘토가 멘토 페이지를 아무리 채워도 목록에
+   안 뜨는 이유가 그것이었다 — 화면이 서버를 안 봤다.
+
+   ── 로그인을 요구하지 않는다 ──
+   가입 전에 "어떤 선배가 있는지" 를 보고 가입 여부를 정한다. 대신 내보내는 칸을
+   repo.mentors.list() 가 이름으로 못 박아, 연락처·생년월일 같은 값이 새지 않는다. */
+app.get('/api/mentors', ah(async (req, res) => {
+  const mentors = await repo.mentors.list();
+  res.json({ count: mentors.length, mentors });
+}));
+
+/* 자격증 추천 — "이 직무에서 실제로 보는 자격증" (2026-08-21 신규)
+     GET /api/certs/recommend?jobMajor=0&jobMiddles=02,03&dept=business
+
+   ── 왜 서버가 하나 ──
+   예전에는 화면(aggregation.js CERT_CATALOG)이 손으로 쓴 표를 들고 있었다. 근거로
+   쓰는 자료가 **자격 카탈로그(DB)와 채용공고 캐시(파일)** 라 화면에 둘 수가 없고,
+   같은 판단을 스펙 채우기(#specup)에서도 쓸 참이라 한 곳에 둔다.
+
+   ── 로그인을 요구하지 않는다 ──
+   개인 정보가 들어가지 않는 계산이다(직무 코드만 받는다). 회원가입 전에 둘러보는
+   사람에게도 같은 화면이 보여야 한다 — /api/certs·/api/jobs 와 같은 취급이다. */
+app.get('/api/certs/recommend', ah(async (req, res) => {
+  const jobMiddles = String(req.query.jobMiddles || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 8, 1), 20);
+  const { certs } = await catalog.certCatalog();
+  res.json(certReco.recommend({
+    certs,
+    jobMajor: req.query.jobMajor,
+    jobMiddles,
+    dept: req.query.dept,
+    limit,
+  }));
+}));
+
 /* 자격증 검색 — /api/company/suggest · /api/majors/suggest 와 같은 규약(q · limit → items). */
 app.get('/api/certs/suggest', ah(async (req, res) => {
   const q = String(req.query.q || '').trim();
@@ -1033,11 +1099,30 @@ app.post('/api/admin/clear', adminOnly, ah(async (req, res) => {
 
 app.post('/api/admin/seed', adminOnly, ah(async (req, res) => {
   // 고정 데모는 계정마다 비밀번호가 다를 수 있어 개별 해싱한다
-  for (const { u, s } of DEMO_SEED) {
-    if (await repo.users.usernameTaken(u.username)) continue;
-    await insertSeedUser(u, s, await bcrypt.hash(u.password, 10));
+  let added = 0, filled = 0;
+  for (const { u, s, p } of DEMO_SEED) {
+    const existing = await repo.users.byUsername(u.username);
+    if (!existing) {
+      await insertSeedUser(u, s, await bcrypt.hash(u.password, 10), p);
+      added++;
+      continue;
+    }
+    /* ── 이미 있는 데모 계정은 빈 칸만 채운다 (2026-08-22) ──
+       예전에는 그냥 건너뛰었다. 그런데 멘토 프로필이 시드에 새로 생기면서,
+       **데모 계정을 이미 만들어 둔 DB 에서는 그 프로필이 영영 안 들어간다** —
+       버튼을 눌러도 '추가되었습니다' 만 뜨고 멘토 찾기는 계속 비어 있다.
+       덮어쓰지는 않는다. 데모 계정으로 직접 적어 본 소개글을 지워 버리면
+       시연 준비가 통째로 날아간다. */
+    if (!p) continue;
+    const cur = await repo.profiles.get(existing.id);
+    if (cur?.intro || (cur?.specialties || []).length) continue;
+    await repo.profiles.update(existing.id, p);
+    /* 스펙에도 회사·직무가 새로 붙었다(멘토 찾기의 분야 필터가 이걸 쓴다).
+       upsert 는 넘긴 키만 고치므로 학점·자격증은 그대로 남는다. */
+    if (s) await repo.specs.upsert(existing.id, s);
+    filled++;
   }
-  res.json({ message: '데모 데이터가 추가되었습니다.' });
+  res.json({ message: `데모 데이터가 추가되었습니다. (새 계정 ${added}명 · 프로필 보충 ${filled}명)` });
 }));
 
 // 무작위 N명 추가 — 커리어 로드맵·CAS 집계를 채우기 위한 대량 시드
@@ -1056,13 +1141,17 @@ app.post('/api/admin/seed-random', adminOnly, ah(async (req, res) => {
   res.json({ message: `무작위 회원 ${added}명이 추가되었습니다.`, added });
 }));
 
-async function insertSeedUser(u, s, passwordHash) {
+async function insertSeedUser(u, s, passwordHash, p) {
   const user = await repo.users.create({
     id: nanoid(),
     username: u.username, passwordHash,
     name: u.name, email: u.email, role: u.role, nickname: null,
   });
   if (s) await repo.specs.upsert(user.id, s);
+  /* 멘토 프로필(소개글·전문분야·타임라인·가능 일정). 이게 있어야 '멘토 찾기'
+     목록에 뜬다(repo.mentors.list 는 프로필을 채운 멘토만 낸다).
+     예전에는 목록이 프론트에 박힌 가짜 멘토 102명이라 시드가 필요 없었다. */
+  if (p) await repo.profiles.update(user.id, p);
 }
 
 /* 학과·직무 참조 자료는 회원 데이터가 아니라 정적 자료다(db-seed.json).

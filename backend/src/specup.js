@@ -40,6 +40,7 @@ const fs = require('fs');
 const path = require('path');
 
 const QNET_PATH = path.join(__dirname, '..', 'data', 'qnet-certs.json');
+const DISQ_PATH = path.join(__dirname, '..', 'data', 'qnet-disq.json');
 
 const EXAM_API = 'https://apis.data.go.kr/B490007/qualExamSchd/getQualExamSchdList';
 const EXAM_APPLY_URL = 'https://www.data.go.kr/data/15074408/openapi.do';
@@ -284,6 +285,34 @@ function stagesOf(rounds, today) {
 
    같은 회차가 정기접수·빈자리접수 두 줄로 오는 경우가 있는데(실측: 기사 제3회),
    이 정렬이 알아서 '지금 열려 있는 쪽' 을 먼저 집는다. */
+/* ── 응시 결격사유 ────────────────────────────────────────────
+   "이 시험, 내가 응시할 수는 있나" 에 답한다. `scripts/fetch-qnet-disq.js` 가
+   받아 둔 캐시를 읽는다.
+
+   ── 대부분의 자격에는 안 붙는다. 그게 맞다 ──
+   결격사유가 있는 종목은 **80개뿐**이고 전부 국가전문자격이다(실측). 기사·기능사
+   같은 국가기술자격에는 애초에 결격사유가 없다. 없는 자격에 "결격사유 없음" 을
+   적지 않는다 — 있는 자격에서만 칸이 생겨야 그 칸이 뜻을 갖는다.
+
+   ── 대학생에게 실제로 걸리는 건 하나다 ──
+   나머지는 파산선고·금고 이상의 형 같은 **법정 결격사유**라 사실상 해당이 없다.
+   실제로 걸릴 수 있는 유일한 항목이 **미성년자**(80종 중 17종)라, 그것만 따로
+   표시해 화면이 강조할 수 있게 한다. 목록 전체는 접어 두고 원하면 펼치게 둔다 —
+   여덟 줄짜리 법조문을 펼쳐 놓으면 정작 시험일정이 안 읽힌다.
+
+   ── 캐시가 없어도 죽지 않는다 ──
+   없으면 그 칸만 빠진다. 자격증 시험일정은 그대로 나온다. */
+let _disq = null;
+function disqOf(name) {
+  if (_disq === null) {
+    try { _disq = JSON.parse(fs.readFileSync(DISQ_PATH, 'utf8')).certs || {}; }
+    catch { _disq = {}; }
+  }
+  const d = _disq[name];
+  if (!d || !d.reasons?.length) return null;
+  return { reasons: d.reasons, notes: d.notes || [], minorBlocked: !!d.minorBlocked };
+}
+
 async function certSchedules(certNames, { year, today = todayStr() } = {}) {
   const names = [...new Set((certNames || []).filter(Boolean))];
   const thisYear = Number(today.slice(0, 4));
@@ -338,6 +367,8 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
         daysToRegEnd:   daysUntil(picked.regEnd, today),
         daysToRegStart: daysUntil(picked.regStart, today),
       },
+      /* 결격사유가 없는 종목이면 null 이다 — 화면은 그때 칸을 안 그린다. */
+      disq: disqOf(name),
       note: picked ? null
         : `${yr}~${yr + 1}년에 남은 회차가 없어요. 다음 해 일정이 공개되면 표시됩니다.`,
     });
@@ -534,7 +565,7 @@ function toActivity(p, topic) {
 module.exports = {
   certSchedules, youthActivities,
   // 테스트·점검 스크립트가 쓰는 조각들
-  phaseOf, daysUntil, ymd, toRound, stagesOf, toActivity, codeOf, parseItems, gatewayError,
+  phaseOf, daysUntil, ymd, toRound, stagesOf, toActivity, codeOf, parseItems, gatewayError, disqOf,
   regionOf, SIDO_BY_ZIP,
   ACTIVITY_TOPICS, EXAM_API, EXAM_APPLY_URL, YOUTH_APPLY_URL, EXAM_PER_PAGE,
 };

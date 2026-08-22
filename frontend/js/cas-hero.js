@@ -78,6 +78,8 @@ window.CASHero = (() => {
      빈칸에 0 을 띄우면 "0점" 으로 오해하므로 무엇을 하면 되는지를 말해준다. */
   function showEmpty(msg, help) {
     if (window.CASCompare) CASCompare.render(null, null);
+    /* 맨 위 띠도 함께 비운다. 안 비우면 직전 사용자의 점수가 그대로 남는다. */
+    renderTwoScores(null);
     $('cas-score-num').textContent = '—';
     $('cas-rank').innerHTML = `<i class="ti ti-info-circle"></i>${msg}`;
     $('cas-split').innerHTML = '';
@@ -321,6 +323,7 @@ window.CASHero = (() => {
     window.CASDashboardContext = resolved.ctx;
 
     const mine = scoreOf(spec, agg, catalogIds);
+    renderTwoScores(mine);
 
     /* 아래 비교 카드도 같은 벤치마크로 그린다 — 모집단이 다르면
        "상위 30% 인데 전 항목이 평균 이하" 같은 모순이 생긴다. */
@@ -364,6 +367,51 @@ window.CASHero = (() => {
     }, 80));
   }
 
+  /* ── 맨 위 두 점수 띠 (#cas-two) ────────────────────────────
+     2026-08-22, 사용자 지시. 아래에 적합도 카드와 CAS 카드가 따로 있는데도
+     "둘 다 보여 달라" 는 말이 나온 이유는, 적합도가 직업을 골라야 계산되는 값이라
+     보통은 안내문 한 칸이고 그래서 **화면에 점수가 하나뿐인 것으로 읽히기** 때문이다.
+
+     ── 숫자를 여기서 다시 계산하지 않는다 ──
+     적합도는 CASFit.summary(), CAS 는 이 파일의 scoreOf() 결과를 받아 적기만 한다.
+     띠가 따로 계산하면 위아래 숫자가 갈리고, 학생은 어느 쪽이 맞는지 알 수 없다.
+
+     ── 두 점수는 다른 질문에 답한다 ──
+     한 줄에 나란히 두면 합계처럼 읽힐 수 있어서, 칸마다 무엇에 답하는 점수인지
+     한 줄로 적는다(cas-fit.js 머리주석의 구분과 같은 말). */
+  let _lastMine = null;        // 마지막으로 계산한 CAS 점수. 띠만 다시 그릴 때 쓴다
+
+  function renderTwoScores(mine) {
+    _lastMine = mine;
+    const host = $('cas-two');
+    if (!host) return;
+
+    const fit = window.CASFit ? CASFit.summary() : null;
+    const fitVal =
+      !fit                ? { num: '—', sub: '직업을 고르면 계산돼요' }
+      : fit.loading       ? { num: '…',  sub: '계산 중이에요' }
+      : fit.error         ? { num: '—', sub: '계산하지 못했어요' }
+      : { num: fit.total, sub: `${fit.jobName} 기준${fit.grade ? ` · ${fit.grade}` : ''}` };
+
+    const casVal = mine
+      ? { num: mine.total, sub: `숫자 스펙 ${mine.quant} + 경험 스펙 ${mine.qual}` }
+      : { num: '—', sub: '스펙을 입력하면 계산돼요' };
+
+    host.innerHTML = `
+      <div class="cas-two-item">
+        <div class="cas-two-lab">직무 적합도</div>
+        <div class="cas-two-num">${esc(fitVal.num)}<span>/ 1000</span></div>
+        <div class="cas-two-sub">${esc(fitVal.sub)}</div>
+        <div class="cas-two-q">이 일에 내가 맞나</div>
+      </div>
+      <div class="cas-two-item">
+        <div class="cas-two-lab">CAS 점수</div>
+        <div class="cas-two-num">${esc(casVal.num)}<span>/ 1000</span></div>
+        <div class="cas-two-sub">${esc(casVal.sub)}</div>
+        <div class="cas-two-q">선배들 사이에서 내가 어디쯤인가</div>
+      </div>`;
+  }
+
   /* 2단계의 갈림길은 mentoring.js 가 그린다(GAP 계산과 같은 자리에 있어야
      '무엇이 부족한지' 와 '그래서 어디로 갈지' 가 어긋나지 않는다). */
   function renderNext(mine, pct) {
@@ -387,7 +435,10 @@ window.CASHero = (() => {
     if (typeof window.animateDashboard === 'function') window.animateDashboard();
   }
 
-  /* 스펙업 화면이 같은 모집단을 쓰게 하는 통로. 화면을 그리지 않으므로
-     #dashboard 에 들어가지 않아도 부를 수 있다. */
-  return { render, selectJob, scoreOf, percentileOf, resolveContext, ensureKeco };
+  /* 적합도는 서버 응답을 기다렸다 늦게 채워진다. 그때 맨 위 띠만 다시 그리라고
+     cas-fit.js 가 이걸 부른다 — render() 를 통째로 다시 부르면 아래 카드가
+     전부 다시 그려지고, 적합도 안에서 CASHero.render 를 부르면 서로 물린다. */
+  function paintTwo() { renderTwoScores(_lastMine); }
+
+  return { render, selectJob, scoreOf, percentileOf, resolveContext, ensureKeco, paintTwo };
 })();

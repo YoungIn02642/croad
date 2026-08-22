@@ -17,6 +17,9 @@
 const { query, queryOne } = require('./mysql');
 const { normalize, CORP_TYPE_ID, DEFAULT_TYPE } = require('./company-classify');
 const { RULES } = require('./major-catalog');
+/* 시행기관 매핑표. 자격 이름·구분만 보고 정해지는 값이라 DB 컬럼을 늘리지 않았다 —
+   컬럼으로 두면 표를 고칠 때마다 배포 DB 에 이관을 돌려야 한다. */
+const certReco = require('./cert-reco');
 
 /* LIKE 특수문자 무력화. 백슬래시도 함께 막아야 '\%' 같은 입력이 새지 않는다. */
 const esc = s => String(s || '').replace(/[\\%_]/g, c => '\\' + c);
@@ -32,14 +35,17 @@ async function searchCerts(q, limit = 8) {
   if (!s) return [];
   const e = esc(s);
   const rows = await query(
-    `SELECT name, kind_label, field FROM certs
+    `SELECT name, kind, kind_label, field FROM certs
      WHERE name LIKE ? ESCAPE '\\\\' ${RANK} LIMIT ${limitOf(limit)}`,
     [`%${e}%`, `${e}%`]);
   return rows.map(r => ({
     name: r.name,
-    /* 발급기관은 원본(큐넷 API)에 없다. 자격 구분·직무분야로 대신한다 —
-       없는 정보를 지어내지 않는다(직접 입력할 때만 발급기관을 받는다). */
     sub: [r.kind_label, r.field].filter(Boolean).join(' · '),
+    /* 시행기관. 큐넷 API 원본에는 이 필드가 아예 없어서 예전에는 늘 빈칸이었고,
+       학생이 자격을 고를 때마다 직접 찾아 적어야 했다. 지금은 cert-reco.js 의
+       매핑표가 **아는 것만** 채운다(모르면 null 이고 화면은 빈칸을 내준다).
+       기관명을 지어내지 않는다는 규칙은 그대로다 — 표에 없으면 안 채운다. */
+    issuer: certReco.issuerOf({ id: r.name, kind: r.kind }),
   }));
 }
 

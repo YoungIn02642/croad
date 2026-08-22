@@ -326,7 +326,47 @@ window.SpecUp = (() => {
           '부족한 자격증은 없어요. 아래는 이 직무군 선배들이 많이 가진 자격증이에요.', true)
       : '';
 
-    return banner + listHead(rows.length) + grid(rows.map(certCard)) + examFoot();
+    return banner + listHead(rows.length) + grid(rows.map(certCard)) + disqFoot(rows) + examFoot();
+  }
+
+  /* ── 응시 결격사유 ────────────────────────────────────────────
+     "이 시험, 내가 응시할 수는 있나" 를 알려준다(출처: 큐넷 종목 관련 정보).
+
+     ── 카드 밖에 두는 이유 ──
+     카드는 통째로 큐넷 링크(`<a>`)라 그 안에 펼침 상자를 넣을 수 없다.
+     또 사유가 한 종목에 최대 11개고 대부분 법조문이라, 카드에 늘어놓으면
+     정작 시험일정이 안 읽힌다. 그래서 **목록 아래에 접어서 한 번만** 둔다.
+
+     ── 대부분의 자격에는 안 뜬다. 그게 맞다 ──
+     결격사유가 있는 종목은 국가전문자격 80개뿐이다. 기사·기능사에는 애초에
+     없으므로 "결격사유 없음" 을 적지 않는다 — 있는 자격에서만 칸이 생겨야
+     그 칸이 뜻을 갖는다.
+
+     ── 부풀리지 않는다 ──
+     나머지는 파산선고·금고 이상의 형 같은 법정 결격사유라 대학생에게는 사실상
+     해당이 없다. "못 딸 수도 있어요" 로 겁주지 않고, 실제로 걸릴 수 있는
+     **미성년자** 만 카드 배지로 올린다(certCard). */
+  function disqFoot(rows) {
+    if (!examState || !examState.ok) return '';
+    const withDisq = rows
+      .map(r => (examState.items || []).find(i => i.name === r.name))
+      .filter(i => i && i.disq && i.disq.reasons.length);
+    if (!withDisq.length) return '';
+
+    return `<details class="sup-disq">
+      <summary>응시 결격사유가 있는 자격 ${withDisq.length}개 — 펼쳐보기</summary>
+      <p class="sup-disq-lead">아래 조건에 해당하면 시험에 응시할 수 없어요.
+        대부분 파산·형벌처럼 해당되는 사람이 드문 법정 요건이지만,
+        <b>미성년자</b>는 실제로 걸릴 수 있어요.</p>
+      ${withDisq.map(i => `
+        <div class="sup-disq-item">
+          <b>${esc(i.name)}</b>
+          <ul>${i.disq.reasons.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+          ${i.disq.notes.length
+            ? `<p class="sup-disq-note">${i.disq.notes.map(esc).join(' · ')}</p>` : ''}
+        </div>`).join('')}
+      <p class="sup-disq-src">출처: 한국산업인력공단 국가자격 종목 관련 정보(data.go.kr)</p>
+    </details>`;
   }
 
   function certCard(r) {
@@ -358,6 +398,10 @@ window.SpecUp = (() => {
       badges: [
         { text: `선배 ${r.pct}%`, cls: 'is-peer' },
         r.mine ? { text: '보유', cls: 'is-have' } : null,
+        /* 결격사유 중 대학생에게 **실제로 걸릴 수 있는 것은 미성년자 하나**다
+           (80종 중 17종). 나머지 법정 요건까지 배지로 올리면 모든 전문자격에
+           경고가 붙어 아무 뜻이 없어진다 — 자세한 목록은 아래 펼침 상자에 있다. */
+        item?.disq?.minorBlocked ? { text: '만 19세 이상', cls: 'is-limit' } : null,
       ],
       title: r.name,
       org: round ? roundLabel(round) : '',

@@ -175,6 +175,36 @@ window.DB = (() => {
     }
   }
 
+  /* 멘토 목록 — 멘토 찾기 화면의 원본 (2026-08-22).
+     그전에는 mentoring.js 에 가짜 멘토 102명이 박혀 있어서, 멘토가 멘토 페이지를
+     채워도 목록에 안 떴다. 서버는 **프로필을 채운 멘토만** 내려준다.
+
+     실패를 삼키지 않는다 — 목록이 비는 것과 못 받아 오는 것은 화면에서 다르게
+     보여야 한다(mentoring.js renderSearch 의 빈 상태 두 가지). */
+  async function mentors() {
+    const r = await api('GET', '/api/mentors');
+    return r.mentors || [];
+  }
+
+  /* 자격증 추천 — "이 직무에서 실제로 보는 자격증" (backend/src/cert-reco.js).
+
+     ── 왜 서버에 묻나 ──
+     예전에는 화면이 손으로 쓴 표(aggregation.js CERT_CATALOG)를 들고 있었다.
+     근거로 쓰는 자료가 자격 카탈로그(DB)와 채용공고 캐시(파일)라 화면에 둘 수 없다.
+
+     ── 실패해도 화면은 멀쩡해야 한다 ──
+     추천은 있으면 좋은 길잡이지 스펙 입력의 전제가 아니다. 실패하면 추천 칸만
+     비고 자격증 입력은 그대로 된다 — 검색·직접입력과 같은 규칙이다. */
+  async function recommendCerts({ jobMajor, jobMiddles, dept } = {}) {
+    const p = new URLSearchParams();
+    if (jobMajor) p.set('jobMajor', jobMajor);
+    if (jobMiddles && jobMiddles.length) p.set('jobMiddles', jobMiddles.join(','));
+    if (dept) p.set('dept', dept);
+    if (![...p.keys()].length) return null;
+    try { return await api('GET', `/api/certs/recommend?${p}`); }
+    catch { return null; }
+  }
+
   /* 학교 검색. 학과·회사·자격증 검색과 같은 규약이다.
      실패는 빈 목록으로 삼킨다 — 카탈로그가 아직 비어 있어도(수집 전) 직접 입력은 되어야 한다. */
   async function suggestUniversities(q, limit = 8) {
@@ -463,7 +493,8 @@ window.DB = (() => {
     currentUser, getAllSpecs, getSpec, getUsers, countByRole, stats,
     checkUsername, verifyStatus, verifyRequest,
     createUser, login, logout, withdraw, changePassword, completeOnboarding, confirmPayment, updateUser, requestRoleChange, upsertSpec, getProfile, updateProfile,
-    classifyCompany, suggestCompanies, suggestCerts, suggestMajors, suggestUniversities, classifyMajor, jobCatalog,
+    classifyCompany, suggestCompanies, suggestCerts, recommendCerts, suggestMajors, suggestUniversities, classifyMajor, jobCatalog,
+    mentors,
     analyzeCas, casFit, specFingerprint, coachJd, draftJd, motiveJd, guideJd, companyAnalysis, companyBusiness, companyIndustryTree, jdPosting,
     specupExams, specupActivities,
     insightCategories, insightFeatured, listInsights, getInsight, createInsight, updateInsight, deleteInsight,

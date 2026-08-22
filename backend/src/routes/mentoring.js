@@ -9,13 +9,18 @@
    요청 본문의 amount 를 그대로 쓰면 위 공격이 성립한다. 여기서는 **format 만 받고
    금액은 서버가 FORMATS 에서 찾아 정한다**. 결제 승인 때도 이 값과 대조한다.
 
-   ── 멘토는 아직 시드 데이터다 ──
-   프론트 mentoring.js 의 MENTORS 배열이 원본이고 실제 회원이 아니다. 그래서
-   mentorId 검증을 하지 않고 이름을 함께 저장해 둔다. 멘토가 실제 회원이 되면
-   여기서 db.users 를 조회하도록 바꾼다. */
+   ── 멘토는 이제 실제 회원이다 (2026-08-22) ──
+   그전에는 프론트 mentoring.js 의 가짜 멘토 배열이 원본이라 mentorId 를 검증할
+   방법이 없었다. 지금은 GET /api/mentors 가 원본이므로, 신청이 **목록에 있는
+   멘토에게만** 가도록 여기서 확인한다. 없는 멘토로 신청이 만들어지면 결제까지
+   된 뒤에야 아무도 못 받는 건이라는 게 드러난다.
+   mentorId 는 username 이다(repo.mentors.list 가 그렇게 내보낸다). */
 const express = require('express');
 const { nanoid } = require('nanoid');
 const { query, queryOne } = require('../mysql');
+/* 멘토가 실제로 있는지 확인하려고 쓴다. 목록을 내보내는 곳과 **같은 함수**를
+   써야, 화면에 안 보이는 멘토에게 신청이 들어가는 일이 안 생긴다. */
+const repo = require('../repo');
 
 const router = express.Router();
 
@@ -53,11 +58,24 @@ router.get('/requests', requireAuth, async (req, res) => {
 });
 
 router.post('/requests', requireAuth, async (req, res) => {
-  const { mentorId, mentorName, format, message, slotDate, slotTime } = req.body || {};
+  const { mentorId, format, message, slotDate, slotTime } = req.body || {};
   const f = formatById(format);
   if (!mentorId || !f) {
     return res.status(400).json({ error: '멘토와 멘토링 형식을 선택해주세요.' });
   }
+
+  /* 멘토는 서버가 확인한다. 이름도 **본문에서 받지 않고** 여기서 채운다 —
+     화면이 보낸 이름을 그대로 저장하면 신청 목록에 아무 이름이나 남길 수 있다. */
+  const mentor = await repo.mentors.byUsername(String(mentorId));
+  if (!mentor) {
+    return res.status(404).json({ error: '멘토를 찾을 수 없어요. 목록에서 다시 골라주세요.' });
+  }
+  /* 자기 자신에게는 신청할 수 없다. 멘토도 다른 멘토에게 신청할 수는 있다 —
+     막을 이유가 없고, 실제로 선배에게 물을 것이 있는 경우가 있다. */
+  if (mentor.id === req.user.username) {
+    return res.status(400).json({ error: '자신에게는 멘토링을 신청할 수 없어요.' });
+  }
+
   const msg = (message || '').trim();
 
   /* 날짜·시간은 화면에서 멘토가 연 일정 중에서만 고르게 되어 있지만,
@@ -101,7 +119,7 @@ router.post('/requests', requireAuth, async (req, res) => {
          (id, mentee_id, mentor_id, mentor_name, format, format_name, amount, message,
           slot_date, slot_time, status)
        VALUES (?,?,?,?,?,?,?,?,?,?,'pending')`,
-      [id, req.user.id, mentorId, (mentorName || '').trim() || null,
+      [id, req.user.id, mentorId, mentor.name,
        f.id, f.name, f.amount, msg, date, time]);   // ← 금액은 서버가 정한 값. 클라이언트 값은 쓰지 않는다
   }
 

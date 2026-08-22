@@ -278,6 +278,90 @@ const profiles = {
   },
 };
 
+// ── 멘토 목록 (멘토 찾기) ────────────────────────────────────
+/* 후배에게 보여줄 멘토를 모은다. **users · profiles · user_specs 세 곳**에
+   흩어져 있어서 화면이 직접 조립할 수 없다.
+     users      — 이름 · 역할
+     profiles   — 소개글 · 전문분야 · 타임라인 · 가능 형식 · 예약 가능 일정 · 사진
+     user_specs — 회사 · 직무(KECO) · 경력
+
+   ── 프로필을 채운 멘토만 내보낸다 (사용자 결정) ──
+   멘토 계정은 많지만 대부분 멘토 페이지를 안 썼다(실측: 127명 중 0명). 그 사람들을
+   목록에 올리면 이름과 빈 칸만 있는 카드가 줄줄이 뜬다. 후배가 그 카드를 눌러
+   봐야 아무것도 없으므로, **소개글이나 전문분야 중 하나라도 있어야** 올린다.
+
+   ── 개인정보는 내보내지 않는다 ──
+   이메일·전화·생년월일·주소는 프로필 테이블에 있지만 여기서 고르지 않는다.
+   목록 API 는 로그인 없이도 볼 수 있어서, 컬럼을 통째로 SELECT * 하면 그 순간
+   전부 공개된다. **필요한 칸만 이름으로 적는다.** */
+const mentors = {
+  async list() {
+    const rows = await query(`
+      SELECT u.id, u.username, u.name,
+             p.nickname, p.avatar, p.current_job, p.intro,
+             p.specialties, p.timeline, p.modes, p.availability,
+             s.company, s.corp_type, s.job_major, s.job_middles, s.careers
+        FROM users u
+        JOIN profiles p ON p.user_id = u.id
+        LEFT JOIN user_specs s ON s.user_id = u.id
+       WHERE u.role = 'mentor'
+         AND ((p.intro IS NOT NULL AND p.intro <> '') OR JSON_LENGTH(p.specialties) > 0)
+       ORDER BY u.created_at DESC`);
+
+    return rows.map(r => ({
+      /* 화면이 쓰는 id 는 username 이다. 내부 id 를 노출하면 다른 API 의 키와
+         같아져서, 목록만 봐도 남의 레코드를 지목할 수 있게 된다. */
+      id: r.username,
+      name: r.name,
+      nickname: r.nickname || null,
+      avatar: r.avatar || null,
+      role: r.current_job || null,
+      company: r.company || null,
+      corpType: r.corp_type || null,
+      jobMajor: r.job_major || null,
+      jobMiddles: asJson(r.job_middles) || [],
+      intro: r.intro || null,
+      specialties: asJson(r.specialties) || [],
+      timeline: asJson(r.timeline) || [],
+      modes: asJson(r.modes) || [],
+      /* 지난 날짜는 여기서 거른다. 화면마다 거르면 한 군데를 빠뜨렸을 때 누를 수
+         없는 날짜가 달력에 남는다(mentor-profile.js 와 같은 규칙). */
+      availability: (asJson(r.availability) || [])
+        .filter(sl => sl?.date >= new Date().toISOString().slice(0, 10)),
+      years: careerYears(asJson(r.careers) || []),
+    }));
+  },
+
+  async byUsername(username) {
+    const all = await mentors.list();
+    return all.find(m => m.id === username) || null;
+  },
+};
+
+/* 경력 연차 — 멘토가 적은 경력들의 기간을 합쳐 햇수로 만든다.
+   **없으면 null 이다.** 0년차로 적으면 '신입 멘토' 라는 뜻이 되는데, 실제로는
+   경력을 안 적었을 뿐이라 화면이 그 둘을 구분할 수 있어야 한다. */
+function careerYears(careers) {
+  if (!Array.isArray(careers) || !careers.length) return null;
+  let months = 0;
+  const now = new Date();
+  for (const c of careers) {
+    const start = parseYm(c?.start);
+    if (!start) continue;
+    const end = c?.current ? now : (parseYm(c?.end) || now);
+    months += Math.max(0, (end.getFullYear() - start.getFullYear()) * 12
+                        + (end.getMonth() - start.getMonth()));
+  }
+  return months > 0 ? Math.max(1, Math.round(months / 12)) : null;
+}
+
+/* 'YYYY-MM' 도 'YYYY-MM-DD' 도 온다(경력 칸이 자유 입력에 가깝다). 둘 다 받는다. */
+function parseYm(v) {
+  const m = String(v || '').match(/^(\d{4})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, 1);
+}
+
 // ── 스펙 ────────────────────────────────────────────────────
 const specs = {
   async byUser(userId) {
@@ -368,4 +452,4 @@ const reference = {
   careerSpecs: () => seed().careerSpecs || [],
 };
 
-module.exports = { users, sessions, profiles, specs, reference };
+module.exports = { users, sessions, profiles, mentors, specs, reference };

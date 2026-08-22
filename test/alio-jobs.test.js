@@ -149,6 +149,35 @@ const ALIO = require('../backend/src/alio-jobs.js');
      mixed !== null && mixed.includes('SQL') && !mixed.includes('국가유공자') && !mixed.includes('첨부파일'),
      `→ ${JSON.stringify(mixed)}`);
 
+  /* ── 직무로 찾는 공고 (2026-08-22 신규) ─────────────────────
+     회사가 아니라 **고른 직무**로 찾는다. CAS 화면이 "이 직무 적합도" 옆에
+     "그래서 지금 어디서 뽑는가" 를 붙이는 데 쓴다.
+     픽스처 공고는 전부 ncsCdNmLst='보건.의료' 다 → KECO 30(보건·의료직)에 걸린다. */
+  console.log('\n── 8-1. 직무로 찾는 공고 ──');
+  const health = ALIO.jobPostings({ jobMiddles: ['30'] });
+  ok('직무 분야로 공고를 찾는다', health.items.length > 0, `→ ${health.items.length}건`);
+  ok('무슨 분야로 찾았는지 알려준다', health.fields.includes('보건.의료'), `→ ${health.fields}`);
+  ok('마감 공고는 빠진다', !health.items.some(j => j.id === '5'));
+  ok('기본은 신입만', !health.items.some(j => j.id === '3'), `→ ${health.items.map(j => j.id)}`);
+  ok('경력도 보려면 끌 수 있다',
+    ALIO.jobPostings({ jobMiddles: ['30'], newcomerOnly: false }).items.some(j => j.id === '3'));
+  ok('마감 임박 순', health.items.every((j, i, a) => i === 0 || a[i - 1].dday <= j.dday),
+    `→ ${health.items.map(j => j.dday)}`);
+
+  /* 매핑에 없는 분야는 0건이다. 그때 "이 직무는 채용이 없다" 로 읽히지 않게
+     **공공기관 공고만 들어 있다는 사실**을 사유에 적는다. */
+  const farm = ALIO.jobPostings({ jobMiddles: ['90'] });      // 농림어업직
+  ok('안 걸리면 0건', farm.items.length === 0);
+  ok('공공기관 자료라는 걸 밝힌다', /공공기관/.test(farm.reason || ''), `→ ${farm.reason}`);
+
+  const noJob = ALIO.jobPostings({});
+  ok('직무가 없으면 무엇을 하면 되는지 말한다', /직무를 고르면/.test(noJob.reason || ''),
+    `→ ${noJob.reason}`);
+
+  /* 세부직무가 없으면 진출분야로 넓힌다 — 자격증 추천과 같은 규칙이다. */
+  const byMajor = ALIO.jobPostings({ jobMajor: '3' });        // 보건·의료직
+  ok('진출분야만으로도 찾는다', byMajor.items.length > 0, `→ ${byMajor.items.length}건`);
+
   console.log('\n── 9. 캐시가 없을 때 ──');
   fs.unlinkSync(CACHE);
   delete require.cache[require.resolve('../backend/src/alio-jobs.js')];

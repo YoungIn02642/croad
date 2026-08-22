@@ -184,8 +184,76 @@ async function companyJobs(companyName, { newcomerOnly = false } = {}) {
   };
 }
 
+/* ── 직무로 찾는 공고 (2026-08-22 신규) ───────────────────────
+   회사가 아니라 **고른 직무**로 지금 모집 중인 공고를 찾는다.
+
+   한동안 CAS 화면이 이걸 썼는데, 2026-08-22 걷어냈다(작업정리 36장) — 공고는
+   로드맵 3단계인 회사 찾기가 답할 질문이라는 판단이다. **지금은 부르는 화면이 없다.**
+   신입 필터·마감 판정·커버리지 표기가 여기 모여 있어 라우트째로 남겨 둔다.
+
+   ── 어떻게 잇나 ──
+   공고에는 NCS 대분류가 붙어 있고(`ncsCdNmLst`), 우리 화면의 직무는 KECO 다.
+   둘을 잇는 표는 cert-reco.js 하나뿐이다 — 자격증 추천과 **같은 표**를 쓴다.
+   여기에 표를 하나 더 두면 같은 직무가 화면마다 다른 분야로 번역된다.
+
+   ── 커버리지를 숨기지 않는다 ──
+   위 머리주석 그대로 **공공기관 공고만** 있다. 0건이 "이 직무는 안 뽑는다" 로
+   읽히지 않게, 몇 건 중에서 찾았는지와 자료의 성격을 함께 내보낸다. */
+function jobPostings({ jobMajor, jobMiddles, newcomerOnly = true, limit = MAX_ITEMS } = {}) {
+  const certReco = require('./cert-reco');
+  const base = { items: [], source: 'alio', configured: isConfigured(), fields: [], reason: null };
+
+  const middles = (jobMiddles || []).map(String);
+  let fields = [...new Set(middles.flatMap(c => certReco.KECO_MIDDLE_TO_NCS[c] || []))];
+  if (!fields.length && jobMajor != null && jobMajor !== '') {
+    fields = certReco.KECO_MAJOR_TO_NCS[String(jobMajor)] || [];
+  }
+  if (!fields.length) {
+    return { ...base, reason: '직무를 고르면 그 직무로 모집 중인 공고를 보여드려요.' };
+  }
+
+  const data = load();
+  if (!data) {
+    return { ...base, configured: false, fields,
+      reason: '공공기관 채용공고 캐시가 없습니다. backend 에서 node scripts/fetch-alio-jobs.js 를 실행하세요.' };
+  }
+
+  const fieldSet = new Set(fields);
+  const all = (data.items || []).map(normalizeJob).filter(j => j.title && j.company);
+  const mine = all.filter(j =>
+    String(j.ncs || '').split(',').some(n => fieldSet.has(certReco.ncs(n))));
+  const open = mine.filter(isOpen);
+  const shown = (newcomerOnly ? open.filter(newcomerOk) : open)
+    .sort((a, b) => a.dday - b.dday);                 // 마감 임박 순
+
+  /* 0건의 이유를 갈라서 말한다 — companyJobs 와 같은 규칙이다. */
+  let reason = null;
+  if (!shown.length) {
+    if (!mine.length) {
+      reason = '공공기관 채용정보(잡알리오)에 이 직무 분야의 공고가 없습니다. '
+             + '이 자료에는 공공기관 공고만 들어 있어, 민간 기업은 조회되지 않습니다.';
+    } else if (!open.length) {
+      reason = `이 직무 분야 공고 ${mine.length}건이 있지만 모두 접수가 마감됐습니다.`;
+    } else {
+      reason = `진행 중 공고 ${open.length}건이 있지만 신입 지원 가능 공고는 없습니다.`;
+    }
+  }
+
+  return {
+    ...base,
+    fields,
+    items: shown.slice(0, limit),
+    matched: mine.length,
+    open: open.length,
+    scanned: all.length,
+    fetchedAt: data.fetchedAt || null,
+    reason,
+  };
+}
+
 module.exports = {
-  companyJobs, isConfigured, normalizeJob, isOpen, newcomerOk, stripBoilerplate, NOISE,
+  companyJobs, jobPostings, isConfigured, normalizeJob, isOpen, newcomerOk,
+  stripBoilerplate, NOISE,
   MAX_ITEMS, CACHE_PATH: CACHE,
   _load: load,
 };

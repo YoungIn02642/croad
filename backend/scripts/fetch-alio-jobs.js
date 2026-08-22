@@ -79,6 +79,16 @@ const TIMEOUT_MS = Number(process.env.ALIO_TIMEOUT_MS || 15000);
 const arg = n => process.argv.find(a => a.startsWith(`--${n}=`))?.split('=')[1];
 const has = n => process.argv.includes(`--${n}`);
 
+/* 빌드에서 부를 때 붙인다. 키가 없거나 잡알리오가 잠깐 죽어도 **배포를 막지 않는다** —
+   공고 칸만 비고 나머지는 그대로 뜬다(fetch-dart-corps.js 와 같은 규약).
+   사람이 손으로 돌릴 때는 붙이지 않는다. 그때는 실패가 보여야 한다. */
+const SOFT = has('if-possible');
+const bail = msg => {
+  if (SOFT) { console.warn(`[alio] 건너뜁니다 — ${msg}`); process.exit(0); }
+  console.error(msg);
+  process.exit(1);
+};
+
 /* 파라미터 이름은 예제 URL 에서 확인한 것을 쓴다(추정 아님).
      resultType=json  — `type=json` 이 아니다
      ongoingYn=Y      — **접수 중인 공고만**. 이것 하나로 전체 112,920건이
@@ -159,10 +169,7 @@ const totalOf = json => {
 };
 
 (async () => {
-  if (!RAW_KEY) {
-    console.error('DATA_GO_KR_SERVICE_KEY 가 .env 에 없습니다.');
-    process.exit(1);
-  }
+  if (!RAW_KEY) bail('DATA_GO_KR_SERVICE_KEY 가 .env 에 없습니다.');
   if (!API) {
     console.error(
       'ALIO_API_URL 이 .env 에 없습니다.\n' +
@@ -170,7 +177,6 @@ const totalOf = json => {
       '  "재정경제부_공공기관 채용정보 조회서비스" → 상세기능정보의 목록 조회 요청주소를\n' +
       '  backend/.env 에 넣으세요. 꺾쇠·따옴표 없이 주소만 적습니다:\n' +
       '    ALIO_API_URL=https://apis.data.go.kr/1051000/…/…');
-    process.exit(1);
   }
 
   /* 주소가 주소 꼴인지 먼저 본다. fetch 의 'Invalid URL' 은 원인을 말해 주지 않아서,
@@ -186,7 +192,9 @@ const totalOf = json => {
       console.error("  ← 안내문의 꺾쇠 '<...>' 까지 같이 붙여넣으신 것 같아요. 주소만 남기세요.");
     }
     console.error('  예: ALIO_API_URL=https://apis.data.go.kr/1051000/recruitment/list');
-    process.exit(1);
+    /* 주소가 틀린 것은 사람이 고쳐야 할 설정 문제다. 그래도 **배포를 막지는 않는다** —
+       공고 칸 하나 때문에 서비스 전체가 안 올라가면 손해가 훨씬 크다. */
+    bail('');
   }
 
   /* 상세 조회 주소를 넣으면 1건짜리 객체만 와서 '수집은 됐는데 1건'이 된다.
@@ -254,10 +262,9 @@ const totalOf = json => {
        **빈 응답을 '수집 완료'로 넘기지 않는다** — 그게 캐시를 비우는 경로가 된다. */
     if (!items.length) {
       if (page === 1) {
-        console.error('\n1페이지가 비어 있습니다 (resultCode 는 정상).');
-        console.error('  트래픽 제한이나 일시 장애일 수 있습니다 — 잠시 뒤 다시 시도하세요.');
-        console.error('  --probe 로 원문을 확인할 수 있습니다.');
-        process.exit(1);
+        bail('\n1페이지가 비어 있습니다 (resultCode 는 정상).'
+           + '\n  트래픽 제한이나 일시 장애일 수 있습니다 — 잠시 뒤 다시 시도하세요.'
+           + '\n  --probe 로 원문을 확인할 수 있습니다.');
       }
       break;
     }
@@ -278,8 +285,7 @@ const totalOf = json => {
   console.log('');
 
   if (!byId.size) {
-    console.error('접수 중인 공고를 하나도 찾지 못했습니다. --probe 로 응답을 먼저 확인하세요.');
-    process.exit(1);
+    bail('접수 중인 공고를 하나도 찾지 못했습니다. --probe 로 응답을 먼저 확인하세요.');
   }
 
   /* ── 멀쩡한 캐시를 빈약한 결과로 덮지 않는다 ─────────────────
@@ -290,10 +296,9 @@ const totalOf = json => {
     try { return JSON.parse(fs.readFileSync(OUT, 'utf8')); } catch { return null; }
   })();
   if (prev?.count && byId.size < prev.count * 0.3 && !has('force')) {
-    console.error(`\n이전 캐시는 ${prev.count}건인데 이번엔 ${byId.size}건뿐입니다 (30% 미만).`);
-    console.error('  API 가 일시적으로 빈 응답을 주는 중일 수 있어 덮어쓰지 않았습니다.');
-    console.error('  그래도 덮어쓰려면 --force 를 붙이세요.');
-    process.exit(1);
+    bail(`\n이전 캐시는 ${prev.count}건인데 이번엔 ${byId.size}건뿐입니다 (30% 미만).`
+       + '\n  API 가 일시적으로 빈 응답을 주는 중일 수 있어 덮어쓰지 않았습니다.'
+       + '\n  그래도 덮어쓰려면 --force 를 붙이세요.');
   }
 
   const out = {

@@ -75,10 +75,15 @@ window.CASFit = (() => {
         <i class="ti ti-alert-triangle"></i>
         <div><b>${esc(_state.error)}</b>${_state.how ? `<br><span>${esc(_state.how)}</span>` : ''}</div>
       </div>`);
+      /* 실패도 띠에 알려야 한다. 안 그러면 위쪽은 '계산 중' 인 채로 멈춰 있다. */
+      if (window.CASHero?.paintTwo) CASHero.paintTwo();
       return;
     }
 
     el.innerHTML = card(head(_state) + axesHtml(_state) + gapsHtml(_state) + foot(_state));
+    /* 맨 위 두 점수 띠에도 같은 값을 올린다. 적합도는 서버 응답을 기다렸다 늦게
+       채워지므로, 여기서 알려주지 않으면 띠만 '계산 중' 인 채로 남는다. */
+    if (window.CASHero?.paintTwo) CASHero.paintTwo();
     bind(el);
   }
 
@@ -200,5 +205,18 @@ window.CASFit = (() => {
      여기서 따로 부를 필요가 없다. */
   function reset() { _forKey = null; _state = null; _openAxis = null; }
 
-  return { render, reset };
+  /* 맨 위 두 점수 띠(#cas-two)가 이 값을 읽는다. 화면을 두 곳에서 그리게 되었지만
+     **점수는 여전히 여기 하나뿐**이다 — 띠가 따로 계산하면 두 숫자가 갈린다.
+       null            아직 계산 전이거나 직업을 안 골랐다
+       { loading }     계산 중
+       { error }       실패
+       { total, max, grade, jobName } 계산됨 */
+  function summary() {
+    if (!_state) return null;
+    if (_state.loading) return { loading: true };
+    if (_state.error) return { error: _state.error };
+    return { total: _state.total, max: _state.max, grade: _state.grade, jobName: _state.jobName };
+  }
+
+  return { render, reset, summary };
 })();

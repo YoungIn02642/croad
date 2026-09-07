@@ -17,6 +17,7 @@ const certReco = require('./cert-reco');
 const ALIO = require('./alio-jobs');
 const sectors = require('./company-sectors');
 const POSTING = require('./posting-fetch');
+const POSTING_IMG = require('./posting-image');
 const dailyRefresh = require('./daily-refresh');
 const OAuth = require('./oauth');
 const NiceAuth = require('./nice-auth');
@@ -440,9 +441,57 @@ app.post('/api/jd/posting', requireAuth, ah(async (req, res) => {
   }
 
   const r = await POSTING.fetchPosting(url);
+
+  /* ── 글이 안 나오면 이미지를 읽는다 (2026-09-07, 사용자 요청) ──────────────
+     26-8 에서 미뤄 뒀던 칸이다. 이유였던 "Groq 에 비전 모델이 없다" 가 Gemini 를
+     붙이면서(2026-08-28) 사라졌다 — posting-image.js 머리주석에 적어 뒀다.
+
+     ── 언제만 부르나 ──
+     본문이 멀쩡히 나온 공고는 이미지를 건드리지 않는다. 부르는 경우는 셋뿐이다:
+       · kind=image  — 주소 자체가 이미지 파일
+       · kind=empty  — 페이지는 열렸는데 글이 200자 미만(이미지 공고의 전형)
+       · weak        — 가져오긴 했는데 공고 낱말이 2개 미만(메뉴·안내문만)
+     이미 좋은 본문이 있는데 이미지를 또 읽으면 시간도 토큰도 그냥 나간다.
+
+     ── 실패해도 이 요청을 죽이지 않는다 ──
+     이미지 읽기는 덤이다. 못 읽으면 원래의 실패 사유를 그대로 올린다. */
+  const ocrKind = !r.ok && (r.kind === 'image' || r.kind === 'empty');
+  let img = null;
+  if (POSTING_IMG.isAvailable() && (ocrKind || (r.ok && r.weak))) {
+    const cands = (r.kind === 'image' && r.imageUrl) ? [r.imageUrl] : (r.images || []);
+    if (cands.length) img = await POSTING_IMG.readPostingImages(cands);
+  }
+
+  if (img && img.ok) {
+    /* 글이 조금이라도 있었으면 **버리지 않고 잇는다** — 요약표(경력·학력·마감일)는
+       HTML 에, 상세는 이미지에 있는 공고가 흔하다. 어디까지가 이미지에서 읽은
+       것인지 사람이 알아볼 수 있게 표시 한 줄을 넣는다(고치고 지우라는 뜻이다). */
+    /* ── 앞의 글이 메뉴뿐이면 버린다 (실측 2026-09-07) ──────────────
+       사람인 이미지 공고를 넣었더니 앞에 212자가 붙어 왔는데 전부 "본문 바로가기·
+       검색 폼·로그인·회원가입" 이었다. 그대로 이어 붙이면 이미지에서 잘 읽어 온 글
+       앞에 메뉴가 얹혀 26-3 의 그 실패가 된다.
+       공고 낱말이 하나라도 있으면 남긴다 — 요약표(모집분야·경력·마감일)는 지원 가능
+       여부를 판단하는 데 쓰인다. 하나도 없으면 그건 메뉴다. */
+    const base = r.ok && POSTING.postingHits(r.text) >= 1 ? r.text : '';
+    const text = base ? `${base}\n\n[이미지에서 읽은 내용]\n${img.text}` : img.text;
+    return res.json({
+      ok: true, text, title: r.title || null, url: r.url || url,
+      weak: POSTING.postingHits(text) < 2,
+      fromImage: img.count, imageModel: img.model,
+    });
+  }
+
   /* 실패 사유를 그대로 올린다 — 로그인 벽·이미지 공고·본문 못 찾음은 사용자가 할 일이
-     다르다(18-4 와 같은 원칙). 화면이 사유별로 다른 안내를 붙인다. */
-  if (!r.ok) return res.status(422).json({ error: r.message, kind: r.kind, title: r.title || null });
+     다르다(18-4 와 같은 원칙). 화면이 사유별로 다른 안내를 붙인다.
+     이미지까지 읽어 봤다면 **그 결과도 말해 준다** — 시도조차 안 한 것과 읽었는데
+     공고가 아니었던 것은 사용자가 할 일이 다르다. */
+  if (!r.ok) {
+    const tail = !POSTING_IMG.isAvailable() && r.kind === 'image'
+      ? ' 지금은 이미지에서 글자를 읽지 못합니다.'
+      : (img && img.why === 'not-posting' ? ' 이미지도 열어 봤지만 공고 글자가 아니었어요.'
+        : (img && img.why === 'ai-failed' ? ' 이미지에서 글자를 읽어 보려 했지만 실패했어요.' : ''));
+    return res.status(422).json({ error: `${r.message}${tail}`, kind: r.kind, title: r.title || null });
+  }
   res.json({ ok: true, text: r.text, title: r.title, url: r.url, weak: r.weak });
 }));
 

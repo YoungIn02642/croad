@@ -102,7 +102,13 @@ window.SpecUp = (() => {
      · 포스터 — 사용자 지시(2026-09-07) "사이트 안에 모집 사진을 넣어줘.
        여백없게 화면 맞춰서." `object-fit: cover` 로 표지를 덮는다
      · 로고 — 포스터가 없는 공고의 자리(2026-09-06 결정)
-     · 이모지 — 둘 다 없을 때. 예전 모습 그대로다
+     · 이모지 — **넘겨줄 때만** 그린다
+
+     ── 이모지를 '항상 그리는 바닥' 으로 두면 안 됐다 (2026-09-07, 사용자 지적) ──
+     로고가 떠도 이모지가 **옆에 나란히** 남았다. `.sup-cover` 가 flex 라 둘이 형제로
+     자리를 나눠 갖고, 그래서 로고가 가운데가 아니라 왼쪽으로 밀렸다. '쌓아서 덮는다'
+     고 생각했지만 실제로 겹쳐 있던 것은 절대배치인 포스터뿐이었다.
+     이모지는 **넘어온 경우에만** 그린다 — 공모전·대외활동 카드는 안 넘긴다.
 
      ── 왜 갈아끼우지 않고 쌓아서 걷어내나 ──
      처음에는 `onerror` 에서 `innerHTML` 을 통째로 바꿔치웠는데, 포스터→로고→이모지로
@@ -124,7 +130,7 @@ window.SpecUp = (() => {
       + (logo
         ? `<span class="sup-cover-logo"><img src="${esc(logo)}" alt="" loading="lazy" ${guard('.sup-cover-logo')}></span>`
         : '')
-      + `<span class="sup-cover-emoji">${emoji}</span>`;
+      + (emoji ? `<span class="sup-cover-emoji">${emoji}</span>` : '');
   }
 
   function card({ emoji, poster, logo, coverTag, palKey, badges = [], title, org, foot, url, cta }) {
@@ -688,9 +694,11 @@ window.SpecUp = (() => {
       : (a.period ? `<span class="sup-dday is-wait">상시</span>` : '<span class="sup-foot-muted">기간 미상</span>');
 
     return card({
-      emoji: '🏆',
-      /* 표지: 모집 포스터 → 주관기관 로고 → 이모지 순으로 물러난다.
-         포스터는 상세를 연 공고에만 있고, 로고는 홈페이지를 밝힌 기관에만 있다. */
+      /* **이모지를 안 넘긴다** (사용자 지시 2026-09-07 "트로피 이모지 다 빼줄래").
+         로고와 나란히 찍혀 로고를 가운데에서 밀어냈다. 로고도 포스터도 없으면
+         표지는 이름에서 정한 색만 남는다 — 그 편이 트로피가 반복되는 것보다 낫다.
+         (마감 임박 줄의 🏆 는 그대로 둔다. 거기서는 자격증 📜 와 종류를 가르는
+          표시라 지우면 뜻이 없어진다.) */
       poster: a.poster || null,
       logo: a.logo || null,
       /* ── 표지에는 지역을 올린다 (사용자 지시) ────────────────────

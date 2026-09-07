@@ -189,9 +189,25 @@ router.get('/', ah(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
   const offset = (page - 1) * limit;
 
+  /* ── 내 북마크만 보기 (2026-09-07, 사용자 지시) ──────────────
+     북마크를 걸어 둬도 **다시 찾아갈 화면이 없어서** 숫자만 쌓이고 있었다.
+
+     로그인이 필요하다. 비로그인이면 401 로 돌려보낸다 — 빈 목록을 주면
+     "아직 북마크한 게 없구나" 로 읽혀서, 로그인하면 있다는 것을 모른다. */
+  const onlyBookmarked = String(req.query.bookmarked || '') === '1';
+  if (onlyBookmarked && !req.user) {
+    return res.status(401).json({ error: '로그인이 필요합니다.' });
+  }
+
   const conds = [];
   const params = [];
   if (category) { conds.push('p.category=?'); params.push(category); }
+  if (onlyBookmarked) {
+    /* EXISTS 로 본다 — 댓글 검색(아래)과 같은 모양이라 조건이 늘어도 total 과
+       목록이 어긋나지 않는다. */
+    conds.push('EXISTS (SELECT 1 FROM insight_bookmarks bmf WHERE bmf.post_id = p.id AND bmf.user_id = ?)');
+    params.push(req.user.id);
+  }
   if (q) {
     const like = `%${escapeLike(q)}%`;
     /* 글쓴이는 닉네임과 이름을 둘 다 본다 — 목록에 보이는 것은 닉네임이지만,
@@ -250,7 +266,7 @@ router.get('/', ah(async (req, res) => {
 
   res.json({
     posts: rows.map(toPostSummary), total: Number(total), page, limit,
-    q, scope,
+    q, scope, bookmarked: onlyBookmarked,
   });
 }));
 

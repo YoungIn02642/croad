@@ -375,3 +375,13 @@
 }
 .insight-star:hover { color: #f5a524; }
 .insight-star.is-on { color: #f5a524; }
+
+/* 내 북마크 탭 (2026-09-07, 사용자 지시).
+   카테고리와 성격이 달라서(분류가 아니라 '내 것만') 사이를 벌리고 세로선을 둔다 —
+   나란히 붙이면 카테고리 하나로 읽힌다. */
+.insight-tab--bm {
+  margin-left: 10px; padding-left: 14px;
+  border-left: 1px solid var(--wf-hairline); border-radius: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.insight-tab--bm.on { color: var(--brand); font-weight: 600; }

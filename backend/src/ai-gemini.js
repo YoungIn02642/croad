@@ -72,8 +72,10 @@ const THINK_BUDGET = 512;
    막혔다(ai-provider.js callModel 머리주석). 그래서 진행률은 시간을 재서 그린다. */
 /* timeoutMs 는 호출하는 쪽이 더 짧게 줄 수 있다 — 초안은 Gemini 가 실패하면 Groq 로
    넘어가므로(ai-provider.js callDraftModel), 60초를 다 기다릴 이유가 없다. */
-async function callModel(text, system, { num_predict = 512, timeoutMs } = {}) {
-  const limitMs = Number(timeoutMs) > 0 ? Number(timeoutMs) : TIMEOUT_MS;
+/* 한 번의 호출. body 를 만드는 쪽(글/이미지)이 갈리므로 **보내고 읽는 부분만** 여기 둔다.
+   두 벌로 두면 오류 분기(키·쿼터·모델 폐기)가 한쪽만 고쳐진다 — 이 파일이 처음부터
+   피하려던 실패 모드다. */
+async function generate(body, limitMs) {
   const key = (process.env.GEMINI_API_KEY || '').trim();
   if (!key) {
     cfgError('GEMINI_API_KEY 가 없습니다. https://aistudio.google.com/apikey 에서 발급받아 '
@@ -89,17 +91,7 @@ async function callModel(text, system, { num_predict = 512, timeoutMs } = {}) {
       method: 'POST',
       signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text }] }],
-        generationConfig: {
-          temperature: 0.2,
-          /* 상한은 사고 몫 + 본문을 함께 덮는다(위 주석). */
-          maxOutputTokens: num_predict + THINK_BUDGET,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: THINK_BUDGET },
-        },
-      }),
+      body: JSON.stringify(body),
     });
   } catch (e) {
     clearTimeout(timer);
@@ -157,7 +149,50 @@ async function callModel(text, system, { num_predict = 512, timeoutMs } = {}) {
   return outText;
 }
 
+async function callModel(text, system, { num_predict = 512, timeoutMs } = {}) {
+  const limitMs = Number(timeoutMs) > 0 ? Number(timeoutMs) : TIMEOUT_MS;
+  return generate({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts: [{ text }] }],
+    generationConfig: {
+      temperature: 0.2,
+      /* 상한은 사고 몫 + 본문을 함께 덮는다(위 주석). */
+      maxOutputTokens: num_predict + THINK_BUDGET,
+      responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: THINK_BUDGET },
+    },
+  }, limitMs);
+}
+
+/* ── 이미지를 읽는다 (2026-09-07, 사용자 요청) ────────────────────────────
+   이미지로 된 채용공고에서 글자를 옮겨 오는 데만 쓴다(posting-image.js). 26-8 에서
+   "OCR 은 안 한다" 고 적었던 이유가 **Groq 에 비전 모델이 없다** 였는데, 초안용으로
+   Gemini 를 붙이면서(2026-08-28) 그 전제가 사라졌다 — 키도 모델도 이미 있다.
+
+   ── 글 호출과 다른 점 둘 ──
+   · responseMimeType 을 주지 않는다. 받아 올 것은 **공고에 적힌 글 그대로**라 JSON 이
+     아니다. JSON 을 요구하면 모델이 옮겨 적기를 요약으로 바꾼다.
+   · temperature 0. 옮겨 적기에 창의성이 끼면 없는 글자가 생긴다 — 이 기능의 최악은
+     못 읽는 것이 아니라 **그럴듯하게 지어내는 것**이다(18-7 과 같은 실패 모드).
+
+   images = [{ mimeType, data(base64) }]. 한 번에 여러 장을 넘긴다 — 공고 한 장이
+   이미지 여러 개로 잘려 있는 일이 흔해서, 따로 부르면 앞뒤 맥락이 끊긴다. */
+async function callVision(images, prompt, system, { num_predict = 2048, timeoutMs } = {}) {
+  const limitMs = Number(timeoutMs) > 0 ? Number(timeoutMs) : TIMEOUT_MS;
+  const parts = [{ text: prompt }];
+  for (const im of images) parts.push({ inlineData: { mimeType: im.mimeType, data: im.data } });
+  return generate({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: num_predict + THINK_BUDGET,
+      thinkingConfig: { thinkingBudget: THINK_BUDGET },
+    },
+  }, limitMs);
+}
+
 module.exports = {
-  callModel, modelLabel, isConfigured,
+  callModel, callVision, modelLabel, isConfigured,
   PROVIDER, GEMINI_MODEL, TIMEOUT_MS,
 };

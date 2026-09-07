@@ -1245,7 +1245,9 @@
        것인지). 여기서는 **할 수 있는 일**만 덧붙인다 — 사유를 두 번 말하면 서로
        어긋난다. 어느 쪽이든 브라우저로는 열리므로 복사해 오면 된다. */
     blocked: '그 페이지를 브라우저에서 열고 Ctrl+A → Ctrl+C 로 복사해 붙여넣어 주세요.',
-    image:   '이미지로 된 공고는 아직 글자를 읽지 못해요. 직접 옮겨 적거나, 사이트의 텍스트 공고를 찾아 주세요.',
+    /* 이미지 공고는 서버가 Gemini 비전으로 읽어 본다(26-8 → 2026-09-07). 여기까지
+       왔다는 건 그것마저 안 됐다는 뜻이라, 남은 길만 말한다 — 왜 안 됐는지는 서버가 말한다. */
+    image:   '직접 옮겨 적거나, 사이트의 텍스트 공고를 찾아 주세요.',
     empty:   '화면에서 그려지는 공고 같아요. 그 페이지에서 Ctrl+A → Ctrl+C 로 복사해 붙여넣어 주세요.',
     gone:    '마감돼 내려간 공고일 수 있어요. 주소를 다시 확인해 주세요.',
   };
@@ -1262,8 +1264,13 @@
 
     if (btn) { btn.disabled = true; btn.textContent = '가져오는 중…'; }
     urlMsg('', '');
+    /* 글이 없는 공고는 서버가 이미지를 읽는다 — 실측으로 한 장에 30초쯤 걸린다.
+       아무 말 없이 그 시간을 기다리게 하면 사용자는 멈춘 줄 알고 새로고침한다.
+       실측 편차가 커서(9.7~76.5초) 초 단위로 약속하지 않는다. */
+    const slow = setTimeout(() => urlMsg('', '글로 된 공고가 아니라서 공고 이미지를 읽고 있어요 — 1분 남짓 걸립니다.'), 6000);
     try {
       const r = await DB.jdPosting(url);
+      clearTimeout(slow);
       ta.value = r.text;
       autoGrow(ta);
       STEPS.forEach(paintBlock);
@@ -1274,6 +1281,14 @@
          메뉴·안내문만 1,000자 넘게 딸려 온다 — 길이만 보면 성공이라 더 위험하다. */
       const head = r.title ? `“${r.title}” ` : '';
       const size = r.text.length.toLocaleString();
+      /* 이미지에서 읽은 글은 **더 의심하게** 말한다. OCR 은 본문 추출보다 깨지고,
+         26-8 에서 "읽은 것을 그대로 분석에 넘기지 않는다" 고 미리 정해 뒀다. */
+      if (r.fromImage) {
+        urlMsg('warn', `${head}글이 없어 공고 이미지 ${r.fromImage}장을 읽었어요 (${size}자). `
+          + '잘못 읽은 글자가 있을 수 있으니 반드시 확인하고 고친 뒤 분석해 주세요.');
+        ta.focus();
+        return;
+      }
       if (r.weak) {
         urlMsg('warn', `${head}페이지는 가져왔는데(${size}자) 공고 본문이 아닌 것 같아요 — `
           + '메뉴·안내문만 담겼을 수 있습니다. 내용을 확인하시고, 아니면 그 페이지에서 '
@@ -1286,6 +1301,7 @@
     } catch (e) {
       urlMsg('warn', `${e.message}${URL_HELP[e.kind] ? ` ${URL_HELP[e.kind]}` : ''}`);
     } finally {
+      clearTimeout(slow);
       if (btn) { btn.disabled = false; btn.textContent = '가져오기'; }
     }
   }

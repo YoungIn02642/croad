@@ -298,6 +298,59 @@ function embedUrls(html, base) {
   return [...found];
 }
 
+/* ── 이미지로 된 공고 (2026-09-07, 사용자 요청) ─────────────────
+   26-8 에서 "OCR 은 안 한다" 고 적어 둔 그 칸이다. 이유가 **Groq 에 비전 모델이 없다**
+   였는데, 초안용으로 Gemini 를 붙이면서(2026-08-28) 전제가 사라졌다. 읽는 것은
+   posting-image.js 가 하고, **여기서는 후보 주소만 고른다** — 이 파일은 네트워크와
+   HTML 만 알고 AI 는 모른다(테스트가 네트워크 없이 도는 이유이기도 하다).
+
+   ── 사이트별 선택자를 짜지 않는다 (25-2 와 같은 판단) ──
+   상세 이미지가 어느 <div> 안에 있는지는 사이트마다 다르다. 대신 **아닌 것을 뺀다**:
+     · 이름에 logo·icon·btn·banner 가 든 것 — 어느 사이트든 장식이다
+     · svg·gif·ico — 아이콘·스페이서다. Gemini 가 받는 형식도 아니다
+     · data: URI — 인라인은 거의 아이콘이고, 크면 HTML 만 수 MB 가 된다
+   진짜 거르기는 **받아 본 뒤 크기로** 한다(posting-image.js). 이름만으로는 못 가른다.
+
+   lazy 로딩이면 src 에 1x1 placeholder 가 들어 있고 진짜 주소는 data-src 에 있다 —
+   그래서 data-src 를 먼저 본다. */
+const IMG_NOISE = /(logo|icon|btn|button|sprite|blank|spacer|banner|badge|avatar|profile|arrow|bullet|favicon|share|sns|kakao|facebook|instagram|twitter|placeholder|dummy|no[_-]?img)/i;
+const IMG_SKIP_EXT = /\.(svg|gif|ico|bmp|tiff?)(\?|#|$)/i;
+const IMG_MAX_CANDIDATES = 12;
+
+/* 끼워 넣은 쪽에서 챙긴 이미지를 **앞에** 둔다 — 상세가 거기 있으니 먼저 읽어야 한다.
+   바깥 페이지 것은 뒤에 붙여 후보로만 남긴다. 중복은 지운다. */
+function pickImages(deep, html, base) {
+  return [...new Set([...(deep || []), ...imageUrls(html, base)])].slice(0, IMG_MAX_CANDIDATES);
+}
+
+function imageUrls(html, base) {
+  /* 머리·꼬리·메뉴의 이미지는 공고가 아니다. extractText 가 글에서 걷어내는 것과
+     같은 자리를 여기서도 걷어낸다 — 안 그러면 후보 열두 개가 전부 헤더 배너다. */
+  const body = String(html || '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|noscript|head|nav|header|footer|aside)\b[\s\S]*?<\/\1>/gi, ' ');
+
+  const out = new Set();
+  const push = raw => {
+    if (!raw || out.size >= IMG_MAX_CANDIDATES) return;
+    const s = unescapeUrl(raw);
+    if (!s || /^data:/i.test(s) || IMG_SKIP_EXT.test(s) || IMG_NOISE.test(s)) return;
+    try {
+      const u = new URL(s, base);
+      if (u.protocol === 'http:' || u.protocol === 'https:') out.add(u.toString());
+    } catch { /* 주소가 아니면 버린다 */ }
+  };
+
+  for (const m of body.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = m[0];
+    /* data-src 가 있으면 그쪽이 진짜다(lazy 로딩). 없을 때만 src 를 본다. */
+    const lazy = tag.match(/\sdata-(?:src|original|lazy(?:-src)?|echo)=["']([^"']+)["']/i);
+    const src = tag.match(/\ssrc=["']([^"']+)["']/i);
+    push(lazy ? lazy[1] : (src ? src[1] : null));
+  }
+  return [...out];
+}
+
 /* ── 막힌 사이트는 10초씩 기다리지 않는다 (실측 2026-08-21) ────
    잡코리아는 우리 서버 IP 를 네트워크 단에서 막는다. TCP 연결이 아예 안 맺어져
    `UND_ERR_CONNECT_TIMEOUT` 으로 떨어지는데, **그 판정에 10초가 걸린다.**
@@ -415,8 +468,8 @@ async function fetchPosting(raw, deepTried = false) {
     const type = (res.headers.get('content-type') || '').toLowerCase();
     if (/^image\//.test(type)) {
       return {
-        ok: false, kind: 'image',
-        message: '이미지로 된 공고예요. 지금은 이미지에서 글자를 읽지 못합니다.',
+        ok: false, kind: 'image', imageUrl: url,
+        message: '이미지로 된 공고예요.',
       };
     }
     if (type && !/text\/html|application\/xhtml|text\/plain/.test(type)) {
@@ -438,12 +491,21 @@ async function fetchPosting(raw, deepTried = false) {
     /* 담당업무가 어디에도 없으면 본문이 딴 데 있다는 신호다. 요약표만 온 것이다. */
     const hasBody = BODY_WORDS.test(text);
 
+    /* ── 이미지는 대개 **끼워 넣은 쪽**에 있다 (실측 2026-09-07) ───────────
+       사람인은 상세가 iframe(`user_html`) 안에 있는데, 이미지로 만든 공고는 바로 그
+       안에 <img> 한 장으로 들어 있다. 바깥 페이지의 <img> 만 보면 후보가 **0장**이라
+       읽을 것이 없다고 답하게 된다 — 정작 공고가 거기 있는데.
+       그래서 끼워 넣은 쪽을 열어 봤다면 그쪽 이미지도 챙겨 둔다. 글을 못 이어 붙였을
+       때도 챙긴다 — 글이 없는 것이 바로 이미지 공고의 모습이다. */
+    const deepImages = [];
+
     if (!deepTried && (text.length < MIN_CHARS || weak || !hasBody)) {
       /* ① canonical — "이 페이지가 곧 저 페이지" 라 통째로 바꾼다. */
       const canon = canonicalOf(html, url);
       if (canon) {
         const better = await fetchPosting(canon, true);
         if (better.ok && !better.weak) return better;
+        if (better.images) deepImages.push(...better.images);
       }
       /* ② 끼워 넣는 내용 — "이 페이지의 일부" 라 이어 붙인다. 요약표(경력·학력·마감일)도
          지원 가능 여부를 판단하는 데 쓰이므로 버리지 않는다.
@@ -451,9 +513,10 @@ async function fetchPosting(raw, deepTried = false) {
       if (!hasBody) {
         for (const cand of embedUrls(html, url)) {
           const part = await fetchPosting(cand, true);
+          if (part.images) deepImages.push(...part.images);
           if (part.ok && BODY_WORDS.test(part.text) && postingHits(part.text) >= 2) {
             const merged = `${text}\n\n${part.text}`;
-            return { ok: true, text: merged, title: titleOf(html), url, weak: false };
+            return { ok: true, text: merged, title: titleOf(html), url, weak: false, images: pickImages(deepImages, html, url) };
           }
         }
       }
@@ -463,17 +526,21 @@ async function fetchPosting(raw, deepTried = false) {
       return {
         ok: false, kind: 'empty',
         title: titleOf(html),
+        url,
+        /* 글이 없다고 끝내지 않는다 — 상세가 이미지로 붙어 있는 공고가 흔하다.
+           읽는 것은 라우트가 posting-image.js 로 한다(이 파일은 AI 를 모른다). */
+        images: pickImages(deepImages, html, url),
         message: '페이지는 열렸는데 본문 글을 찾지 못했어요 — 공고가 이미지이거나, 화면에서 그려지는 방식일 수 있어요.',
       };
     }
-    return { ok: true, text, title: titleOf(html), url, weak };
+    return { ok: true, text, title: titleOf(html), url, weak, images: pickImages(deepImages, html, url) };
   }
 
   return { ok: false, kind: 'error', message: '주소가 계속 다른 곳으로 넘겨서 멈췄어요.' };
 }
 
 module.exports = {
-  fetchPosting, extractText, titleOf, urlProblem, normalizeUrl, canonicalOf, denoise, embedUrls,
+  fetchPosting, extractText, titleOf, urlProblem, normalizeUrl, canonicalOf, denoise, embedUrls, imageUrls,
   markUnreachable, recentlyUnreachable, clearUnreachable,
   postingHits, trimLead, _MIN_CHARS: MIN_CHARS,
 };

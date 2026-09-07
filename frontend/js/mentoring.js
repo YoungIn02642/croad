@@ -527,7 +527,7 @@ function renderRoadmapNext(mine, pct) {
     host.innerHTML = `
       <div class="rm-next rm-next--muted">
         <div class="rm-next-body">
-          <div class="rm-next-eyebrow">커리어 로드맵 1단계</div>
+          <div class="rm-next-eyebrow">1단계 · 직무 찾기</div>
           <h3>목표 직무를 먼저 골라 주세요</h3>
           <p>직무를 고르면 그 직무 선배와 비교해 점수를 다시 계산하고,
              부족한 항목과 지원할 회사까지 이어서 안내해 드려요.</p>
@@ -578,7 +578,7 @@ function renderRoadmapNext(mine, pct) {
   host.innerHTML = `
     <div class="rm-next rm-next--fork">
       <div class="rm-next-body">
-        <div class="rm-next-eyebrow">커리어 로드맵 · 다음 단계</div>
+        <div class="rm-next-eyebrow">다음 단계</div>
         <h3>${gapEsc(headline)}</h3>
         <p>${desc}</p>
       </div>

@@ -395,9 +395,8 @@
     }).join('<span class="rm-step-sep" aria-hidden="true"></span>');
 
     return `
-      <nav class="rm-bar" aria-label="커리어 로드맵 단계">
+      <nav class="rm-bar" aria-label="진행 단계">
         <div class="rm-bar-inner">
-          <span class="rm-bar-title">커리어 로드맵</span>
           <div class="rm-steps">${cells}</div>
           ${goalChip(cur, activeId)}
         </div>

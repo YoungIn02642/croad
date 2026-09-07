@@ -129,7 +129,7 @@ window.CASRadar = (() => {
        그것도 없고 계열 통계도 없으면 그릴 기준이 없다 — '스펙이 없다' 와는 다른 말이다. */
     if (!agg && !spec.dept) {
       card.innerHTML = head + emptyState('이 학과는 아직 계열 통계가 없어요',
-        '커리어 로드맵에서 목표 직무를 고르면 그 직무 기준으로 레이더가 그려집니다.', 'career', '목표 직무 고르기');
+        '직무 찾기에서 목표 직무를 고르면 그 직무 기준으로 레이더가 그려집니다.', 'career', '목표 직무 고르기');
       return;
     }
     if (!agg) agg = Aggregator.compute({ dept: spec.dept, field: spec.field, job: spec.job });
@@ -138,7 +138,7 @@ window.CASRadar = (() => {
 
     if (agg.empty) {
       card.innerHTML = head + emptyState('비교할 선배 데이터가 아직 없어요',
-        '같은 직무 합격자 데이터가 쌓이면 요구 역량이 표시됩니다.', 'career', '커리어 로드맵 보기');
+        '같은 직무 합격자 데이터가 쌓이면 요구 역량이 표시됩니다.', 'career', '직무 찾기로 가기');
       return;
     }
 

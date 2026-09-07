@@ -277,7 +277,7 @@ window.SpecUp = (() => {
 
     return `
       <div class="page-head">
-        <div class="page-eyebrow">커리어 로드맵 2단계 · 스펙UP</div>
+        <div class="page-eyebrow">2단계 · 스펙UP</div>
         <h1 class="page-title">무엇부터 채울까요</h1>
         <p class="page-desc">${desc}</p>
       </div>

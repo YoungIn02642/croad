@@ -55,6 +55,20 @@ router.get('/activities', ah(async (req, res) => {
   }
 }));
 
+/* ── 캐시는 짧게 (2026-09-07) ──────────────────────────────
+   처음에 `max-age=86400` 을 걸었다. "로고는 자주 안 바뀐다"는 이유였고 그 자체는
+   맞다. 그런데 **끄는 순간 그 캐시가 발목을 잡는다** — 포스터를 껐는데도 엣지에
+   남은 사본이 24시간 계속 나갔고, 껐는지 확인하러 찔러 본 응답조차 캐시된 것이라
+   "아직 안 꺼졌다"고 잘못 읽었다. 실제로 겪었다.
+
+   그림 하나 아끼자고 **되돌릴 수 없는 24시간**을 만들 이유가 없다. 5분이면 목록을
+   오갈 때는 그대로 재사용되고, 꺼야 할 때는 5분 안에 사라진다.
+
+   **204(없음)는 아예 저장하지 않는다.** 그걸 캐시하면 나중에 로고가 생겨도 한동안
+   안 뜬다 — 없다는 답이 있다는 답을 가로막는다. */
+const IMG_CACHE = 'public, max-age=300, must-revalidate';
+const NONE_CACHE = 'no-store';
+
 /* GET /api/specup/logo?name=<주관기관>
    공모전 카드 표지의 주관기관 로고(사용자 결정 2026-09-06).
 
@@ -69,16 +83,18 @@ router.get('/logo', ah(async (req, res) => {
   const name = String(req.query.name || '').trim();
   if (!name) return res.status(400).json({ error: '기관명을 입력해 주세요.' });
 
+  const none = () => res.set('Cache-Control', NONE_CACHE).status(204).end();
+
   const host = LOGO.hostFor(name);
-  if (!host) return res.status(204).end();
+  if (!host) return none();
 
   let file = LOGO.cached(host);
   if (!file) {
     try { file = await LOGO.fetchLogo(host); } catch { file = null; }
   }
-  if (!file) return res.status(204).end();
+  if (!file) return none();
 
-  res.set('Cache-Control', 'public, max-age=86400');
+  res.set('Cache-Control', IMG_CACHE);
   res.type(file.type);
   res.sendFile(file.path);
 }));
@@ -100,14 +116,16 @@ router.get('/poster', ah(async (req, res) => {
   const id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: '공고 id 가 필요합니다.' });
 
+  const none = () => res.set('Cache-Control', NONE_CACHE).status(204).end();
+
   const url = WEVITY.posterUrlOf(id);
-  if (!url) return res.status(204).end();
+  if (!url) return none();
 
   /* 포스터는 로고보다 크다(세로로 긴 이미지가 많다). 상한을 따로 준다. */
   const file = await LOGO.cacheImage(url, POSTER_DIR, id, { maxBytes: 3 * 1024 * 1024 });
-  if (!file) return res.status(204).end();
+  if (!file) return none();
 
-  res.set('Cache-Control', 'public, max-age=86400');
+  res.set('Cache-Control', IMG_CACHE);
   res.type(file.type);
   res.sendFile(file.path);
 }));

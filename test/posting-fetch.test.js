@@ -243,6 +243,38 @@ function ok(name, cond, extra = '') {
   ok('빈 호스트는 기억하지 않는다',
      (P.markUnreachable(''), P.recentlyUnreachable('') === false));
 
+  console.log('\n── 12. 이미지로 된 공고 — 후보 고르기 ──');
+  /* 이미지 공고에서 글자를 읽으려면 먼저 **어느 이미지가 공고인지** 골라야 한다.
+     사이트별 선택자를 짜지 않으므로(25-2), 여기서 걸러 내는 것이 1차 그물이다.
+     진짜 거르기는 받아 본 뒤 픽셀 크기로 한다(posting-image.js). */
+  const imgHtml = `<html><body>
+    <header><img src="/img/logo.png"></header>
+    <div class="detail">
+      <img data-src="//cdn.x.co.kr/recruit/detail_1.jpg" src="/img/blank.gif">
+      <img src="https://a.com/upload/2026notice.png">
+      <img src="/img/btn_apply.png">
+      <img src="/img/share_kakao.png">
+      <img src="data:image/png;base64,AAAA">
+      <img src="/img/map.svg">
+    </div>
+    <footer><img src="/img/footer_banner.jpg"></footer></body></html>`;
+  const imgs = P.imageUrls(imgHtml, 'https://a.com/jobs/1');
+
+  ok('lazy 로딩이면 data-src 를 쓴다', imgs.includes('https://cdn.x.co.kr/recruit/detail_1.jpg'),
+     `→ ${JSON.stringify(imgs)}`);
+  ok('상대 주소를 절대 주소로 편다', imgs.includes('https://a.com/upload/2026notice.png'));
+  ok('로고·버튼·공유 아이콘은 뺀다',
+     !imgs.some(u => /logo|btn_|share_/.test(u)), `→ ${JSON.stringify(imgs)}`);
+  ok('머리·꼬리의 이미지는 뺀다', !imgs.some(u => /footer_banner/.test(u)));
+  ok('svg·gif·data URI 는 뺀다', !imgs.some(u => /\.svg|\.gif|^data:/.test(u)));
+  ok('후보는 두 장뿐이다', imgs.length === 2, `→ ${imgs.length}장`);
+
+  /* 페이지 안의 <img> 주소로 우리 내부를 읽게 할 수 있다 — 그 검사는 받을 때
+     urlProblem 이 다시 한다(posting-image.fetchImage). 고르는 단계에서는 http(s) 만
+     남기는 것까지 한다. */
+  ok('http·https 가 아닌 스킴은 후보가 아니다',
+     P.imageUrls('<img src="javascript:alert(1)"><img src="file:///etc/passwd">', 'https://a.com/').length === 0);
+
   console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
   process.exit(fail ? 1 : 0);
 })();

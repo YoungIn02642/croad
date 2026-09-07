@@ -231,7 +231,25 @@ router.get('/', ah(async (req, res) => {
     }
   }
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
-  const order = q ? 'p.created_at DESC' : 'p.is_notice DESC, p.created_at DESC';
+  /* ── 정렬 (2026-09-07, 사용자 지시) ──────────────────────────
+     프롬프트를 고를 때 "많이들 쓰는 것" 과 "평이 좋은 것" 을 보고 싶다.
+     지금까지는 최신순 하나뿐이라 오래된 좋은 글이 뒤로 밀려 안 보였다.
+
+     ── 평점순에서 표본이 적은 글을 위로 올리지 않는다 ──────────
+     `AVG(score) DESC` 로만 줄 세우면 **1명이 별 5개를 준 글이 1등**이 된다.
+     화면에서는 3명 미만이면 평균을 아예 안 보여주는데(RATING_MIN_VOTES), 정렬만
+     그 값으로 하면 **평점이 안 보이는 글이 평점순 1등**인 모순이 생긴다.
+     그래서 '평가가 충분한가' 를 먼저 보고, 그 안에서 평균으로 줄 세운다.
+
+     공지는 어느 정렬에서도 맨 위다 — 정렬은 글을 고르는 기준이고 공지는 안내라
+     섞이면 안 된다. 검색 중에는 공지 고정을 풀어 둔 기존 규칙을 그대로 둔다. */
+  const SORTS = {
+    latest: 'p.created_at DESC',
+    copies: 'copy_count DESC, p.created_at DESC',
+    rating: `(rating_count >= ${RATING_MIN_VOTES}) DESC, rating_avg DESC, rating_count DESC, p.created_at DESC`,
+  };
+  const sort = SORTS[req.query.sort] ? req.query.sort : 'latest';
+  const order = q ? SORTS[sort] : `p.is_notice DESC, ${SORTS[sort]}`;
 
   /* 목록과 **같은 JOIN** 을 쓴다. 글쓴이 검색이 u.nickname 을 보는데 여기에만
      JOIN 이 없으면 그 조건에서 쿼리가 깨진다. users 는 FK 라 INNER JOIN 이어도
@@ -266,7 +284,7 @@ router.get('/', ah(async (req, res) => {
 
   res.json({
     posts: rows.map(toPostSummary), total: Number(total), page, limit,
-    q, scope, bookmarked: onlyBookmarked,
+    q, scope, bookmarked: onlyBookmarked, sort,
   });
 }));
 

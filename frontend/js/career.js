@@ -1085,7 +1085,7 @@ window.CareerPage = (() => {
     return `
       <div class="rm-next">
         <div class="rm-next-body">
-          <div class="rm-next-eyebrow">커리어 로드맵 2단계</div>
+          <div class="rm-next-eyebrow">2단계 · 지금 내 위치</div>
           <h3>현재 나의 위치는?</h3>
           <p>${comparable
             ? `${esc(middle.name)} 직무군 선배 <b>${agg.count}명</b>과 같은 기준으로 채점해
@@ -1345,7 +1345,7 @@ window.CareerPage = (() => {
       <div class="welcome">
         <div class="welcome-icon">🗺️</div>
         <h2>관심 있는 직무를 골라 보세요</h2>
-        <p>여기가 커리어 로드맵의 <b>첫 단계</b>예요. 직무를 고르면
+        <p>여기가 <b>첫 단계</b>예요. 직무를 고르면
           <b>지금 내 위치 → 채울 것 → 지원할 회사</b> 순으로 이어집니다.<br>
           왼쪽 분야 ${c.majors}개 중 하나를 고르면 세부 분류 → 직무 순으로 좁혀 가요.<br>
           <span class="welcome-sub">직무 ${c.jobs}개 · 한국고용직업분류(KECO) 기준 · 평균임금은 임금직업정보시스템</span></p>

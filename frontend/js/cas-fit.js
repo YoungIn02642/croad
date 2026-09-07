@@ -54,7 +54,7 @@ window.CASFit = (() => {
         <div class="fit-empty">
           <div class="fit-empty-ic">🧭</div>
           <div class="fit-empty-t">직업을 고르면 적합도를 계산해요</div>
-          <div class="fit-empty-d">커리어 로드맵 1단계에서 <b>직업</b>까지 고르면,
+          <div class="fit-empty-d">직무 찾기에서 <b>직업</b>까지 고르면,
             그 직업이 요구하는 업무특성과 내 경험을 견줘 점수를 냅니다.
             2차 분류만으로는 계산할 수 없어요 — 업무특성은 직업 단위 자료입니다.</div>
           <button type="button" class="fit-btn" onclick="navigate('career')">직무 찾기로 →</button>

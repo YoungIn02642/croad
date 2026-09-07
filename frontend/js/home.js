@@ -192,7 +192,7 @@ const NOTIFICATIONS = [
   { ic: '🤝', title: '멘토링 신청이 승인되었습니다.', time: '10분 전', go: 'mentoring' },
   { ic: '✨', title: '새로운 추천 멘토가 도착했습니다.', time: '1시간 전', go: 'search' },
   { ic: '✍️', title: '작성하지 않은 멘토링 후기가 있습니다.', time: '어제', go: 'mentoring' },
-  { ic: '🗺️', title: '커리어 로드맵이 업데이트되었습니다.', time: '2일 전', go: 'career' },
+  { ic: '🗺️', title: '직무 찾기가 업데이트되었습니다.', time: '2일 전', go: 'career' },
 ];
 function notiIsRead() { return localStorage.getItem(NOTI_KEY) === 'true'; }
 function syncNotiDot() {

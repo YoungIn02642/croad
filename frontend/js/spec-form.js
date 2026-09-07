@@ -218,7 +218,7 @@ window.SpecForm = (() => {
               ${Aggregator.CORP_TYPES.map(c =>
                 `<option value="${c.id}" ${spec.corpType===c.id?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
             </select>
-            <div class="sf-hint-inline">커리어 로드맵에서 기업 유형별 통계로 묶입니다</div>
+            <div class="sf-hint-inline">직무 찾기에서 기업 유형별 통계로 묶입니다</div>
           </div>
         </div>
         ` : `

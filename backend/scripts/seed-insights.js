@@ -17,8 +17,9 @@
 
    ── 제목이 키다 ──
    insight_posts 에는 '이 글이 어느 편집 글인가' 를 적을 칸이 없다(스키마를 늘리지
-   않았다). 그래서 제목으로 찾는다. 제목을 바꾸면 새 글이 하나 더 생기므로,
-   제목은 insight-featured.js 에서만 고치고 --force 로 다시 돌린다. */
+   않았다). 그래서 제목으로 찾는다. 제목을 바꿀 때는 insight-featured.js 의 그 글에
+   `prevTitles: ['옛 제목']` 을 남긴다 — 그러면 이 스크립트가 새 글을 하나 더 만드는
+   대신 이미 있는 행의 제목만 갈아 끼운다(달린 댓글과 조회수가 그대로 따라온다). */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { nanoid } = require('nanoid');
 const { query, queryOne, assertConnection, pool } = require('../src/mysql');
@@ -52,7 +53,21 @@ async function ensureAuthor() {
 
   let added = 0, updated = 0, skipped = 0;
   for (const a of ARTICLES) {
-    const found = await queryOne('SELECT id FROM insight_posts WHERE title=?', [a.title]);
+    let found = await queryOne('SELECT id FROM insight_posts WHERE title=?', [a.title]);
+
+    /* 제목이 바뀐 글은 옛 제목으로 한 번 더 찾아 **이름만 갈아 끼운다.** 이게 없으면
+       같은 글이 두 편이 되고, 홈 카드는 새 글을 가리키는데 댓글은 옛 글에 남는다. */
+    if (!found) {
+      for (const prevTitle of a.prevTitles || []) {
+        const prev = await queryOne('SELECT id FROM insight_posts WHERE title=?', [prevTitle]);
+        if (!prev) continue;
+        await query('UPDATE insight_posts SET title=? WHERE id=?', [a.title, prev.id]);
+        console.log(`  제목변경 — ${prevTitle} → ${a.title}`);
+        found = prev;
+        break;
+      }
+    }
+
     if (found && !FORCE) { skipped++; console.log(`  건너뜀 — ${a.title}`); continue; }
 
     if (found) {

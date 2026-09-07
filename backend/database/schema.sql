@@ -318,6 +318,32 @@ CREATE TABLE IF NOT EXISTS insight_prompt_copies (
   CONSTRAINT fk_ipcopy_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 프롬프트 글을 '나중에 보려고 저장' 한 기록 (2026-09-07, 사용자 지시).
+-- 담기(insight_prompt_copies)와 무엇이 다른가 — 담기는 **지금 쓰겠다**는 뜻이라
+-- 누르면 그 규칙이 내 자소서 초안에 바로 적용된다. 북마크는 **아직 안 쓴다**는 뜻이다.
+-- 둘을 한 숫자로 합치면 '몇 사람이 실제로 쓰는가'를 알 수 없게 된다.
+CREATE TABLE IF NOT EXISTS insight_bookmarks (
+  post_id     VARCHAR(32)  NOT NULL,
+  user_id     VARCHAR(32)  NOT NULL,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  CONSTRAINT fk_ibm_post FOREIGN KEY (post_id) REFERENCES insight_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ibm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 프롬프트 평점 (1~5). 한 사람이 한 번만 매기고, 다시 매기면 덮어쓴다.
+-- PRIMARY KEY 가 (post_id, user_id) 라 그 규칙이 표 자체로 지켜진다.
+CREATE TABLE IF NOT EXISTS insight_ratings (
+  post_id     VARCHAR(32)  NOT NULL,
+  user_id     VARCHAR(32)  NOT NULL,
+  score       TINYINT      NOT NULL,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  CONSTRAINT fk_irate_post FOREIGN KEY (post_id) REFERENCES insight_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_irate_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS insight_comments (
   id          VARCHAR(32)  PRIMARY KEY,
   post_id     VARCHAR(32)  NOT NULL,

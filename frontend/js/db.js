@@ -434,6 +434,14 @@ window.DB = (() => {
   async function copyInsightPrompt(id) {
     return api('POST', '/api/insights/' + encodeURIComponent(id) + '/copy');
   }
+  /* 북마크 — 누를 때마다 켜고 끈다. 서버가 바뀐 상태와 총수를 돌려준다. */
+  async function bookmarkInsight(id) {
+    return api('POST', '/api/insights/' + encodeURIComponent(id) + '/bookmark');
+  }
+  /* 평점(1~5). 같은 점수를 다시 보내면 취소된다 — 잘못 눌렀을 때 무를 길이다. */
+  async function rateInsight(id, score) {
+    return api('POST', '/api/insights/' + encodeURIComponent(id) + '/rating', { score });
+  }
   async function deleteInsight(id) {
     return api('DELETE', '/api/insights/' + encodeURIComponent(id));
   }
@@ -583,7 +591,7 @@ window.DB = (() => {
     donationMeta, donate, donationStats, donationsMine,
     specupExams, specupActivities,
     insightCategories, insightFeatured, listInsights, getInsight, createInsight, updateInsight, deleteInsight,
-    copyInsightPrompt,
+    copyInsightPrompt, bookmarkInsight, rateInsight,
     addInsightComment, deleteInsightComment,
     seedDemo, seedRandom, clearAll, deleteUser,
   };

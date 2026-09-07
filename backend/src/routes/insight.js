@@ -22,6 +22,13 @@ const CATEGORIES = [
 ];
 const categoryIds = new Set(CATEGORIES.map(c => c.id));
 
+/* ── 평점을 언제 보여줄 것인가 ─────────────────────────────
+   **평가가 3명 미만이면 평균을 내지 않는다.** 1명이 별 5개를 준 글에 '5.0' 을
+   달면 실제보다 훨씬 단단한 숫자로 읽힌다. 이 저장소는 같은 이유로 CAS 백분위를
+   표본 5명 미만에서 접고(17장), 직무 트렌드도 30건 미만이면 배지를 안 붙인다.
+   대신 '평가 N명' 은 그대로 보여준다 — 아직 아무도 안 써 봤다는 것도 정보다. */
+const RATING_MIN_VOTES = 3;
+
 function requireAuth(req, res, next) {
   if (!req.user) return res.status(401).json({ error: '로그인이 필요합니다.' });
   next();
@@ -49,7 +56,27 @@ function toPostSummary(r) {
        실어서 줄에 배지를 붙인다. */
     hasPrompt: Boolean(r.prompt_text),
     copyCount: Number(r.copy_count || 0),
+    ...promptStats(r),
     createdAt: r.created_at,
+  };
+}
+
+/* 담기·북마크·평점을 한 곳에서 만든다. 목록과 상세가 같은 모양이어야 화면이
+   두 벌의 코드를 갖지 않는다. */
+function promptStats(r) {
+  const votes = Number(r.rating_count || 0);
+  return {
+    bookmarkCount: Number(r.bookmark_count || 0),
+    ratingCount: votes,
+    /* 표본이 모자라면 **평균을 아예 안 내려보낸다.** null 을 주면 화면이 별점을
+       안 그리고 '평가 N명' 으로 물러난다 — 화면이 0.0 을 그리게 두면 안 된다. */
+    ratingAvg: votes >= RATING_MIN_VOTES ? Math.round(Number(r.rating_avg) * 10) / 10 : null,
+    ratingMinVotes: RATING_MIN_VOTES,
+    /* 로그인한 사람이 이미 담았는지·북마크했는지·몇 점을 줬는지. 비로그인이면
+       전부 없는 값이다(로그인 유도는 화면이 한다). */
+    taken: r.taken != null ? Boolean(Number(r.taken)) : undefined,
+    bookmarked: r.bookmarked != null ? Boolean(Number(r.bookmarked)) : undefined,
+    myRating: r.my_rating != null ? Number(r.my_rating) : undefined,
   };
 }
 
@@ -68,6 +95,7 @@ function toPostDetail(r) {
        옛 글이나 카테고리를 고친 글에서 빈 상자를 그리지 않게 하는 값이 이거다. */
     promptText: r.prompt_text || null,
     copyCount: Number(r.copy_count || 0),
+    ...promptStats(r),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -195,16 +223,30 @@ router.get('/', ah(async (req, res) => {
   const [{ n: total }] = await query(
     `SELECT COUNT(*) AS n FROM insight_posts p JOIN users u ON u.id = p.user_id ${where}`, params);
 
+  /* 로그인했으면 '내가 이미 담았는지·북마크했는지·몇 점 줬는지' 를 같이 받는다.
+     비로그인이면 빈 문자열을 넣는다 — 어차피 어떤 user_id 와도 안 맞아 0 이 되고,
+     쿼리를 두 벌로 나누지 않아도 된다. */
+  const me = req.user?.id || '';
+
   const rows = await query(
     `SELECT p.*, u.nickname AS author_nickname, u.name AS author_name,
             (SELECT COUNT(*) FROM insight_comments c WHERE c.post_id = p.id) AS comment_count,
-            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id) AS copy_count
+            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id) AS copy_count,
+            (SELECT COUNT(*) FROM insight_bookmarks bm WHERE bm.post_id = p.id) AS bookmark_count,
+            (SELECT COUNT(*) FROM insight_ratings rt WHERE rt.post_id = p.id) AS rating_count,
+            (SELECT AVG(rt.score) FROM insight_ratings rt WHERE rt.post_id = p.id) AS rating_avg,
+            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id AND pc.user_id = ?) AS taken,
+            (SELECT COUNT(*) FROM insight_bookmarks bm WHERE bm.post_id = p.id AND bm.user_id = ?) AS bookmarked,
+            (SELECT rt.score FROM insight_ratings rt WHERE rt.post_id = p.id AND rt.user_id = ?) AS my_rating
        FROM insight_posts p
        JOIN users u ON u.id = p.user_id
        ${where}
        ORDER BY ${order}
        LIMIT ${limit} OFFSET ${offset}`,
-    params);
+    /* **내 상태 세 개가 앞이다.** 그 `?` 들이 SELECT 목록 안에 있어서 WHERE 의
+       것보다 먼저 온다. 뒤에 붙였다가 목록이 통째로 비었다 — `total` 은 맞는데
+       `posts` 만 빈 응답이라 화면에서는 '글이 없다' 로만 보였다(에러 없음). */
+    [me, me, me, ...params]);
 
   res.json({
     posts: rows.map(toPostSummary), total: Number(total), page, limit,
@@ -215,11 +257,18 @@ router.get('/', ah(async (req, res) => {
 /* 상세. 볼 때마다 조회수를 올린다 — 좋아요 같은 별도 집계가 없어서
    '읽혔다'를 나타내는 값이 이거 하나다. 댓글은 오래된 순으로 같이 준다. */
 router.get('/:id', ah(async (req, res) => {
+  const me = req.user?.id || '';
   const row = await queryOne(
     `SELECT p.*, u.nickname AS author_nickname, u.name AS author_name,
-            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id) AS copy_count
+            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id) AS copy_count,
+            (SELECT COUNT(*) FROM insight_bookmarks bm WHERE bm.post_id = p.id) AS bookmark_count,
+            (SELECT COUNT(*) FROM insight_ratings rt WHERE rt.post_id = p.id) AS rating_count,
+            (SELECT AVG(rt.score) FROM insight_ratings rt WHERE rt.post_id = p.id) AS rating_avg,
+            (SELECT COUNT(*) FROM insight_prompt_copies pc WHERE pc.post_id = p.id AND pc.user_id = ?) AS taken,
+            (SELECT COUNT(*) FROM insight_bookmarks bm WHERE bm.post_id = p.id AND bm.user_id = ?) AS bookmarked,
+            (SELECT rt.score FROM insight_ratings rt WHERE rt.post_id = p.id AND rt.user_id = ?) AS my_rating
        FROM insight_posts p JOIN users u ON u.id = p.user_id
-      WHERE p.id=?`, [req.params.id]);
+      WHERE p.id=?`, [me, me, me, req.params.id]);
   if (!row) return res.status(404).json({ error: '글을 찾을 수 없습니다.' });
 
   await query('UPDATE insight_posts SET view_count = view_count + 1 WHERE id=?', [req.params.id]);
@@ -331,6 +380,83 @@ router.post('/:id/copy', requireAuth, ah(async (req, res) => {
   const [{ n }] = await query(
     'SELECT COUNT(*) AS n FROM insight_prompt_copies WHERE post_id=?', [req.params.id]);
   res.json({ copyCount: Number(n) });
+}));
+
+/* ── 북마크 (2026-09-07, 사용자 지시) ─────────────────────────
+   누를 때마다 켜고 끈다. 담기(/copy)와 **일부러 나눠 뒀다** — 담기는 '지금 쓰겠다'
+   라 누르는 순간 내 자소서 초안에 규칙이 적용되고, 북마크는 '나중에 볼게' 다.
+   둘을 한 숫자로 합치면 몇 사람이 **실제로 쓰는지**를 알 수 없게 된다. */
+router.post('/:id/bookmark', requireAuth, ah(async (req, res) => {
+  const row = await queryOne('SELECT id FROM insight_posts WHERE id=?', [req.params.id]);
+  if (!row) return res.status(404).json({ error: '글을 찾을 수 없습니다.' });
+
+  const had = await queryOne(
+    'SELECT 1 AS x FROM insight_bookmarks WHERE post_id=? AND user_id=?',
+    [req.params.id, req.user.id]);
+  if (had) {
+    await query('DELETE FROM insight_bookmarks WHERE post_id=? AND user_id=?',
+      [req.params.id, req.user.id]);
+  } else {
+    await query('INSERT IGNORE INTO insight_bookmarks (post_id, user_id) VALUES (?,?)',
+      [req.params.id, req.user.id]);
+  }
+  const [{ n }] = await query(
+    'SELECT COUNT(*) AS n FROM insight_bookmarks WHERE post_id=?', [req.params.id]);
+  res.json({ bookmarked: !had, bookmarkCount: Number(n) });
+}));
+
+/* ── 평점 (1~5) ──────────────────────────────────────────────
+   한 사람이 한 번만 매기고, 다시 매기면 덮어쓴다(PK 가 그 규칙을 표로 지킨다).
+   같은 점수를 다시 누르면 **취소**다 — 잘못 눌렀을 때 되돌릴 길이 있어야 한다.
+
+   **자기 글에는 못 매긴다.** 막지 않으면 글쓴이가 자기 글에 5점을 주고 시작하는데,
+   표본이 적을수록 그 한 표가 순위를 통째로 흔든다. */
+router.post('/:id/rating', requireAuth, ah(async (req, res) => {
+  const score = Number(req.body?.score);
+  if (!Number.isInteger(score) || score < 1 || score > 5) {
+    return res.status(400).json({ error: '평점은 1~5 사이여야 합니다.' });
+  }
+
+  const row = await queryOne('SELECT id, user_id, prompt_text FROM insight_posts WHERE id=?',
+    [req.params.id]);
+  if (!row) return res.status(404).json({ error: '글을 찾을 수 없습니다.' });
+  if (!row.prompt_text) {
+    return res.status(400).json({ error: '이 글에는 평가할 프롬프트가 없어요.' });
+  }
+  if (row.user_id === req.user.id) {
+    return res.status(400).json({ error: '자기 글에는 평점을 매길 수 없어요.' });
+  }
+
+  const mine = await queryOne(
+    'SELECT score FROM insight_ratings WHERE post_id=? AND user_id=?',
+    [req.params.id, req.user.id]);
+
+  if (mine && Number(mine.score) === score) {
+    /* 같은 점수를 또 누르면 취소 — 눌렀다 무르는 길을 남긴다. */
+    await query('DELETE FROM insight_ratings WHERE post_id=? AND user_id=?',
+      [req.params.id, req.user.id]);
+  } else {
+    await query(
+      `INSERT INTO insight_ratings (post_id, user_id, score) VALUES (?,?,?)
+       ON DUPLICATE KEY UPDATE score = VALUES(score)`,
+      [req.params.id, req.user.id, score]);
+  }
+
+  const [agg] = await query(
+    'SELECT COUNT(*) AS n, AVG(score) AS avg FROM insight_ratings WHERE post_id=?',
+    [req.params.id]);
+  const [now] = await query(
+    'SELECT score FROM insight_ratings WHERE post_id=? AND user_id=?',
+    [req.params.id, req.user.id]);
+
+  const votes = Number(agg.n || 0);
+  res.json({
+    ratingCount: votes,
+    /* 표본이 모자라면 평균을 안 준다 — 목록·상세와 같은 규칙이다(RATING_MIN_VOTES). */
+    ratingAvg: votes >= RATING_MIN_VOTES ? Math.round(Number(agg.avg) * 10) / 10 : null,
+    ratingMinVotes: RATING_MIN_VOTES,
+    myRating: now ? Number(now.score) : null,
+  });
 }));
 
 router.post('/:id/comments', requireAuth, ah(async (req, res) => {

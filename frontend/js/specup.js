@@ -37,6 +37,10 @@ window.SpecUp = (() => {
   let tab = 'cert';
   let actFilter = null;                 // 활동분야 칩 (null = 전체)
   let sortBy = 'deadline';              // deadline | latest
+  /* 목록은 한 번에 24장까지만 그린다. 그전에는 **24장에서 그냥 끊겼고 넘길 길이
+     없었다** — 146건 중 뒤쪽 공고는 아예 볼 수 없었다(사용자 지적 2026-09-07). */
+  const ACT_PER_PAGE = 24;
+  const actPage = {};                   // topic → 현재 페이지 (1부터)
 
   /* 외부 호출 상태는 탭마다 따로 들고 있다. 탭을 옮길 때마다 다시 부르면 개발계정
      하루 1,000건이 금방 닳는다(backend/src/specup.js 캐시와 같은 이유). */
@@ -78,8 +82,17 @@ window.SpecUp = (() => {
     render();
   }
 
-  function setFilter(v) { actFilter = v || null; render(); }
-  function setSort(v)   { sortBy = v === 'latest' ? 'latest' : 'deadline'; render(); }
+  /* 필터·정렬을 바꾸면 **1페이지로 돌아간다.** 3페이지에서 분야를 좁히면 결과가
+     그보다 적어져 빈 화면이 되는데, 사용자는 "필터가 고장 났다"로 읽는다. */
+  function setFilter(v) { actFilter = v || null; actPage[tab] = 1; render(); }
+  function setSort(v)   { sortBy = v === 'latest' ? 'latest' : 'deadline'; actPage[tab] = 1; render(); }
+  function setActPage(n) {
+    actPage[tab] = Math.max(1, Number(n) || 1);
+    render();
+    /* 페이지를 넘기면 목록 맨 위로 올려 준다 — 안 그러면 넘긴 뒤에도 화면이
+       그대로라 바뀐 줄 모른다. */
+    document.querySelector('.sup-listhead')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   // ── 카드 조각 ───────────────────────────────────────────────
   /* D-day 배지. **마감이 코앞인 것만 빨갛게** 한다 — 전부 강조하면 무엇이 급한지
@@ -664,9 +677,46 @@ window.SpecUp = (() => {
             ${esc(k)} <b>${n}</b></button>`).join('')}
       </div>` : '';
 
+    /* ── 페이지 나누기 (2026-09-07, 사용자 지적) ────────────────
+       예전에는 `slice(0, 24)` 로 잘라 놓고 **넘길 길이 없었다.** 146건 중 뒤쪽은
+       아예 못 봤다. 페이지 번호는 탭마다 따로 기억한다 — 공모전에서 3페이지를
+       보다 대외활동으로 갔다가 돌아왔을 때 1페이지로 튕기면 다시 찾아가야 한다. */
+    const pages = Math.max(1, Math.ceil(sorted.length / ACT_PER_PAGE));
+    /* 필터를 좁혀 결과가 줄면 지금 페이지가 범위를 넘을 수 있다. 그때는 빈 화면이
+       아니라 마지막 페이지를 보여준다. */
+    const cur = Math.min(Math.max(1, actPage[tab] || 1), pages);
+    const from = (cur - 1) * ACT_PER_PAGE;
+
     return chipBar + listHead(sorted.length, { sortable: true })
-      + grid(sorted.slice(0, 24).map(actCard))
+      + grid(sorted.slice(from, from + ACT_PER_PAGE).map(actCard))
+      + actPagerHtml(cur, pages, sorted.length)
       + srcLine(st);
+  }
+
+  /* ── 페이지 넘기기 ──────────────────────────────────────────
+     한 페이지뿐이면 아예 안 그린다 — 늘 떠 있으면 배경이 되어 아무도 안 본다.
+     번호는 현재 쪽 둘레만 보여준다(1 … 4 5 6 … 12). 146건이면 7쪽이라 지금은
+     다 들어가지만, 데이터가 늘면 번호가 줄을 넘어간다. */
+  function actPagerHtml(cur, pages, total) {
+    if (pages <= 1) return '';
+    const nums = [];
+    for (let n = 1; n <= pages; n++) {
+      if (n === 1 || n === pages || Math.abs(n - cur) <= 2) nums.push(n);
+      else if (nums[nums.length - 1] !== '…') nums.push('…');
+    }
+    const btn = (label, to, opt = {}) => opt.disabled
+      ? `<span class="sup-page is-off">${label}</span>`
+      : `<button type="button" class="sup-page ${opt.on ? 'on' : ''}"
+                 onclick="SpecUp.setActPage(${to})">${label}</button>`;
+
+    return `<div class="sup-pager">
+      ${btn('‹', cur - 1, { disabled: cur === 1 })}
+      ${nums.map(n => n === '…'
+        ? '<span class="sup-page is-gap">…</span>'
+        : btn(n, n, { on: n === cur })).join('')}
+      ${btn('›', cur + 1, { disabled: cur === pages })}
+      <span class="sup-pager-n">${total}건 중 ${cur}/${pages} 쪽</span>
+    </div>`;
   }
 
   /* ── 출처 줄 ────────────────────────────────────────────────
@@ -745,5 +795,5 @@ window.SpecUp = (() => {
     </div>`;
   }
 
-  return { onEnter, switchTab, setFilter, setSort, render };
+  return { onEnter, switchTab, setFilter, setSort, setActPage, render };
 })();

@@ -182,13 +182,50 @@ window.Insight = (() => {
           <span>${esc(p.authorName)}</span>
           <span>${fmtDate(p.createdAt)}</span>
           <span><i class="ti ti-eye"></i> ${p.viewCount}</span>
-          <!-- 담아 간 사람 수. 조회수와 달리 '실제로 써 보겠다'는 뜻이라
-               프롬프트를 고르는 근거가 된다. 0이면 안 보여준다 — 새 글마다
-               '0'이 붙어 있으면 목록이 실패한 것들의 나열처럼 보인다. -->
-          ${p.hasPrompt && p.copyCount
-            ? `<span title="담아 간 사람"><i class="ti ti-download"></i> ${p.copyCount}</span>` : ''}
+          ${p.hasPrompt ? promptStatsHtml(p) : ''}
         </span>
+        ${p.hasPrompt ? promptRowActionsHtml(p) : ''}
       </button>`;
+  }
+
+  /* ── 프롬프트 글의 숫자 세 개 (2026-09-07, 사용자 지시) ────────
+     담기 · 북마크 · 평점. **0은 안 그린다** — 새 글마다 '0 0 0' 이 붙어 있으면
+     목록이 실패한 것들의 나열처럼 보인다.
+
+     평점은 **평가가 모자라면 별을 안 그린다.** 1명이 별 5개를 준 글에 '5.0' 을
+     달면 실제보다 훨씬 단단한 숫자로 읽힌다 — 서버가 그 판단을 해서 ratingAvg 를
+     null 로 준다(insight.js RATING_MIN_VOTES). 그때는 '평가 N명' 만 적는다. */
+  function promptStatsHtml(p) {
+    const bits = [];
+    if (p.copyCount) bits.push(
+      `<span title="담아 간 사람"><i class="ti ti-download"></i> ${p.copyCount}</span>`);
+    if (p.bookmarkCount) bits.push(
+      `<span title="북마크"><i class="ti ti-bookmark"></i> ${p.bookmarkCount}</span>`);
+    if (p.ratingAvg != null) bits.push(
+      `<span title="평점 (${p.ratingCount}명)"><i class="ti ti-star-filled"></i> ${p.ratingAvg.toFixed(1)}</span>`);
+    else if (p.ratingCount) bits.push(
+      `<span title="아직 평균을 내기엔 평가가 적어요">평가 ${p.ratingCount}명</span>`);
+    return bits.join('');
+  }
+
+  /* ── 목록에서 바로 담기 (사용자 지시) ────────────────────────
+     예전에는 상세로 들어가야만 담을 수 있었다. 프롬프트는 제목·담긴 수만 보고
+     고르는 일이 많아서, 한 단계를 없앤다.
+
+     줄 전체가 `<button>` 이라 안쪽 버튼의 클릭이 위로 새면 상세가 같이 열린다.
+     그래서 `<span role="button">` 으로 두고 핸들러에서 `stopPropagation` 한다. */
+  function promptRowActionsHtml(p) {
+    const taken = p.taken;
+    return `<span class="insight-row-actions">
+      <span role="button" tabindex="0" class="insight-row-take ${taken ? 'is-on' : ''}"
+            data-take="${esc(p.id)}" title="${taken ? '이미 담았어요' : '내 프롬프트로 담기'}">
+        <i class="ti ${taken ? 'ti-check' : 'ti-download'}"></i>${taken ? ' 담김' : ' 담기'}
+      </span>
+      <span role="button" tabindex="0" class="insight-row-bm ${p.bookmarked ? 'is-on' : ''}"
+            data-bookmark="${esc(p.id)}" title="${p.bookmarked ? '북마크 해제' : '북마크'}">
+        <i class="ti ${p.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+      </span>
+    </span>`;
   }
 
   /* 프롬프트 게시판이 무엇을 하는 곳인지 한 번 말해 준다. 다른 카테고리와 달리
@@ -310,13 +347,59 @@ window.Insight = (() => {
         <div class="insight-prompt-actions">
           ${user
             ? `<button class="btn-brand" id="insight-prompt-take">
-                 <i class="ti ti-download"></i> 내 프롬프트로 담기</button>`
+                 <i class="ti ${post.taken ? 'ti-check' : 'ti-download'}"></i>
+                 ${post.taken ? '다시 담기' : '내 프롬프트로 담기'}</button>`
             : `<span class="insight-login-hint">로그인하면 내 프롬프트로 담을 수 있어요</span>`}
           <button class="topbar-link" id="insight-prompt-copy"><i class="ti ti-copy"></i> 복사</button>
+          ${user
+            ? `<button class="topbar-link ${post.bookmarked ? 'is-on' : ''}" id="insight-prompt-bm">
+                 <i class="ti ${post.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+                 ${post.bookmarked ? '북마크됨' : '북마크'}${
+                   post.bookmarkCount ? ` ${post.bookmarkCount}` : ''}</button>`
+            : ''}
         </div>
+        ${ratingHtml(post, user)}
         <p class="insight-prompt-note">담으면 <b>지금부터 쓰는 모든 자소서 초안</b>에 이 규칙이 적용돼요
           (자소서 코치 사이드바에서 언제든 끄거나 바꿀 수 있어요).</p>
       </section>`;
+  }
+
+  /* ── 평점 (2026-09-07, 사용자 지시) ──────────────────────────
+     별 다섯 개. 내가 준 점수는 채워서 보여주고, 같은 별을 다시 누르면 취소된다
+     (서버가 그렇게 처리한다 — 잘못 눌렀을 때 무를 길이 있어야 한다).
+
+     **평가가 모자라면 평균을 안 그린다.** 1명이 별 5개를 준 글에 '5.0' 을 달면
+     실제보다 훨씬 단단한 숫자로 읽힌다. 서버가 그 판단을 해서 ratingAvg 를 null 로
+     주고(RATING_MIN_VOTES), 화면은 '평가 N명 · 평균은 N명부터' 로 물러난다.
+
+     **자기 글에는 못 매긴다** — 서버도 막지만 버튼을 아예 안 그려서, 눌러 보고
+     거절당하는 일이 없게 한다. */
+  function ratingHtml(post, user) {
+    const mine = post.myRating || 0;
+    const own = user && user.id === post.authorId;
+
+    const summary = post.ratingAvg != null
+      ? `<b><i class="ti ti-star-filled"></i> ${post.ratingAvg.toFixed(1)}</b>
+         <span class="insight-rating-n">${post.ratingCount}명</span>`
+      : post.ratingCount
+        ? `<span class="insight-rating-n">평가 ${post.ratingCount}명 ·
+             평균은 ${post.ratingMinVotes || 3}명부터 보여드려요</span>`
+        : `<span class="insight-rating-n">아직 평가가 없어요</span>`;
+
+    const stars = user && !own
+      ? [1, 2, 3, 4, 5].map(n => `
+          <button class="insight-star ${n <= mine ? 'is-on' : ''}" data-rate="${n}"
+                  title="${n}점${n === mine ? ' (다시 누르면 취소)' : ''}">
+            <i class="ti ${n <= mine ? 'ti-star-filled' : 'ti-star'}"></i>
+          </button>`).join('')
+      : '';
+
+    return `<div class="insight-rating">
+      <span class="insight-rating-sum">${summary}</span>
+      ${stars ? `<span class="insight-rating-stars">${stars}</span>` : ''}
+      ${!user ? '<span class="insight-login-hint">로그인하면 평가할 수 있어요</span>' : ''}
+      ${own ? '<span class="insight-rating-n">내 글에는 평점을 매길 수 없어요</span>' : ''}
+    </div>`;
   }
 
   function commentHtml(c, user) {
@@ -444,21 +527,43 @@ window.Insight = (() => {
 
      세는 것이 실패해도 담기는 성공이다. 담긴 건 이미 브라우저에 들어갔는데
      '실패' 라고 말하면 사용자가 한 번 더 누른다. */
-  async function takePrompt() {
-    const post = detailData?.post;
-    if (!post?.promptText) return;
-    /* 스크립트 순서상 있어야 정상이다(careerly.html 에서 jd-coach.js 가 먼저 뜬다).
-       그래도 없을 때 조용히 아무 일도 안 하면 버튼이 고장 난 것으로 보인다. */
+  /* 로그인이 필요한 동작 앞에서 부른다. **bindEvents 안의 지역 const 였다가
+     모듈 스코프로 올렸다** — 목록의 '담기'(takePromptById)가 밖에서 부르는데
+     안쪽 변수라 ReferenceError 가 났고, 핸들러가 통째로 죽어서 **눌러도 아무 일도
+     안 일어났다.** 에러가 콘솔에만 남는 부류라 화면만 봐서는 원인이 안 보인다. */
+  const needLogin = () => {
+    if (DB.currentUser()) return false;
+    if (typeof navigate === 'function') navigate('login');
+    return true;
+  };
+
+  /* ── 담기의 알맹이 (목록·상세가 함께 쓴다) ─────────────────
+     실제 담기는 브라우저(JdCoach.addPrompt)가 하고, 서버는 '가져간 사람 수'만
+     센다. 목록에서 부를 때는 원문을 안 갖고 있으므로(목록 응답에 안 실린다 —
+     8,000자짜리가 스무 줄이면 목록이 그것만으로 수십만 자다) **그 글만 따로**
+     받아서 원문을 꺼낸다. */
+  async function takePromptById(id, title, text) {
+    if (needLogin()) return null;
     if (!window.JdCoach?.addPrompt) {
       alert('지금은 담을 수 없어요. 새로고침한 뒤 다시 시도해 주세요.');
-      return;
+      return null;
     }
-    const r = window.JdCoach.addPrompt({ name: post.title, text: post.promptText });
+    let name = title, body = text;
+    if (!body) {
+      try {
+        const r = await DB.getInsight(id);
+        name = r.post?.title || title;
+        body = r.post?.promptText || '';
+      } catch { body = ''; }
+    }
+    if (!body) { alert('이 글에는 담아 갈 프롬프트가 없어요.'); return null; }
+
+    const r = window.JdCoach.addPrompt({ name, text: body });
     if (!r.ok) {
       alert(r.reason === 'full'
         ? `내 프롬프트는 ${r.max}개까지예요. 자소서 코치에서 안 쓰는 것을 지우고 다시 담아주세요.`
         : '담지 못했어요.');
-      return;
+      return null;
     }
     const msg = r.reason === 'exists'
       ? `이미 담아 둔 프롬프트예요 — ‘${r.name}’ 을 켰습니다.`
@@ -466,11 +571,19 @@ window.Insight = (() => {
     if (typeof toast === 'function') toast(msg, { icon: false });
     else alert(msg);
 
-    try {
-      const { copyCount } = await DB.copyInsightPrompt(post.id);
-      detailData.post.copyCount = copyCount;
+    try { return await DB.copyInsightPrompt(id); }
+    catch { return null; }               // 세는 데 실패해도 담긴 건 담긴 것이다
+  }
+
+  async function takePrompt() {
+    const post = detailData?.post;
+    if (!post?.promptText) return;
+    const r = await takePromptById(post.id, post.title, post.promptText);
+    if (r) {
+      detailData.post.copyCount = r.copyCount;
+      detailData.post.taken = true;
       render();
-    } catch { /* 세는 데 실패해도 담긴 건 담긴 것이다 */ }
+    }
   }
 
   // ── 이벤트 위임 ─────────────────────────────────────────────
@@ -512,6 +625,38 @@ window.Insight = (() => {
     }));
     box.querySelectorAll('[data-open]').forEach(btn => btn.addEventListener('click', () => openPost(btn.dataset.open)));
 
+    /* ── 목록에서 바로 담기·북마크 ────────────────────────────
+       줄 전체가 `<button data-open>` 이라 **클릭이 위로 새면 상세가 같이 열린다.**
+       stopPropagation 을 빠뜨리면 담기를 누를 때마다 화면이 넘어가서, 담았는지
+       확인할 새도 없이 상세로 튄다. 키보드(Enter/Space)도 같은 처리를 해 준다. */
+    const onActivate = (el, fn) => {
+      el.addEventListener('click', e => { e.stopPropagation(); fn(); });
+      el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault(); e.stopPropagation(); fn();
+      });
+    };
+
+    box.querySelectorAll('[data-take]').forEach(el => onActivate(el, async () => {
+      const id = el.dataset.take;
+      const r = await takePromptById(id);
+      if (!r) return;
+      const post = (listData.posts || []).find(x => x.id === id);
+      if (post) { post.copyCount = r.copyCount; post.taken = true; }
+      render();
+    }));
+
+    box.querySelectorAll('[data-bookmark]').forEach(el => onActivate(el, async () => {
+      if (needLogin()) return;
+      const id = el.dataset.bookmark;
+      try {
+        const r = await DB.bookmarkInsight(id);
+        const post = (listData.posts || []).find(x => x.id === id);
+        if (post) { post.bookmarked = r.bookmarked; post.bookmarkCount = r.bookmarkCount; }
+        render();
+      } catch (e) { alert(e.message); }
+    }));
+
     /* 카테고리를 바꾸면 화면이 바뀐다(프롬프트 칸이 생기고 사라진다). 다시 그리기
        전에 적던 값을 걷어 온다 — 카테고리를 잘못 골랐다가 되돌릴 때 제목·본문이
        사라지면 안 된다. 프롬프트 원문은 칸이 없어져도 state 에 남겨 두고, 프롬프트가
@@ -539,6 +684,29 @@ window.Insight = (() => {
     });
 
     box.querySelector('#insight-prompt-take')?.addEventListener('click', takePrompt);
+
+    box.querySelector('#insight-prompt-bm')?.addEventListener('click', async () => {
+      if (needLogin()) return;
+      try {
+        const r = await DB.bookmarkInsight(detailData.post.id);
+        detailData.post.bookmarked = r.bookmarked;
+        detailData.post.bookmarkCount = r.bookmarkCount;
+        render();
+      } catch (e) { alert(e.message); }
+    });
+
+    /* 별을 누르면 그 점수로 매긴다. 같은 별을 다시 누르면 서버가 취소한다. */
+    box.querySelectorAll('[data-rate]').forEach(btn => btn.addEventListener('click', async () => {
+      if (needLogin()) return;
+      try {
+        const r = await DB.rateInsight(detailData.post.id, Number(btn.dataset.rate));
+        Object.assign(detailData.post, {
+          ratingAvg: r.ratingAvg, ratingCount: r.ratingCount,
+          ratingMinVotes: r.ratingMinVotes, myRating: r.myRating,
+        });
+        render();
+      } catch (e) { alert(e.message); }
+    }));
     box.querySelector('#insight-prompt-copy')?.addEventListener('click', async () => {
       const text = detailData?.post?.promptText || '';
       if (!text) return;
@@ -577,11 +745,6 @@ window.Insight = (() => {
        그때 로그인으로 보낸다 — 안내문을 대신하는 자리다. */
     const cInput = document.getElementById('insight-comment-input');
     const cForm = document.getElementById('insight-comment-form');
-    const needLogin = () => {
-      if (DB.currentUser()) return false;
-      if (typeof navigate === 'function') navigate('login');
-      return true;
-    };
     cInput?.addEventListener('focus', () => { if (needLogin()) cInput.blur(); });
     /* 적기 시작해야 '등록' 이 나온다. 빈 칸 옆에 늘 떠 있으면 한 줄짜리 입력칸이
        두 칸으로 보인다(사용자가 원한 모양은 '적는 칸' 하나다). */

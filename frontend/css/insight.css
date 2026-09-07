@@ -338,3 +338,40 @@
   font-size: 12.5px; line-height: 1.8; resize: vertical;
 }
 .insight-prompt-field textarea:focus { outline: none; border-color: var(--brand); }
+
+/* ── 프롬프트 글의 담기·북마크·평점 (2026-09-07, 사용자 지시) ──────────────
+   목록 줄 오른쪽에 붙는 작은 조작. 줄 전체가 버튼이라 여기만 색이 달라야
+   '누를 수 있는 것'으로 읽힌다. */
+.insight-row-actions {
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin-left: 10px;
+}
+.insight-row-take, .insight-row-bm {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 9px; border-radius: var(--wf-r-sm, 8px);
+  border: 1px solid var(--wf-hairline); background: #fff;
+  font-size: 12px; color: var(--wf-body); cursor: pointer; white-space: nowrap;
+}
+.insight-row-take:hover, .insight-row-bm:hover { border-color: var(--brand); color: var(--brand); }
+/* 이미 담았거나 북마크한 것은 **눌린 상태**로 보여야 한다 — 안 그러면 눌렀는지
+   모르고 또 누른다. */
+.insight-row-take.is-on { border-color: var(--wf-ok, #2e7d32); color: var(--wf-ok, #2e7d32); }
+.insight-row-bm.is-on { border-color: var(--brand); color: var(--brand); }
+@media (max-width: 720px) { .insight-row-actions { display: none; } }
+
+/* ── 평점 ──────────────────────────────────────────────────────────────
+   평균은 왼쪽, 내가 매기는 별은 오른쪽. 둘을 섞으면 '표시'와 '입력'이 구분되지
+   않아서, 남의 평균을 내가 누른 것으로 읽는다. */
+.insight-rating {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--wf-hairline);
+}
+.insight-rating-sum b { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; }
+.insight-rating-sum b i { color: #f5a524; }
+.insight-rating-n { font-size: 12px; color: var(--wf-mute); margin-left: 6px; }
+.insight-rating-stars { display: inline-flex; gap: 2px; margin-left: auto; }
+.insight-star {
+  border: 0; background: none; cursor: pointer; padding: 2px;
+  font-size: 18px; line-height: 1; color: var(--wf-hairline);
+}
+.insight-star:hover { color: #f5a524; }
+.insight-star.is-on { color: #f5a524; }

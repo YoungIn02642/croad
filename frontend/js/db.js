@@ -411,10 +411,15 @@ window.DB = (() => {
   }
   /* q(검색어) · scope('title' | 'all') 은 없으면 안 보낸다 — 서버 기본값이 있고,
      빈 값을 실어 보내면 주소가 지저분해져 어디까지가 실제 조건인지 안 보인다. */
-  async function listInsights({ category = '', page = 1, limit = 20, q = '', scope = 'title' } = {}) {
+  async function listInsights({ category = '', page = 1, limit = 20, q = '', scope = 'title',
+                                bookmarked = false } = {}) {
     const qs = new URLSearchParams({ page, limit });
     if (category) qs.set('category', category);
     if (q) { qs.set('q', q); qs.set('scope', scope); }
+    /* 내 북마크만 보기. 로그인이 필요해서 서버가 401 을 줄 수 있고, 그 401 은
+       **삼키지 않는다** — 화면이 '북마크가 없다' 와 '로그인이 필요하다' 를 갈라
+       말해야 한다. */
+    if (bookmarked) qs.set('bookmarked', '1');
     return api('GET', '/api/insights?' + qs.toString());
   }
   async function getInsight(id) {

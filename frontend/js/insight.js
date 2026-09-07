@@ -39,6 +39,9 @@ window.Insight = (() => {
   /* 글쓰기 칸에 적던 값. 오류가 나면 화면을 다시 그리는데, 그때 사라지면 안 된다 —
      프롬프트 원문은 수천 자짜리라 다시 붙여넣게 하면 그 자리에서 포기한다. */
   let writeDraft = { category: '', title: '', body: '', promptText: '' };
+  /* '내 북마크만 보기'. 카테고리와 **따로 둔다** — 카테고리 하나로 합치면
+     '북마크 안의 AI 프롬프트' 처럼 겹쳐 보는 길이 막힌다. */
+  let onlyBookmarked = false;
 
   /* AI 프롬프트 카테고리 — 서버(routes/insight.js CATEGORIES)와 같은 id 여야 한다.
      라벨은 서버에서 받은 것을 쓰고, 여기서는 '이 글이 프롬프트인가' 만 본다. */
@@ -79,7 +82,7 @@ window.Insight = (() => {
     const box = root();
     if (box) box.innerHTML = loadingHtml();
     try {
-      listData = await DB.listInsights({ category, page, limit: LIMIT, q, scope });
+      listData = await DB.listInsights({ category, page, limit: LIMIT, q, scope, bookmarked: onlyBookmarked });
     } catch (e) {
       if (box) box.innerHTML = errorHtml(e.message);
       return;
@@ -120,6 +123,14 @@ window.Insight = (() => {
       <div class="insight-toolbar">
         <div class="insight-tabs">
           ${tabs.map(t => `<button class="insight-tab ${category === t.id ? 'on' : ''}" data-cat="${esc(t.id)}">${esc(t.label)}</button>`).join('')}
+          <!-- 내 북마크 (2026-09-07, 사용자 지시). 북마크를 걸어 둬도 다시 찾아갈
+               곳이 없어서 숫자만 쌓이고 있었다. 카테고리와 **성격이 다르므로**
+               (분류가 아니라 '내 것만') 사이를 벌려 둔다 — 나란히 붙이면 카테고리
+               하나로 읽힌다. 비로그인에게는 아예 안 보여준다(눌러도 로그인으로 튕긴다). -->
+          ${user ? `<button class="insight-tab insight-tab--bm ${onlyBookmarked ? 'on' : ''}"
+                            data-bm-filter="1" title="내가 북마크한 글만">
+            <i class="ti ${onlyBookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i> 내 북마크
+          </button>` : ''}
         </div>
         ${user
           ? `<button class="btn-brand insight-write-btn" id="insight-write-open"><i class="ti ti-pencil"></i> 글쓰기</button>`
@@ -249,6 +260,14 @@ window.Insight = (() => {
           ? '다른 낱말로 찾아보거나 검색을 해제해 보세요.'
           : `지금은 <b>${esc(scopeLabel(scope))}</b>만 찾고 있어요. <b>제목+내용</b>으로 넓혀 보세요.`}
         </div></div>`;
+    }
+    /* 북마크 보기에서 비었을 때 '첫 글을 남겨보세요' 는 엉뚱하다 — 할 일은
+       글쓰기가 아니라 **북마크를 걸어 오는 것**이다. */
+    if (onlyBookmarked) {
+      return `<div class="empty-block"><div class="empty-icon">🔖</div>
+        <div class="empty-title">북마크한 글이 없어요</div>
+        <div class="empty-desc">목록이나 글 안에서 <b>북마크</b>를 누르면 여기 모여요.
+          당장 담기는 이르고 나중에 볼 프롬프트를 표시해 두는 자리예요.</div></div>`;
     }
     return `<div class="empty-block"><div class="empty-icon">📭</div>
       <div class="empty-title">아직 글이 없어요</div>
@@ -595,6 +614,15 @@ window.Insight = (() => {
       category = btn.dataset.cat; page = 1; loadList();
     }));
 
+    /* 내 북마크 — 누를 때마다 켜고 끈다. **검색어는 지운다** — 북마크를 켰는데
+       이전 검색이 남아 있으면 "북마크가 하나도 없네" 로 읽힌다. */
+    box.querySelector('[data-bm-filter]')?.addEventListener('click', () => {
+      if (needLogin()) return;
+      onlyBookmarked = !onlyBookmarked;
+      q = ''; page = 1;
+      loadList();
+    });
+
     // ── 검색 ──
     const qInput = box.querySelector('#insight-q');
     const scopeSel = box.querySelector('#insight-scope');
@@ -651,6 +679,9 @@ window.Insight = (() => {
       const id = el.dataset.bookmark;
       try {
         const r = await DB.bookmarkInsight(id);
+        /* 북마크 보기 중에 북마크를 풀면 그 글은 이 목록에 있을 이유가 없다.
+           그대로 두면 '해제했는데 왜 남아 있지' 가 되고, 새로고침해야 사라진다. */
+        if (onlyBookmarked && !r.bookmarked) { loadList(); return; }
         const post = (listData.posts || []).find(x => x.id === id);
         if (post) { post.bookmarked = r.bookmarked; post.bookmarkCount = r.bookmarkCount; }
         render();

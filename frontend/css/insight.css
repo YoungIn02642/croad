@@ -385,3 +385,15 @@
   display: inline-flex; align-items: center; gap: 5px;
 }
 .insight-tab--bm.on { color: var(--brand); font-weight: 600; }
+
+/* 정렬 (2026-09-07). 목록 바로 위 오른쪽 — 스펙업의 sup-listhead 와 같은 자리다. */
+.insight-sortbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin: 14px 0 6px;
+}
+.insight-sort-n { font-size: 12.5px; color: var(--wf-mute); }
+.insight-sortbar select {
+  padding: 6px 10px; border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-sm);
+  background: #fff; font-size: 13px; color: var(--wf-body); cursor: pointer;
+}
+.insight-sortbar select:focus { outline: none; border-color: var(--brand); }

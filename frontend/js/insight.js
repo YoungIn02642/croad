@@ -42,6 +42,7 @@ window.Insight = (() => {
   /* '내 북마크만 보기'. 카테고리와 **따로 둔다** — 카테고리 하나로 합치면
      '북마크 안의 AI 프롬프트' 처럼 겹쳐 보는 길이 막힌다. */
   let onlyBookmarked = false;
+  let sort = 'latest';                  // latest | copies | rating
 
   /* AI 프롬프트 카테고리 — 서버(routes/insight.js CATEGORIES)와 같은 id 여야 한다.
      라벨은 서버에서 받은 것을 쓰고, 여기서는 '이 글이 프롬프트인가' 만 본다. */
@@ -82,7 +83,7 @@ window.Insight = (() => {
     const box = root();
     if (box) box.innerHTML = loadingHtml();
     try {
-      listData = await DB.listInsights({ category, page, limit: LIMIT, q, scope, bookmarked: onlyBookmarked });
+      listData = await DB.listInsights({ category, page, limit: LIMIT, q, scope, bookmarked: onlyBookmarked, sort });
     } catch (e) {
       if (box) box.innerHTML = errorHtml(e.message);
       return;
@@ -167,12 +168,39 @@ window.Insight = (() => {
 
       ${category === PROMPT_CAT ? promptIntroHtml() : ''}
 
+      ${sortBarHtml()}
+
       <div class="insight-list">
         ${listData.posts.length ? listData.posts.map(postRowHtml).join('') : emptyListHtml()}
       </div>
 
       ${pages > 1 ? pagerHtml(page, pages) : ''}
     `;
+  }
+
+  /* ── 정렬 (2026-09-07, 사용자 지시) ──────────────────────────
+     프롬프트를 고를 때 "많이들 쓰는 것" 과 "평이 좋은 것" 을 보고 싶다.
+     최신순 하나뿐이라 오래된 좋은 글이 뒤로 밀려 안 보였다.
+
+     **글이 없으면 안 그린다** — 빈 목록 위의 정렬 상자는 고를 것이 없는 조작이다.
+     담긴 수·평점은 프롬프트 글에만 붙는 값이라, 그 값이 하나도 없는 목록에서는
+     최신순만 남긴다(다른 카테고리에서 '평점순' 을 골라 봐야 순서가 안 바뀐다). */
+  function sortBarHtml() {
+    if (!listData.posts.length) return '';
+    const hasPromptStats = listData.posts.some(p => p.hasPrompt);
+    const opts = [
+      ['latest', '최신순'],
+      ...(hasPromptStats ? [['copies', '많이 담아 간 순'], ['rating', '평점 높은 순']] : []),
+    ];
+    if (opts.length === 1) return '';
+
+    return `<div class="insight-sortbar">
+      <span class="insight-sort-n">${listData.total}건</span>
+      <select id="insight-sort" aria-label="정렬 기준">
+        ${opts.map(([v, label]) =>
+          `<option value="${v}"${sort === v ? ' selected' : ''}>${label}</option>`).join('')}
+      </select>
+    </div>`;
   }
 
   /* 공지는 카테고리 자리에 '공지' 배지를 놓고 줄 전체를 다르게 칠한다.
@@ -613,6 +641,10 @@ window.Insight = (() => {
     box.querySelectorAll('[data-cat]').forEach(btn => btn.addEventListener('click', () => {
       category = btn.dataset.cat; page = 1; loadList();
     }));
+
+    box.querySelector('#insight-sort')?.addEventListener('change', e => {
+      sort = e.target.value; page = 1; loadList();
+    });
 
     /* 내 북마크 — 누를 때마다 켜고 끈다. **검색어는 지운다** — 북마크를 켰는데
        이전 검색이 남아 있으면 "북마크가 하나도 없네" 로 읽힌다. */

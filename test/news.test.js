@@ -134,6 +134,20 @@ const looseRecent = NEWS.recentPicks(NEWS.cluster(loose), NOW, '아주산업');
 ok('제목에 회사가 있는 기사를 먼저 올린다',
    looseRecent[0].title.startsWith('아주산업'), `→ ${looseRecent[0].title}`);
 
+/* 실측 회귀(2026-09-08 '아주산업'): 최신 5건이 전부 '아주그룹 AI 해커톤' 한 사건이었다.
+   말머리·어미가 달라 cluster 가 다섯으로 갈랐고, 학생이 쓸 소재는 하나뿐이었다.
+   목록(items)에는 dedupeStories 가 걸려 있는데 최신 목록만 빠져 있었다. */
+const sameStory = [
+  { title: '아주그룹, 창립 66주년 AI 해커톤…현업 혁신 발굴', summary: '', url: 'h1', date: ago(1) },
+  { title: '아주그룹, 창립 66주년 맞아 AI 해커톤 개최', summary: '', url: 'h2', date: ago(2) },
+  { title: '업무 현장 고민 AI로 푼다...아주그룹, 임직원 해커톤 대회 개최', summary: '', url: 'h3', date: ago(2) },
+  { title: '아주그룹, AI 해커톤 개최…현업 문제 해결할 16개팀 경쟁', summary: '', url: 'h4', date: ago(3) },
+];
+const deduped = NEWS.recentPicks(NEWS.cluster(sameStory), NOW, '아주산업');
+ok('같은 사건이 최신 목록을 다 먹지 않는다', deduped.length === 1,
+   `→ ${deduped.length}건: ${deduped.map(d => d.title.slice(0, 20)).join(' / ')}`);
+ok('같은 사건이면 가장 최근 기사가 남는다', deduped[0].date === ago(1), `→ ${deduped[0].date}`);
+
 /* ── 목록용 중복 제거 (dedupeStories) ─────────────────────────
    회사 리포트의 '최근 기사 5건'이 실제로 서로 다른 사건 5개여야 한다.
    아래 제목들은 2026-08-09 삼성전자 실제 응답에서 그대로 가져온 것이다 —

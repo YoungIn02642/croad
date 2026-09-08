@@ -645,14 +645,22 @@ function recentPicks(clustered, now = Date.now(), company = '', days = RECENT_DA
   const titled = fresh.filter(inTitle);
   const pool = titled.length ? titled : fresh;
 
-  return pool
+  const ordered = pool
     /* 최신순이 먼저다 — 이 목록의 존재 이유가 '최근'이다. 같은 날이면 여러 언론사가
        함께 다룬 기사를, 그다음 취업과 맞닿은 기사를 올린다. */
     .sort((a, b) =>
       String(b.date).localeCompare(String(a.date)) ||
       b.count - a.count ||
       trendScore(b) - trendScore(a)
-    )
+    );
+
+  /* ── 같은 사건을 한 번만 (실측 2026-09-08) ────────────────────────────────
+     cluster() 만으로는 부족하다. 실측('아주산업'): 최신 5건이 전부 '아주그룹 AI 해커톤'
+     한 사건이었다 — 말머리와 어미가 조금씩 달라 cluster 가 다섯으로 갈라 놨다.
+     화면에는 5건이 뜨는데 학생이 쓸 소재는 **하나뿐**이다. 목록(items)에는 이미
+     dedupeStories 를 걸어 두고 여기만 빠뜨렸다.
+     최신순으로 세운 뒤에 거르므로, 같은 사건이면 **가장 최근 기사**가 남는다. */
+  return dedupeStories(ordered, company)
     .slice(0, MAX_ITEMS)
     .map(it => ({
       ...it,

@@ -109,6 +109,18 @@ function ok(name, cond, extra = '') {
 
     ok('분량표가 우선임을 명시한다', block.includes('분량 배분표가 우선'));
 
+    /* ── 실측 회귀 (2026-09-08) ────────────────────────────────────────────
+       실제 프롬프트를 뽑아 보니 600자 문항에 "문단: 6개로 끊는다" 가 나갔다.
+       직무역량 표본이 평균 835자짜리 긴 글이라 문단이 많았을 뿐인데 그 개수를
+       짧은 문항에 그대로 시킨 것이다. 600자를 6문단으로 끊으면 문단이 아니라 줄바꿈이다.
+       숫자처럼 문단도 밀도로 환산해야 한다. */
+    const paraOf = b => Number(/문단: (\d+)개/.exec(b || '')?.[1] || 0);
+    const short = paraOf(CORPUS.structureBlock(q, { limit: 400 }));
+    const long = paraOf(CORPUS.structureBlock(q, { limit: 1200 }));
+    ok('문단 수를 목표 분량으로 환산한다', short < long, `→ 400자 ${short}문단 · 1200자 ${long}문단`);
+    ok('짧은 문항에 문단을 잘게 쪼개지 않는다', short >= 2 && short <= 3, `→ ${short}문단`);
+    ok('긴 문항이라도 5문단을 넘지 않는다', long <= 5, `→ ${long}문단`);
+
     /* 유사도가 낮으면 아무것도 주지 않는 편이 낫다 — 엉뚱한 구조를 시키느니. */
     ok('안 닮은 문항에는 아무것도 주지 않는다',
       CORPUS.structureBlock('좋아하는 음식과 그 이유를 쓰시오', { typeId: 'trait' }) === null);

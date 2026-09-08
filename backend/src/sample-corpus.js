@@ -111,7 +111,17 @@ function structureBlock(question, { limit, typeId } = {}) {
   if (!hits.length) return null;
 
   const total = Number(limit) || 600;
-  const paras = med(hits.map(h => h.paras));
+
+  /* ── 문단 수도 분량으로 환산한다 (실측 프롬프트에서 잡음 2026-09-08) ──────────
+     처음엔 표본의 문단 수를 그대로 옮겼다. 그랬더니 600자 문항에 **"문단: 6개로
+     끊는다"** 가 나갔다 — 직무역량 표본이 평균 835자짜리 긴 글이라 문단이 많았던 것뿐인데,
+     그 개수를 짧은 문항에 그대로 시킨 것이다. 600자를 6문단으로 끊으면 한 문단이
+     두 문장이라 문단이 아니라 줄바꿈이 된다.
+     숫자는 밀도(100자당)로 환산해 놓고 문단만 빠뜨렸다. 같은 방식으로 고친다 —
+     **표본의 100자당 문단 수 × 목표 글자 수.**
+     2~5로 가둔다: 1문단이면 구조가 없고, 6문단이면 위 증상이 돌아온다. */
+  const paraDensity = hits.reduce((a, h) => a + h.paras / h.chars, 0) / hits.length;
+  const paras = Math.min(5, Math.max(2, Math.round(paraDensity * total)));
   const density = hits.reduce((a, h) => a + h.numberDensity, 0) / hits.length;
   const nums = Math.max(1, Math.round(density * total / 100));
   const subhead = hits.filter(h => h.subheads > 0).length;

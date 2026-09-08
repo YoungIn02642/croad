@@ -1513,9 +1513,18 @@ window.CompanyCover = (() => {
         ? `<span class="co-news-when">${it.daysAgo === 0 ? '오늘' : `${it.daysAgo}일 전`}</span>`
         : '');
     const buzz = it.outlets > 1 ? `<span class="co-news-buzz">언론사 ${it.outlets}곳</span>` : '';
+    /* ── 제목에 회사명이 없는 기사는 표시한다 (사용자 지적 2026-09-08) ──────────
+       서버가 looseMatch 를 두 곳에서 계산해 두고 **화면에서 한 번도 쓰지 않았다.**
+       그 기사는 본문에 회사명이 스쳤을 뿐일 수 있다(실측: '아주산업' 대표로 뽑힌
+       "박춘원 전북은행장 무거운 발걸음"). 걸러내지 않고 알려만 주는 이유는, 협력사·
+       업계 기사가 지원동기 소재로 쓸모 있는 경우가 실제로 있기 때문이다 —
+       버릴지 말지는 원문을 읽는 사람이 정한다. */
+    const loose = it.looseMatch
+      ? `<span class="co-news-loose" title="제목에 회사명이 없어요. 본문에 스쳐 언급된 기사일 수 있습니다.">간접 언급</span>`
+      : '';
     return `<div class="co-news-item">
       <div class="co-news-t">
-        <div class="co-news-badges">${when}${buzz}</div>
+        <div class="co-news-badges">${when}${buzz}${loose}</div>
         <a href="${esc(it.url || '#')}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
         <div class="co-news-meta">${[it.date, hostOf(it.url)].filter(Boolean).map(esc).join(' · ')}</div>
       </div>

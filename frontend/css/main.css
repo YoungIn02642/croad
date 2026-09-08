@@ -2727,3 +2727,62 @@ button.up-tag:hover { border-color: var(--c-ink); color: var(--c-ink); }
   font-size: 12.5px; line-height: 1.7; color: var(--c-ink3); text-align: center;
 }
 .mj-side-hint b { font-weight: 700; color: var(--c-ink2); }
+
+/* ════════════════════════════════════════════════════════════
+   공통 셀렉트 `.wf-select`  (2026-09-08, 사용자 지적)
+
+   ── 무엇이 문제였나 ──
+   사용자 지적: 인사이트 정렬 칸이 **"크기가 너무 크다".** 원인은 그 칸만
+   `appearance` 를 그대로 둬서 **브라우저 기본 선택기**가 그려졌다는 것이다 —
+   크롬은 기본 select 를 주변 입력칸보다 크게 그리고 화살표도 제 것으로 붙인다.
+   옆의 '3건' 글자와 높이가 안 맞아 정렬 줄이 뚱뚱해 보였다.
+
+   ── 왜 한 곳에 모으나 ──
+   멘토 찾기(.fsel · .sort-sel)는 이미 같은 모양을 손으로 만들어 두고 있었는데,
+   세 군데가 조금씩 달랐다(높이·글자 굵기·포커스 색·화살표 위치). 화면이 늘어날
+   때마다 같은 CSS 를 한 벌씩 더 쓰면 반드시 갈린다 — 그래서 여기 한 벌만 둔다.
+
+   ── 왜 React 컴포넌트를 안 쓰나 ──
+   사용자가 shadcn/Radix Select 를 가져왔는데, 이 저장소는 **빌드가 없는 순수
+   HTML/CSS/JS** 다(23-7). 그걸 넣으려면 React·Tailwind·번들러를 들여야 하고,
+   그건 select 하나 때문에 치를 값이 아니다. 그래서 **생김새만 그대로 옮겼다** —
+   높이 36px · 모서리 8px · 옅은 테두리 · 회색 chevron · 포커스 링 3px.
+   기능도 손해가 아니다: 네이티브 select 는 모바일에서 OS 선택기가 뜨고,
+   키보드·스크린리더 지원이 공짜다(Radix 가 애써 흉내 내는 그것이다).
+   ════════════════════════════════════════════════════════════ */
+.wf-select {
+  appearance: none; -webkit-appearance: none;
+  /* ── 폭을 되돌린다 (실측 2026-09-08) ────────────────────────
+     이 파일 위쪽에 `input, textarea, select { width: 100%; padding: 12px 14px }` 가 있다.
+     폼 칸에는 맞는 규칙이지만, **정렬 칸 하나까지 줄 전체를 먹었다** — 실측으로 인사이트
+     정렬 select 가 1,096px 였다. 사용자가 "크기가 너무 크다" 고 한 것의 절반은 높이가
+     아니라 이 폭이다. 골라 담는 칸은 내용만큼만 넓으면 된다. */
+  width: auto; max-width: 100%;
+  height: 36px; padding: 0 32px 0 12px;
+  border: 1px solid var(--wf-hairline, #d8d8d8);
+  border-radius: 8px;
+  /* 화살표는 배경 이미지로 넣는다 — 아이콘 폰트를 기다리지 않아 처음 그릴 때부터
+     같은 모양이고, select 안에는 어차피 다른 요소를 넣을 수 없다. */
+  background: var(--canvas, #fff)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8a8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  font-family: var(--font); font-size: 13.5px; font-weight: 500; line-height: 1;
+  color: var(--ink, #080808); cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  transition: border-color .15s, box-shadow .15s;
+}
+.wf-select:hover { border-color: var(--mute-soft, #ababab); }
+/* 포커스는 테두리 색만 바꾸지 않고 링을 같이 준다 — 색만 바꾸면 색각 이상에서
+   초점이 어디 있는지 알 수 없다. */
+.wf-select:focus-visible,
+.wf-select:focus {
+  outline: none;
+  border-color: var(--brand, #6d3aff);
+  box-shadow: 0 0 0 3px rgba(109, 58, 255, .16);
+}
+.wf-select:disabled {
+  cursor: not-allowed; opacity: .5;
+  background-color: var(--surface-2, #f6f6f4);
+}
+/* 작은 자리(목록 위 정렬 줄)용. 높이만 줄이고 나머지는 같다. */
+.wf-select--sm { height: 32px; padding: 0 29px 0 10px; font-size: 13px; background-position: right 8px center; }

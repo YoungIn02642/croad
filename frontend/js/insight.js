@@ -196,7 +196,7 @@ window.Insight = (() => {
 
     return `<div class="insight-sortbar">
       <span class="insight-sort-n">${listData.total}건</span>
-      <select id="insight-sort" aria-label="정렬 기준">
+      <select id="insight-sort" class="wf-select wf-select--sm" aria-label="정렬 기준">
         ${opts.map(([v, label]) =>
           `<option value="${v}"${sort === v ? ' selected' : ''}>${label}</option>`).join('')}
       </select>

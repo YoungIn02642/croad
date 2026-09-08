@@ -392,8 +392,5 @@
   gap: 10px; margin: 14px 0 6px;
 }
 .insight-sort-n { font-size: 12.5px; color: var(--wf-mute); }
-.insight-sortbar select {
-  padding: 6px 10px; border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-sm);
-  background: #fff; font-size: 13px; color: var(--wf-body); cursor: pointer;
-}
-.insight-sortbar select:focus { outline: none; border-color: var(--brand); }
+/* 셀렉트 생김새는 main.css 의 .wf-select 한 곳에 있다 —
+   여기 있던 제 것(appearance 를 안 끈 기본 선택기)이 "너무 크다" 던 그 칸이다. */

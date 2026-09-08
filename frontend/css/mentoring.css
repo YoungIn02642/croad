@@ -356,15 +356,10 @@ html { scroll-behavior: smooth; }
   font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
   color: var(--color-text-tertiary);
 }
-.fsel select {
-  appearance: none; -webkit-appearance: none;
-  padding: 8px 30px 8px 12px; border-radius: var(--border-radius-sm, 8px);
-  border: 1px solid var(--color-border-secondary, #ddd);
-  background: var(--color-background-primary, #fff) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;
-  font-size: 13px; font-weight: 500; font-family: var(--font-sans);
-  color: var(--color-text-primary); cursor: pointer; min-width: 120px;
-}
-.fsel select:focus { outline: none; border-color: var(--brand); }
+/* 생김새는 main.css 의 .wf-select 가 맡는다(세 화면이 갈리지 않게 한 곳에 뒀다).
+   여기 남기는 것은 이 화면에서만 필요한 폭뿐이다 — 필터가 네 개 나란히 서므로
+   내용이 짧아도 칸이 들쭉날쭉하지 않아야 한다. */
+.fsel select { min-width: 120px; }
 .chip {
   font-size: 13px; padding: 7px 14px; border-radius: 99px; cursor: pointer;
   background: #f4f6fa; color: var(--color-text-secondary);
@@ -384,15 +379,7 @@ html { scroll-behavior: smooth; }
 }
 .search-result-bar b { color: var(--brand); font-weight: 600; }
 .sort-btn { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-.sort-sel select {
-  appearance: none; -webkit-appearance: none;
-  padding: 8px 30px 8px 13px; border-radius: var(--border-radius-sm, 8px);
-  border: 1px solid var(--color-border-secondary, #ddd);
-  background: var(--color-background-primary, #fff) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center;
-  font-size: 13px; font-weight: 600; font-family: var(--font-sans);
-  color: var(--color-text-primary); cursor: pointer;
-}
-.sort-sel select:focus { outline: none; border-color: var(--brand); }
+/* 정렬 칸도 .wf-select 를 그대로 쓴다 — 따로 줄 것이 없다. */
 
 .mentor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .mentor-card {

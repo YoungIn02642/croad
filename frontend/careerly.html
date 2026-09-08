@@ -766,9 +766,9 @@
         <button class="chips-arrow chips-arrow--r" onclick="scrollChips(1)" aria-label="다음"><i class="ti ti-chevron-right"></i></button>
       </div>
       <div class="filter-selects">
-        <label class="fsel"><span>기업</span><select id="f-company" onchange="renderSearch()"></select></label>
+        <label class="fsel"><span>기업</span><select id="f-company" class="wf-select" onchange="renderSearch()"></select></label>
         <label class="fsel"><span>경력</span>
-          <select id="f-exp" onchange="renderSearch()">
+          <select id="f-exp" class="wf-select" onchange="renderSearch()">
             <option value="all">전체</option>
             <option value="1">1~2년차</option>
             <option value="3">3~4년차</option>
@@ -779,14 +779,14 @@
              routes/mentoring.js FORMATS). 예전에는 '온라인/오프라인' 이라 실제 멘토가
              고른 값과 한 글자도 안 맞아, 고르면 항상 0명이었다. -->
         <label class="fsel"><span>멘토링 방식</span>
-          <select id="f-mode" onchange="renderSearch()">
+          <select id="f-mode" class="wf-select" onchange="renderSearch()">
             <option value="all">전체</option>
             <option value="video30">화상 30분</option>
             <option value="onsite60">대면 60분</option>
             <option value="text">텍스트</option>
           </select>
         </label>
-        <label class="fsel"><span>전문 분야</span><select id="f-spec" onchange="renderSearch()"></select></label>
+        <label class="fsel"><span>전문 분야</span><select id="f-spec" class="wf-select" onchange="renderSearch()"></select></label>
       </div>
     </div>
 
@@ -795,7 +795,7 @@
       <!-- 평점순·멘토링순은 없앴다(2026-08-22). 그 두 값은 가짜 멘토에게만 있던
            숫자고, 실제 멘토링 신청은 아직 0건이라 줄 세울 근거가 없다. -->
       <label class="sort-sel">
-        <select id="sort-by" onchange="renderSearch()">
+        <select id="sort-by" class="wf-select" onchange="renderSearch()">
           <option value="recommend">기본순</option>
           <option value="career">경력 높은순</option>
         </select>

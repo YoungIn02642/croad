@@ -1252,6 +1252,39 @@
     gone:    '마감돼 내려간 공고일 수 있어요. 주소를 다시 확인해 주세요.',
   };
 
+  /* ── 가져온 것을 칸에 채운다 ────────────────────────────
+     주소로 가져오든 이미지를 올리든 **여기서 만난다.** 두 벌로 두면 "확인하고 고치라"
+     는 경고와 진행 상태 갱신이 한쪽만 고쳐진다(서버 쪽 askVision 과 같은 이유). */
+  function applyPosting(r) {
+    const ta = $('#jd-text');
+    if (!ta) return;
+    ta.value = r.text;
+    autoGrow(ta);
+    STEPS.forEach(paintBlock);
+    paintProgress();
+    paintStepComps();      // 칸마다 '여기서 뽑힌 역량' 을 붙인다
+    /* 확인하고 지우라고 분명히 말한다 — 그대로 분석을 누르면 푸터까지 근거가 된다.
+       weak 는 "가져오긴 했는데 공고 같지 않다" 다. 사람인처럼 상세가 iframe 안에 있으면
+       메뉴·안내문만 1,000자 넘게 딸려 온다 — 길이만 보면 성공이라 더 위험하다. */
+    const head = r.title ? `“${r.title}” ` : '';
+    const size = r.text.length.toLocaleString();
+    /* 이미지에서 읽은 글은 **더 의심하게** 말한다. OCR 은 본문 추출보다 깨지고,
+       26-8 에서 "읽은 것을 그대로 분석에 넘기지 않는다" 고 미리 정해 뒀다. */
+    if (r.fromImage) {
+      const how = r.url ? '글이 없어 공고 이미지' : '올려 주신 이미지';
+      urlMsg('warn', `${head}${how} ${r.fromImage}장을 읽었어요 (${size}자). `
+        + '잘못 읽은 글자가 있을 수 있으니 반드시 확인하고 고친 뒤 분석해 주세요.');
+    } else if (r.weak) {
+      urlMsg('warn', `${head}페이지는 가져왔는데(${size}자) 공고 본문이 아닌 것 같아요 — `
+        + '메뉴·안내문만 담겼을 수 있습니다. 내용을 확인하시고, 아니면 그 페이지에서 '
+        + 'Ctrl+A → Ctrl+C 로 복사해 붙여넣어 주세요.');
+    } else {
+      urlMsg('ok', `${head}본문을 가져왔어요 (${size}자). `
+        + '공고와 상관없는 부분(회사 소개·메뉴)은 지우고 분석해 주세요.');
+    }
+    ta.focus();
+  }
+
   async function fetchPostingUrl() {
     const input = $('#jd-url');
     const btn = $('#jd-url-go');
@@ -1271,38 +1304,105 @@
     try {
       const r = await DB.jdPosting(url);
       clearTimeout(slow);
-      ta.value = r.text;
-      autoGrow(ta);
-      STEPS.forEach(paintBlock);
-      paintProgress();
-      paintStepComps();      // 칸마다 '여기서 뽑힌 역량' 을 붙인다
-      /* 확인하고 지우라고 분명히 말한다 — 그대로 분석을 누르면 푸터까지 근거가 된다.
-         weak 는 "가져오긴 했는데 공고 같지 않다" 다. 사람인처럼 상세가 iframe 안에 있으면
-         메뉴·안내문만 1,000자 넘게 딸려 온다 — 길이만 보면 성공이라 더 위험하다. */
-      const head = r.title ? `“${r.title}” ` : '';
-      const size = r.text.length.toLocaleString();
-      /* 이미지에서 읽은 글은 **더 의심하게** 말한다. OCR 은 본문 추출보다 깨지고,
-         26-8 에서 "읽은 것을 그대로 분석에 넘기지 않는다" 고 미리 정해 뒀다. */
-      if (r.fromImage) {
-        urlMsg('warn', `${head}글이 없어 공고 이미지 ${r.fromImage}장을 읽었어요 (${size}자). `
-          + '잘못 읽은 글자가 있을 수 있으니 반드시 확인하고 고친 뒤 분석해 주세요.');
-        ta.focus();
-        return;
-      }
-      if (r.weak) {
-        urlMsg('warn', `${head}페이지는 가져왔는데(${size}자) 공고 본문이 아닌 것 같아요 — `
-          + '메뉴·안내문만 담겼을 수 있습니다. 내용을 확인하시고, 아니면 그 페이지에서 '
-          + 'Ctrl+A → Ctrl+C 로 복사해 붙여넣어 주세요.');
-      } else {
-        urlMsg('ok', `${head}본문을 가져왔어요 (${size}자). `
-          + '공고와 상관없는 부분(회사 소개·메뉴)은 지우고 분석해 주세요.');
-      }
-      ta.focus();
+      applyPosting(r);
     } catch (e) {
       urlMsg('warn', `${e.message}${URL_HELP[e.kind] ? ` ${URL_HELP[e.kind]}` : ''}`);
     } finally {
       clearTimeout(slow);
       if (btn) { btn.disabled = false; btn.textContent = '가져오기'; }
+    }
+  }
+
+  /* ── 이미지를 직접 올려서 읽기 (사용자 요청 2026-09-08) ────────────────
+     공고 가져오기(fetchPostingUrl)는 **주소가 있다는 전제**다. 그런데 공고를 카톡으로
+     받았거나 화면을 캡처해 둔 경우가 흔하다 — 그때는 열어 줄 주소 자체가 없다.
+
+     받는 길을 셋 다 연다. 사람마다 손에 익은 것이 다르고, 어느 쪽이든 같은 함수로 온다:
+       · 버튼 → 파일 고르기   · 공고 칸에 Ctrl+V   · 공고 칸에 끌어다 놓기 */
+  const IMG_MAX = 2;                       // 서버 POSTING_OCR_MAX_IMAGES 와 같은 값
+  const IMG_MAX_BYTES = 5 * 1024 * 1024;   // 서버 MAX_IMAGE_BYTES 와 같은 값
+
+  /* ── 보내기 전에 줄인다 ──────────────────────────────
+     폰으로 찍은 사진은 4~8MB 가 예사인데, 글자를 읽는 데 그 해상도가 필요하지 않다.
+     줄이면 세 가지가 한꺼번에 좋아진다: 업로드가 빨라지고, 모델이 보는 타일이 줄어
+     읽는 시간이 짧아지고, 서버 본문 한도에 걸리지 않는다.
+
+     ── 그런데 너무 줄이면 글자가 뭉갠다 ──
+     그래서 **긴 변 2000px 아래로는 내리지 않는다.** 작은 파일은 아예 손대지 않는다 —
+     다시 인코딩하면 오히려 나빠질 수 있다.
+     브라우저가 못 여는 형식(크롬의 HEIC)은 원본 그대로 보낸다. 서버가 HEIC 을 받고
+     (Gemini 가 읽는다), 그 경로만 본문 한도가 12MB 다. */
+  const SHRINK_OVER_BYTES = 1.2 * 1024 * 1024;
+  const SHRINK_MAX_EDGE = 2000;
+
+  const fileToBase64 = file => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('파일을 읽지 못했어요.'));
+    /* dataURL 의 앞머리(data:image/png;base64,)를 떼고 순수 base64 만 보낸다 —
+       서버는 바이트 앞머리로 형식을 스스로 확인한다. */
+    fr.onload = () => resolve(String(fr.result || '').split(',')[1] || '');
+    fr.readAsDataURL(file);
+  });
+
+  async function shrinkImage(file) {
+    if (file.size <= SHRINK_OVER_BYTES) return null;      // 손댈 이유가 없다
+    try {
+      const bmp = await createImageBitmap(file);
+      const edge = Math.max(bmp.width, bmp.height);
+      const scale = Math.min(1, SHRINK_MAX_EDGE / edge);
+      if (scale === 1) return null;                        // 이미 충분히 작다
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(bmp.width * scale);
+      cv.height = Math.round(bmp.height * scale);
+      cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+      bmp.close?.();
+      const url = cv.toDataURL('image/jpeg', 0.86);
+      return { mime: 'image/jpeg', data: url.split(',')[1] || '' };
+    } catch {
+      /* 브라우저가 못 여는 형식이면 원본을 그대로 보낸다 — 여기서 포기하지 않는다. */
+      return null;
+    }
+  }
+
+  async function readPostingImages(files) {
+    const ta = $('#jd-text');
+    const btn = $('#jd-img-go');
+    if (!ta) return;
+
+    const list = [...(files || [])].filter(f => f && /^image\//.test(f.type || ''));
+    if (!list.length) {
+      urlMsg('warn', '이미지 파일이 아니에요 — 공고를 찍은 사진이나 캡처를 올려 주세요.');
+      return;
+    }
+    if (ta.value.trim() && !confirm('공고 칸에 적어 둔 글이 있어요. 이미지에서 읽은 내용으로 바꿀까요?')) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = '읽는 중…'; }
+    /* 여러 장을 올려도 앞의 두 장만 본다. 조용히 버리지 않고 몇 장을 봤는지 말해 준다. */
+    const use = list.slice(0, IMG_MAX);
+    urlMsg('', `이미지 ${use.length}장을 읽고 있어요 — 1분 남짓 걸립니다.`);
+    try {
+      const images = [];
+      for (const f of use) {
+        const small = await shrinkImage(f);
+        const data = small ? small.data : await fileToBase64(f);
+        /* 줄이지 못했는데 한 장이 상한을 넘으면 여기서 막는다 — 서버까지 보내 놓고
+           413 을 받으면 사용자는 무엇이 문제인지 알 수 없다. */
+        if (!small && f.size > IMG_MAX_BYTES) {
+          throw new Error(`"${f.name}" 이(가) 너무 커요 (${Math.round(f.size / 1024 / 1024)}MB). 5MB 아래로 줄여 주세요.`);
+        }
+        images.push({ name: f.name, mime: small ? small.mime : f.type, data });
+      }
+      const r = await DB.jdPostingImage(images);
+      applyPosting(r);
+      if (list.length > use.length) {
+        urlMsg('warn', `${$('#jd-url-msg').textContent} (올리신 ${list.length}장 중 앞 ${use.length}장만 읽었어요.)`);
+      }
+    } catch (e) {
+      urlMsg('warn', e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '이미지 올리기'; }
+      const input = $('#jd-img');
+      if (input) input.value = '';        // 같은 파일을 다시 골라도 change 가 뜨게
     }
   }
 
@@ -1431,6 +1531,40 @@
     if (urlInput) urlInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); fetchPostingUrl(); }
     });
+
+    /* ── 이미지로 된 공고 — 올리기·붙여넣기·끌어다 놓기 (2026-09-08) ──
+       셋 다 readPostingImages 하나로 모은다. */
+    const imgInput = $('#jd-img');
+    const imgBtn = $('#jd-img-go');
+    if (imgBtn && imgInput) imgBtn.addEventListener('click', () => imgInput.click());
+    if (imgInput) imgInput.addEventListener('change', () => readPostingImages(imgInput.files));
+
+    const ta = $('#jd-text');
+    if (ta) {
+      /* 캡처를 바로 붙여넣는 것이 가장 빠른 길이다(Win+Shift+S → Ctrl+V).
+         **글을 붙여넣을 때는 건드리지 않는다** — 이미지가 든 붙여넣기만 가로챈다. */
+      ta.addEventListener('paste', e => {
+        const files = [...(e.clipboardData?.files || [])].filter(f => /^image\//.test(f.type || ''));
+        if (!files.length) return;
+        e.preventDefault();
+        readPostingImages(files);
+      });
+      /* 끌어다 놓기. dragover 에서 기본 동작을 막아야 브라우저가 그 파일로
+         페이지를 통째로 열어 버리지 않는다 — 그러면 적어 둔 글이 다 날아간다. */
+      ta.addEventListener('dragover', e => {
+        if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+        e.preventDefault();
+        ta.classList.add('is-drop');
+      });
+      ta.addEventListener('dragleave', () => ta.classList.remove('is-drop'));
+      ta.addEventListener('drop', e => {
+        const files = [...(e.dataTransfer?.files || [])].filter(f => /^image\//.test(f.type || ''));
+        ta.classList.remove('is-drop');
+        if (!files.length) return;          // 글을 끌어다 놓은 것은 그대로 둔다
+        e.preventDefault();
+        readPostingImages(files);
+      });
+    }
 
     /* 고용24 가이드 찾기 — 검색은 Enter 로도 돈다(검색칸의 기본 기대). 결과 줄은
        그릴 때마다 다시 생기므로 목록 자체에 한 번만 위임한다. */

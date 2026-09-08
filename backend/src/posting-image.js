@@ -212,7 +212,83 @@ async function readPostingImages(urls, { max = MAX_IMAGES } = {}) {
   }
   if (skipped.length) console.log(`[공고이미지] 건너뜀 ${skipped.length}장 — ${skipped.slice(0, 4).join(' · ')}`);
   if (!picked.length) return { ok: false, why: 'no-image', text: '', used: [] };
+  return askVision(picked, total);
+}
 
+/* ── 사용자가 직접 올린 이미지 (2026-09-08, 사용자 요청) ────────────────
+   주소로 가져오는 길과 **받는 방법만** 다르다 — 읽는 것부터는 완전히 같은 코드를 탄다
+   (askVision). 여기서 하는 일은 "보내온 것이 정말 이미지인가" 를 다시 보는 것뿐이다.
+
+   ── 화면이 이미 검사했는데 왜 또 보나 ──
+   화면은 사용자가 바꿀 수 있다. 서버는 받은 것만 믿는다 — 형식·장수·용량을 여기서
+   다시 자른다(mime 은 **바이트로도** 확인한다. 브라우저가 말해 주는 type 은 파일
+   이름에서 추측한 값일 때가 있다).
+
+   ── 크기 문턱이 다르다 ──
+   주소로 가져올 때는 400×300 미만을 버린다 — 그건 페이지에서 우리가 **골라 온** 것이라
+   장식일 수 있어서다. 여기는 사용자가 **직접 고른** 것이라 작다고 버릴 이유가 없다.
+   말도 안 되는 것만 막는다(100×100). */
+const UPLOAD_MIN_W = 100;
+const UPLOAD_MIN_H = 100;
+/* 바이트 앞머리로 형식을 확인한다 — 이름·헤더가 아니라 내용이 진실이다. */
+function sniffMime(buf) {
+  if (!buf || buf.length < 12) return null;
+  if (buf.readUInt32BE(0) === 0x89504e47) return 'image/png';
+  if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  /* HEIC/HEIF — 아이폰 기본 형식. ftyp 박스의 브랜드로 가른다. Gemini 가 받는다. */
+  if (buf.toString('ascii', 4, 8) === 'ftyp' && /^(heic|heix|hevc|heim|heis|hevm|mif1|msf1)/.test(buf.toString('ascii', 8, 12))) {
+    return 'image/heic';
+  }
+  return null;
+}
+
+async function readUploadedImages(files, { max = MAX_IMAGES } = {}) {
+  if (!isAvailable()) return { ok: false, why: 'off', text: '', used: [] };
+  const list = Array.isArray(files) ? files.slice(0, max) : [];
+  if (!list.length) return { ok: false, why: 'no-image', text: '', used: [] };
+
+  const picked = [];
+  const skipped = [];
+  let total = 0;
+  for (const f of list) {
+    let buf;
+    try { buf = Buffer.from(String(f?.data || ''), 'base64'); }
+    catch { skipped.push('읽을 수 없는 데이터'); continue; }
+
+    if (!buf.length) { skipped.push('빈 파일'); continue; }
+    if (buf.length > MAX_IMAGE_BYTES) { skipped.push(`너무 큼(${Math.round(buf.length / 1024)}KB)`); continue; }
+    if (total + buf.length > MAX_TOTAL_BYTES) { skipped.push('합계 초과'); continue; }
+
+    const mimeType = sniffMime(buf);
+    /* 이미지가 아닌 것을 모델에 태우지 않는다 — PDF·문서를 올렸을 때 조용히 실패하는
+       것보다 "이미지가 아니다" 라고 말하는 편이 사용자가 할 일을 안다. */
+    if (!mimeType) { skipped.push('이미지 형식이 아님'); continue; }
+
+    /* HEIC 은 헤더에서 크기를 못 읽는다 — 그건 버릴 이유가 아니다(모델은 읽는다). */
+    const size = imageSize(buf);
+    if (size && (size.w < UPLOAD_MIN_W || size.h < UPLOAD_MIN_H)) {
+      skipped.push(`너무 작음(${size.w}×${size.h})`);
+      continue;
+    }
+
+    total += buf.length;
+    picked.push({
+      ok: true, url: f?.name ? String(f.name).slice(0, 80) : `올린 이미지 ${picked.length + 1}`,
+      bytes: buf.length, mimeType, data: buf.toString('base64'),
+      w: size?.w || null, h: size?.h || null,
+    });
+  }
+
+  if (skipped.length) console.log(`[올린이미지] 건너뜀 ${skipped.length}장 — ${skipped.slice(0, 4).join(' · ')}`);
+  if (!picked.length) return { ok: false, why: 'bad-image', text: '', used: [], skipped };
+  return askVision(picked, total, '올린이미지');
+}
+
+/* ── 고른 이미지를 모델에 넘긴다 ──────────────────────────
+   주소로 가져온 것과 사용자가 올린 것이 **여기서 만난다.** 두 벌로 두면 재시도·프롬프트·
+   빈 응답 처리가 한쪽만 고쳐진다(ai-gemini.js generate 와 같은 이유). */
+async function askVision(picked, total, tag = '공고이미지') {
   /* ── 과부하는 한 번 더 물어본다 (실측 2026-09-07) ─────────────────────
      검증 중에 Gemini 가 `HTTP 503 This model is currently experiencing high demand`
      를 냈다. 2026-09-03 에 자소서 초안을 통째로 죽였던 그 오류다. 초안은 Groq 로
@@ -236,7 +312,7 @@ async function readPostingImages(urls, { max = MAX_IMAGES } = {}) {
     } catch (e) {
       lastErr = e;
       const again = (e?.status === 502 || e?.status === 503) && attempt === 0;
-      console.warn(`[공고이미지] 읽기 실패${again ? ' — 한 번 더 시도합니다' : ''} —`,
+      console.warn(`[${tag}] 읽기 실패${again ? ' — 한 번 더 시도합니다' : ''} —`,
         String(e?.detail || e?.message || e).slice(0, 160));
       if (!again) break;
     }
@@ -245,7 +321,7 @@ async function readPostingImages(urls, { max = MAX_IMAGES } = {}) {
 
   const text = cleanOcr(out);
   if (!text) return { ok: false, why: 'not-posting', text: '', used: [] };
-  console.log(`[공고이미지] ${picked.length}장 · ${Math.round(total / 1024)}KB → ${text.length}자`);
+  console.log(`[${tag}] ${picked.length}장 · ${Math.round(total / 1024)}KB → ${text.length}자`);
   return {
     ok: true, text, used: picked.map(p => p.url),
     count: picked.length,
@@ -254,6 +330,6 @@ async function readPostingImages(urls, { max = MAX_IMAGES } = {}) {
 }
 
 module.exports = {
-  readPostingImages, fetchImage, imageSize, cleanOcr, isAvailable,
-  MAX_IMAGES, MIN_W, MIN_H, MIN_BYTES,
+  readPostingImages, readUploadedImages, fetchImage, imageSize, sniffMime, cleanOcr, isAvailable,
+  MAX_IMAGES, MIN_W, MIN_H, MIN_BYTES, MAX_IMAGE_BYTES,
 };

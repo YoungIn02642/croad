@@ -36,6 +36,10 @@ const QF = require('../../frontend/js/question-frames.js');
 /* 유형별 프롬프트 사양(덩이별 분량 배분·조건·나쁜 예). 같은 id 로 QF 와 1:1 이다
    — 분류·골격은 QF, 프롬프트 세부는 여기(사용자 지시 2026-09-01). */
 const QP = require('./question-prompts');
+/* 비슷한 문항의 합격 자소서 **구조**(문단 수·숫자 개수·소제목). 문장은 들어 있지 않다
+   — 남의 글을 예시로 주면 모델이 내용으로 읽고 베낀다(아래 copiedFromExample 주석의 사고).
+   표본이 없는 환경에서는 null 을 돌려주고 초안은 예전대로 나간다(사용자 요청 2026-09-08). */
+const CORPUS = require('./sample-corpus');
 
 /* 모델에 넘기는 활동 요약. 있는 필드만 붙인다 — 빈 값을 '없음'으로 채워 보내면
    모델이 그 '없음'을 문장에 그대로 쓴다(실측).
@@ -223,6 +227,12 @@ function buildPrompt({ company, jobTitle, competency, competencies, quotes, read
     quotes?.length ? `채용공고에 적힌 **이 직무가 하는 일**(회사의 전략·제품이 아니다):\n`
       + quotes.map(q => `  - ${q}`).join('\n') : null,
     useFrame ? (frameTable ? useFrame : `${frameLabel}: ${useFrame}`) : null,
+
+    /* ── 비슷한 합격 자소서의 구조 (사용자 요청 2026-09-08) ────────────────────
+       분량표(frameBlock)가 정하지 않는 것만 말한다 — 문단 수·숫자 개수·소제목·첫 문장.
+       분량표와 같은 것(문장 수)을 여기서 또 말하면 모델이 서로 다른 두 목표를 동시에
+       받는다. 이 파일이 반복해서 겪은 실패라 블록 스스로도 "분량표가 우선" 이라고 적는다. */
+    CORPUS.structureBlock(question, { limit, typeId: qType?.id }),
 
     /* ── 고른 경험(STAR)이 본문 재료다 ────────────────────────────
        고른 게 있으면 그 STAR 가 유일한 사실 출처다(지어내기 금지). 하나도 안 골랐으면

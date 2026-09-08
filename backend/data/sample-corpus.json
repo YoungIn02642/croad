@@ -1,0 +1,2333 @@
+{
+  "builtAt": "2026-09-08",
+  "note": "합격 자소서 표본의 구조 지표만 담는다. 답변 본문은 들어 있지 않다(남의 저작물).",
+  "files": 20,
+  "samples": [
+    {
+      "id": "s001",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원동기 및 입사 후 포부",
+      "chars": 906,
+      "sents": 14,
+      "charsPerSent": 65,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 310,
+          "numbers": 2
+        },
+        {
+          "sents": 5,
+          "chars": 354,
+          "numbers": 2
+        },
+        {
+          "sents": 3,
+          "chars": 242,
+          "numbers": 1
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 0.55,
+      "subheads": 1,
+      "firstSentChars": 46,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s002",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "전공 및 기술 능력",
+      "chars": 894,
+      "sents": 17,
+      "charsPerSent": 53,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 111,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 343,
+          "numbers": 0
+        },
+        {
+          "sents": 6,
+          "chars": 295,
+          "numbers": 4
+        },
+        {
+          "sents": 2,
+          "chars": 145,
+          "numbers": 3
+        }
+      ],
+      "numbers": 7,
+      "numberDensity": 0.78,
+      "subheads": 2,
+      "firstSentChars": 44,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s003",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "교내외 활동 및 경력",
+      "chars": 916,
+      "sents": 18,
+      "charsPerSent": 51,
+      "paras": 5,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 9,
+          "chars": 420,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 34,
+          "numbers": 1
+        },
+        {
+          "sents": 6,
+          "chars": 285,
+          "numbers": 3
+        },
+        {
+          "sents": 3,
+          "chars": 175,
+          "numbers": 2
+        }
+      ],
+      "numbers": 7,
+      "numberDensity": 0.76,
+      "subheads": 1,
+      "firstSentChars": 48,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s004",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "성격 및 장단점",
+      "chars": 856,
+      "sents": 16,
+      "charsPerSent": 54,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 6,
+          "chars": 282,
+          "numbers": 0
+        },
+        {
+          "sents": 6,
+          "chars": 367,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 205,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.23,
+      "subheads": 3,
+      "firstSentChars": 25,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s005",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "성장과정",
+      "chars": 761,
+      "sents": 14,
+      "charsPerSent": 54,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 390,
+          "numbers": 0
+        },
+        {
+          "sents": 5,
+          "chars": 371,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.13,
+      "subheads": 0,
+      "firstSentChars": 34,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s006",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "일반적으로 경험하기 힘든 특별한 체험/남다른 성취경험",
+      "chars": 768,
+      "sents": 10,
+      "charsPerSent": 77,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 416,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 352,
+          "numbers": 3
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 0.52,
+      "subheads": 0,
+      "firstSentChars": 89,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s007",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "물류에 대한 가치관",
+      "chars": 769,
+      "sents": 15,
+      "charsPerSent": 51,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 10,
+          "chars": 404,
+          "numbers": 0
+        },
+        {
+          "sents": 5,
+          "chars": 365,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 24,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s008",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원동기 및 입사 후 포부",
+      "chars": 751,
+      "sents": 15,
+      "charsPerSent": 50,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 383,
+          "numbers": 0
+        },
+        {
+          "sents": 8,
+          "chars": 366,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.4,
+      "subheads": 1,
+      "firstSentChars": 45,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s009",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "해당회사 및 직무에 지원하는 동기에 대해 기술해 주시기 바랍니다.",
+      "chars": 762,
+      "sents": 16,
+      "charsPerSent": 48,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 402,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 360,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 23,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s010",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "본인의 성장과정 및 성격의 장단점에 대하여 기술해 주시기 바랍니다",
+      "chars": 384,
+      "sents": 10,
+      "charsPerSent": 38,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 10,
+          "chars": 384,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.52,
+      "subheads": 0,
+      "firstSentChars": 34,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s011",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "도전적인 목표를 정하고 열정적으로 일을 추진했던 경험을 구체적으로 기술해 주시기 바랍니다.",
+      "chars": 375,
+      "sents": 7,
+      "charsPerSent": 54,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 375,
+          "numbers": 8
+        }
+      ],
+      "numbers": 8,
+      "numberDensity": 2.13,
+      "subheads": 0,
+      "firstSentChars": 93,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s012",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "BGF가 생각하는 '좋은 친구'는 '언제 어디서나 최상의 상품과 서비스를 제공하여 고객가치를 실현하고 사회발전에 공헌하는 기업'입니다. 고객과 사회의 '좋은 친구'인 BGF리테일에 지원하게 된 동기에 대해 기술해주세요.",
+      "chars": 347,
+      "sents": 5,
+      "charsPerSent": 69,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 347,
+          "numbers": 4
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 1.15,
+      "subheads": 1,
+      "firstSentChars": 93,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s013",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "그동안 쌓은 지식, 능력, 활동 및 경험 등을 기반으로 지원한 직무에 본인이 가장 적합하다는 것을 구체적인 업무 내용과 매칭하여 말씀해 주세요.",
+      "chars": 380,
+      "sents": 9,
+      "charsPerSent": 42,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 380,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.53,
+      "subheads": 0,
+      "firstSentChars": 24,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s014",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "BGF의 5가지 가치관(채용홈페이지 '우리의 가치관' 참조) 중 본인을 가장 잘 표현하는 가치관 1개를 선택하고, 그 이유를 본인의 경험과 함께 작성해 주세요.",
+      "chars": 380,
+      "sents": 9,
+      "charsPerSent": 42,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 380,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 44,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s015",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "평소 CU편의점 이용 시 느낀 장단점을 기술하고, CU편의점의 경쟁력을 제고할 수 있는 아이디어를 설명해 주세요. 가능하다면 지원한 직무와 연계하여 적어주시고, 어려운 경우 고객 입장에서 설명해 주세요.",
+      "chars": 506,
+      "sents": 10,
+      "charsPerSent": 51,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 10,
+          "chars": 506,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 42,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s016",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "한미그룹에 지원하게 된 계기와, 여러 기업 중 한미그룹을 선택한 이유를 구체적으로 작성해 주십시오.",
+      "chars": 592,
+      "sents": 8,
+      "charsPerSent": 74,
+      "paras": 6,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 101,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 125,
+          "numbers": 5
+        },
+        {
+          "sents": 1,
+          "chars": 58,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 39,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 183,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 86,
+          "numbers": 0
+        }
+      ],
+      "numbers": 6,
+      "numberDensity": 1.01,
+      "subheads": 2,
+      "firstSentChars": 101,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s017",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원하신 직무에 관심을 갖게 된 계기와 지금까지 해당 직무 수행을 위해 준비해온 경험 및 역량을 구체적으로 설명해 주십시오. (최소 700자, 최대 1,000자 입력가능)",
+      "chars": 748,
+      "sents": 11,
+      "charsPerSent": 68,
+      "paras": 6,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 213,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 161,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 95,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 93,
+          "numbers": 2
+        },
+        {
+          "sents": 1,
+          "chars": 72,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 114,
+          "numbers": 0
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.4,
+      "subheads": 1,
+      "firstSentChars": 89,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s018",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "한미그룹의 10가지 인재상에 비추어, 본인이 어떻게 부합하는지 경험을 바탕으로 작성해 주십시오. (최소 500자, 최대 800자 입력가능)",
+      "chars": 586,
+      "sents": 10,
+      "charsPerSent": 59,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 130,
+          "numbers": 0
+        },
+        {
+          "sents": 5,
+          "chars": 293,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 44,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 119,
+          "numbers": 0
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.34,
+      "subheads": 1,
+      "firstSentChars": 46,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s019",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "본인이 지원한 한미그룹의 사업영역(제약, 바이오, 식품, 화장품, IT 등)에 대한 최근 트렌드나 이슈를 선정하여 자신의 견해를 작성해주십시오. (최소 700자, 최대 1,000자 입력가능)",
+      "chars": 753,
+      "sents": 10,
+      "charsPerSent": 75,
+      "paras": 6,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 121,
+          "numbers": 2
+        },
+        {
+          "sents": 2,
+          "chars": 148,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 133,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 153,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 87,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 111,
+          "numbers": 0
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.27,
+      "subheads": 1,
+      "firstSentChars": 41,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s020",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "본인이 지원하는 직무에 관심을 갖게 된 계기와 이 직무를 수행하기 위해 어떤 노력을 했는지 작성해 주세요.",
+      "chars": 483,
+      "sents": 8,
+      "charsPerSent": 60,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 271,
+          "numbers": 1
+        },
+        {
+          "sents": 4,
+          "chars": 212,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.21,
+      "subheads": 2,
+      "firstSentChars": 80,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s021",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "그 밖에 본인에 대해 어필하고 싶은 부분을 자유롭게 작성해 주세요.",
+      "chars": 398,
+      "sents": 7,
+      "charsPerSent": 57,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 398,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 51,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s022",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "삼성전자를 지원한 이유와 입사 후 회사에서 이루고 싶은 꿈을 기술하십시오.",
+      "chars": 558,
+      "sents": 10,
+      "charsPerSent": 56,
+      "paras": 6,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 115,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 48,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 104,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 65,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 128,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 98,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.18,
+      "subheads": 0,
+      "firstSentChars": 27,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s023",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "본인의 성장과정을 간략히 기술하되 현재의 자신에게 가장 큰 영향을 끼친 사건, 인물 등을 포함하여 기술하시기 바랍니다.",
+      "chars": 1017,
+      "sents": 22,
+      "charsPerSent": 46,
+      "paras": 13,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 100,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 103,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 62,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 58,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 134,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 33,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 61,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 82,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 76,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 101,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 43,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 79,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 85,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 24,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s024",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "최근 사회 이슈 중 중요하다고 생각되는 한 가지를 선택하고 이에 관한 자신의 견해를 기술해 주시기 바랍니다.",
+      "chars": 536,
+      "sents": 11,
+      "charsPerSent": 49,
+      "paras": 8,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 19,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 29,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 69,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 95,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 85,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 63,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 76,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 100,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.19,
+      "subheads": 0,
+      "firstSentChars": 48,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s025",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원한 직무 관련 본인이 갖고 있는 전문지식/경험(심화전공, 프로젝트, 논문, 공모전 등)을 작성하고,",
+      "chars": 658,
+      "sents": 13,
+      "charsPerSent": 51,
+      "paras": 8,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 36,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 34,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 97,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 161,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 115,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 97,
+          "numbers": 0
+        },
+        {
+          "sents": 1,
+          "chars": 47,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 71,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.15,
+      "subheads": 0,
+      "firstSentChars": 36,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s026",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원동기",
+      "chars": 639,
+      "sents": 8,
+      "charsPerSent": 80,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 187,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 193,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 108,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 151,
+          "numbers": 0
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.47,
+      "subheads": 1,
+      "firstSentChars": 45,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s027",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "핵심역량",
+      "chars": 948,
+      "sents": 14,
+      "charsPerSent": 68,
+      "paras": 5,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 49,
+          "numbers": 1
+        },
+        {
+          "sents": 6,
+          "chars": 353,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 135,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 344,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 67,
+          "numbers": 0
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 0.42,
+      "subheads": 0,
+      "firstSentChars": 98,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s028",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "성장과정",
+      "chars": 572,
+      "sents": 10,
+      "charsPerSent": 57,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 106,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 290,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 176,
+          "numbers": 0
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.35,
+      "subheads": 1,
+      "firstSentChars": 54,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s029",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "입사 후 포부",
+      "chars": 489,
+      "sents": 7,
+      "charsPerSent": 70,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 112,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 132,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 245,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.2,
+      "subheads": 1,
+      "firstSentChars": 54,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s030",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "본인이 지원하고자 하는 직무 분야와 관련하여 어떠한 역량을 갖추고 있는지 기술하고 이를 통해 어떻게 한국영상자료원에 기여할 수 있는지 기술해 주십시오. (500자 이내)",
+      "chars": 375,
+      "sents": 7,
+      "charsPerSent": 54,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 375,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.27,
+      "subheads": 0,
+      "firstSentChars": 51,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s031",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "주어진 과제나 업무를 위해 필요한 기술을 배우고 이를 적절히 활용하여 성공적으로 완수할 수 있었던 경험에 대해 구체적으로 기술해 주십시오. (500자 이내)",
+      "chars": 377,
+      "sents": 6,
+      "charsPerSent": 63,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 377,
+          "numbers": 5
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 1.33,
+      "subheads": 0,
+      "firstSentChars": 32,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s032",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "본인이 관심 있는 분야에 대해 알기 위해 지식이나 정보를 수집하고 분석하는 등의 노력을 기울였던 경험을 기술해 주십시오. (500자 이내)",
+      "chars": 382,
+      "sents": 7,
+      "charsPerSent": 55,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 382,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.52,
+      "subheads": 0,
+      "firstSentChars": 42,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s033",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "다양한 활동을 하면서 불편함을 감수하고 정해진 원칙·규칙을 철저히 지켰던 경험에 대해 기술해 주십시오. (500자 이내)",
+      "chars": 346,
+      "sents": 7,
+      "charsPerSent": 49,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 346,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.29,
+      "subheads": 0,
+      "firstSentChars": 48,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s034",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "조직(회사, 학회, 동아리, 프로젝트 등)에서 시간과 일정을 효율적으로 관리하여 주어진 업무나 과제를 효과적으로 해결했던 경험을 기술해 주십시오. (500자 이내)",
+      "chars": 370,
+      "sents": 6,
+      "charsPerSent": 62,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 370,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.54,
+      "subheads": 0,
+      "firstSentChars": 46,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s035",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "넥센타이어에 지원하게 된 이유와 준비과정을 서술해주세요. 500자",
+      "chars": 346,
+      "sents": 6,
+      "charsPerSent": 58,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 346,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.29,
+      "subheads": 0,
+      "firstSentChars": 30,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s036",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "귀하가 지원한 직무의 역량을 발전시키기 위해서 도전했던 경험 또는 프로젝트를 서술해주세요. 500자",
+      "chars": 382,
+      "sents": 9,
+      "charsPerSent": 42,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 382,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.52,
+      "subheads": 0,
+      "firstSentChars": 41,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s037",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "귀하가 생각하는 소통과 협력은 무엇인지 서술해주세요. 500자",
+      "chars": 335,
+      "sents": 7,
+      "charsPerSent": 48,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 335,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 33,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s038",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "넥센타이어에 입사한다면 이루고자 하는 목표를 서술해주세요. 500자",
+      "chars": 258,
+      "sents": 4,
+      "charsPerSent": 65,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 256,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 54,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s039",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "본인 성격의 장단점을 자신의 성장과정과 경험을 기반으로 서술하여 주십시오(600자)",
+      "chars": 429,
+      "sents": 12,
+      "charsPerSent": 36,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 12,
+          "chars": 429,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 18,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s040",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "현대자동차그룹 핵심가치(고객 최우선, 도전적 실행, 소통과 협력, 인재존중, 글로벌 지향) 중 본인의 경험을 기반으로 실천사례를 제시하시오(600자)",
+      "chars": 453,
+      "sents": 15,
+      "charsPerSent": 30,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 206,
+          "numbers": 4
+        },
+        {
+          "sents": 8,
+          "chars": 247,
+          "numbers": 4
+        }
+      ],
+      "numbers": 8,
+      "numberDensity": 1.77,
+      "subheads": 1,
+      "firstSentChars": 23,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s041",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "본인이 회사를 선택함에 있어 중요시 여기는 가치와 현대제철이 왜 그 가치와 부합하는지 본인의 의견을 서술하여 주십시오(600자)",
+      "chars": 392,
+      "sents": 10,
+      "charsPerSent": 39,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 10,
+          "chars": 390,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.26,
+      "subheads": 1,
+      "firstSentChars": 26,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s042",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "해당 직무에 지원한 동기와 해당 직무에 본인이 적합한 이유 및 근거를 본인의 경험, 전공 등과 연계하여 서술하여 주십시오(600자)",
+      "chars": 450,
+      "sents": 13,
+      "charsPerSent": 35,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 13,
+          "chars": 448,
+          "numbers": 4
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 0.89,
+      "subheads": 1,
+      "firstSentChars": 36,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s043",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원동기를 구체적으로 기술해주세요",
+      "chars": 379,
+      "sents": 7,
+      "charsPerSent": 54,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 379,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 44,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s044",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "성장과정을 구체적으로 기술해주세요.",
+      "chars": 387,
+      "sents": 9,
+      "charsPerSent": 43,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 387,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.78,
+      "subheads": 0,
+      "firstSentChars": 41,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s045",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "학업 이외에 관심과 열정을 가지고 했던 다양한 경험 중 기억에 남는 것을 구체적으로 기술해주세요",
+      "chars": 382,
+      "sents": 10,
+      "charsPerSent": 38,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 10,
+          "chars": 382,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.26,
+      "subheads": 0,
+      "firstSentChars": 27,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s046",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "제일기획을 지원한 이유와 입사 후 회사에서 이루고 싶은 꿈을 기술하십시오.",
+      "chars": 722,
+      "sents": 16,
+      "charsPerSent": 45,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 322,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 308,
+          "numbers": 4
+        },
+        {
+          "sents": 3,
+          "chars": 92,
+          "numbers": 1
+        }
+      ],
+      "numbers": 6,
+      "numberDensity": 0.83,
+      "subheads": 0,
+      "firstSentChars": 22,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s047",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "본인의 성장과정을 간략히 기술하되 현재의 자신에게 가장 큰 영향을 끼친 사건, 인물 등을 포함하여 기술하시기 바랍니다. (※작품속 가상인물도 가능)",
+      "chars": 1400,
+      "sents": 36,
+      "charsPerSent": 39,
+      "paras": 7,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 169,
+          "numbers": 1
+        },
+        {
+          "sents": 8,
+          "chars": 261,
+          "numbers": 2
+        },
+        {
+          "sents": 12,
+          "chars": 418,
+          "numbers": 1
+        },
+        {
+          "sents": 10,
+          "chars": 411,
+          "numbers": 6
+        },
+        {
+          "sents": 2,
+          "chars": 73,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 35,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 33,
+          "numbers": 1
+        }
+      ],
+      "numbers": 13,
+      "numberDensity": 0.93,
+      "subheads": 0,
+      "firstSentChars": 27,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s048",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "최근 사회이슈 중 중요하다고 생각되는 한가지를 선택하고 이에 관한 자신의 견해를 기술해 주시기 바랍니다.",
+      "chars": 1101,
+      "sents": 24,
+      "charsPerSent": 46,
+      "paras": 5,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 352,
+          "numbers": 4
+        },
+        {
+          "sents": 6,
+          "chars": 249,
+          "numbers": 1
+        },
+        {
+          "sents": 6,
+          "chars": 242,
+          "numbers": 4
+        },
+        {
+          "sents": 1,
+          "chars": 45,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 213,
+          "numbers": 2
+        }
+      ],
+      "numbers": 12,
+      "numberDensity": 1.09,
+      "subheads": 0,
+      "firstSentChars": 34,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s049",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "(주)스크린에스피이코리아 지원 동기와 본인의 어떤 특성이 지원 직무에 잘 부합하는지 사례를 들어 상세히 기술하여 주십시오.",
+      "chars": 724,
+      "sents": 14,
+      "charsPerSent": 52,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 186,
+          "numbers": 1
+        },
+        {
+          "sents": 7,
+          "chars": 315,
+          "numbers": 3
+        },
+        {
+          "sents": 4,
+          "chars": 223,
+          "numbers": 1
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 0.69,
+      "subheads": 1,
+      "firstSentChars": 65,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s050",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "본인의 강점 및 약점에 대해서 기술하여 주십시오.",
+      "chars": 608,
+      "sents": 11,
+      "charsPerSent": 55,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 317,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 291,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.16,
+      "subheads": 2,
+      "firstSentChars": 50,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s051",
+      "typeId": "growth",
+      "typeLabel": "성장 경험",
+      "question": "인생에서 가장 중요하다고 생각하는 가치를 쓰고, 가장 중요하게 생각하는 이유 및 그 가치를 실천한 사례를 구체적으로 기술하여 주십시오.",
+      "chars": 470,
+      "sents": 11,
+      "charsPerSent": 43,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 142,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 328,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.64,
+      "subheads": 2,
+      "firstSentChars": 27,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s052",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "다른 사람과 함께 일(경험)을 했을 때 그 사람은 귀하를 어떻게 판단했고, 귀하는 그 사람을 어떻게 판단했는지 구체적인 사례와 이유를 들어 설명해 주십시오.",
+      "chars": 594,
+      "sents": 12,
+      "charsPerSent": 50,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 64,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 179,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 166,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 185,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 4,
+      "firstSentChars": 64,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s053",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원직무에 대한 본인의 역량과 해당 역량을 갖추기 위한 노력과 경험에 대해 작성해주세요(프로젝트/기타경험 등)",
+      "chars": 1388,
+      "sents": 19,
+      "charsPerSent": 73,
+      "paras": 7,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 178,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 213,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 225,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 181,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 238,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 165,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 188,
+          "numbers": 0
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.22,
+      "subheads": 0,
+      "firstSentChars": 96,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s054",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "성장과정, 장단점, 사회활동 경험, 지원동기 및 입사 후 포부, 특기사항 등 본인을 표현하고 싶은 내용을 형식, 내용 관계없이 자유롭게 작성 바랍니다.",
+      "chars": 2186,
+      "sents": 42,
+      "charsPerSent": 52,
+      "paras": 11,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 307,
+          "numbers": 3
+        },
+        {
+          "sents": 4,
+          "chars": 191,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 260,
+          "numbers": 1
+        },
+        {
+          "sents": 6,
+          "chars": 281,
+          "numbers": 8
+        },
+        {
+          "sents": 2,
+          "chars": 142,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 165,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 137,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 141,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 167,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 202,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 193,
+          "numbers": 0
+        }
+      ],
+      "numbers": 13,
+      "numberDensity": 0.59,
+      "subheads": 6,
+      "firstSentChars": 33,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s055",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원 동기",
+      "chars": 571,
+      "sents": 10,
+      "charsPerSent": 57,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 229,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 216,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 126,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 82,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s056",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "직무 역량",
+      "chars": 544,
+      "sents": 11,
+      "charsPerSent": 49,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 209,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 230,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 105,
+          "numbers": 0
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.37,
+      "subheads": 0,
+      "firstSentChars": 61,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s057",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "협업 경험",
+      "chars": 511,
+      "sents": 11,
+      "charsPerSent": 46,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 154,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 216,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 141,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.2,
+      "subheads": 0,
+      "firstSentChars": 45,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s058",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "프로세스 개선 경험",
+      "chars": 520,
+      "sents": 10,
+      "charsPerSent": 52,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 179,
+          "numbers": 1
+        },
+        {
+          "sents": 4,
+          "chars": 194,
+          "numbers": 2
+        },
+        {
+          "sents": 3,
+          "chars": 147,
+          "numbers": 2
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 0.96,
+      "subheads": 0,
+      "firstSentChars": 58,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s059",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "입사 후 포부",
+      "chars": 523,
+      "sents": 12,
+      "charsPerSent": 44,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 172,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 184,
+          "numbers": 1
+        },
+        {
+          "sents": 4,
+          "chars": 167,
+          "numbers": 1
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.38,
+      "subheads": 0,
+      "firstSentChars": 41,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s060",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원하신 직무를 수행하기 위해 필요한 역량을 기르고자 어떤 노력을 했는지 구체적인 사례에 근거하여 서술해주세요. [250~ 500자] Guide> 어떤 역량인지/ 역량을 기르기 위한 학습방법, 경험, 기간 등/ 적용사례/ 활동 단체나 네트워크 등 경험의 사실관계를 확인할 수 있도록 세부적으로 작성",
+      "chars": 353,
+      "sents": 8,
+      "charsPerSent": 44,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 353,
+          "numbers": 5
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 1.42,
+      "subheads": 1,
+      "firstSentChars": 36,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s061",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "실패한 경험에 대하여 서술해주세요. [250~500자] Guide> 어떤 일을 목표로 했는지/ 목표 달성을 위해 들인 노력/ 수행 과정에서 부딪힌 장애물/ 그때의 감정과 생각/ 실패원인/ 이를 통해 배운 점 등 경험의 사실관계를 확인할 수 있도록 세부적으로 작성",
+      "chars": 367,
+      "sents": 7,
+      "charsPerSent": 52,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 367,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.82,
+      "subheads": 1,
+      "firstSentChars": 37,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s062",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "물류업계의 현재 트렌드와 미래 물류업의 전망에 대해 구체적인 근거를 포함하여 서술해주세요. [250~500자]",
+      "chars": 365,
+      "sents": 7,
+      "charsPerSent": 52,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 363,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.82,
+      "subheads": 1,
+      "firstSentChars": 28,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s063",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "입사 5년 후, 회사에서 내가 듣고 싶은 나의 평판은 무엇인지 보기에서 하나 선택하고 그 이유를 구체적으로 서술해주세요. [250~500자] A. 기존 방식에 얽매이지 않고 업무를 수행하는 창의적 직원/ B. 주어진 업무를 완벽하게 수행하여 조직에서 인정받는 직원/ C. 사회성이 좋고 인간적이어서 조직내 평판이 좋은 직원",
+      "chars": 334,
+      "sents": 6,
+      "charsPerSent": 56,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 6,
+          "chars": 332,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.3,
+      "subheads": 1,
+      "firstSentChars": 60,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s064",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "(선택문항) 이외에 본인을 어필하고 싶은 내용을 자유롭게 서술해주세요. [250~500자]",
+      "chars": 376,
+      "sents": 8,
+      "charsPerSent": 47,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 8,
+          "chars": 374,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.53,
+      "subheads": 1,
+      "firstSentChars": 31,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s065",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "한국장학재단에 입사 지원을 해야겠다고 결심하게 된 계기는 무엇인지 구체적으로 기술해 주십시오.",
+      "chars": 169,
+      "sents": 3,
+      "charsPerSent": 56,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 169,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 89,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s066",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "재단의 직무를 수행함에 있어 본인이 가지고 있는 차별화된 경쟁력이 무엇인지 기술해 주십시오.",
+      "chars": 184,
+      "sents": 3,
+      "charsPerSent": 61,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 184,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 1.63,
+      "subheads": 0,
+      "firstSentChars": 36,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s067",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "타인으로부터 큰 신뢰를 받은 경험이나 새로운 아이디어를 가지고 자신만의 창의적인 아이디어를 발휘하였던 경험을 기술해 주십시오.",
+      "chars": 231,
+      "sents": 5,
+      "charsPerSent": 46,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 231,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 1.3,
+      "subheads": 0,
+      "firstSentChars": 53,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s068",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "공동과제 수행 시 자신에게 주어진 과업 이상을 했던 경험이나 일을 추진하는 데 있어 타인과의 협력으로 큰 성과를 거두었던 경험을 기술해 주십시오.",
+      "chars": 220,
+      "sents": 4,
+      "charsPerSent": 55,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 220,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.91,
+      "subheads": 0,
+      "firstSentChars": 25,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s069",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "최근 한국원자력연구원의 주요 이슈에 대해 한 가지를 선택하여 언급하고, 그것에 대한 본인의 의견을 기술하십시오.?(최대 800자 입력가능)",
+      "chars": 521,
+      "sents": 7,
+      "charsPerSent": 74,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 264,
+          "numbers": 3
+        },
+        {
+          "sents": 3,
+          "chars": 257,
+          "numbers": 5
+        }
+      ],
+      "numbers": 8,
+      "numberDensity": 1.54,
+      "subheads": 1,
+      "firstSentChars": 36,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s070",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "수행예정 직무를 선택하게 된 배경, 직무를 수행함에 있어서 예상되는 어려움, 이를 극복할 수 있는 본인만의 강점에 대해 기술하십시오.?(최대 600자 입력가능)",
+      "chars": 448,
+      "sents": 8,
+      "charsPerSent": 56,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 189,
+          "numbers": 0
+        },
+        {
+          "sents": 5,
+          "chars": 259,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 65,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s071",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "지원자 본인이 동료 또는 주위 사람들과 적극적으로 소통하고 협력하면서 융화를 위해 노력하는 사람임을 보여주는 최근 3년 이내의 사례 하나를 기술하십시오.?(최대 600자 입력가능)",
+      "chars": 443,
+      "sents": 10,
+      "charsPerSent": 44,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 2,
+          "numbers": 0
+        },
+        {
+          "sents": 10,
+          "chars": 441,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 52,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s072",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "한국원자력연구원 입원 이후 이루고자 하는 자기성장 및 연구원에 대한 기여 목표가 무엇인지 기술하고 이러한 목표를 이루기 위해 어떠한 노력을 기울일 것인지 기술하십시오.?(최대 600자 입력가능)",
+      "chars": 468,
+      "sents": 7,
+      "charsPerSent": 67,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 468,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.64,
+      "subheads": 0,
+      "firstSentChars": 58,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    }
+  ]
+}

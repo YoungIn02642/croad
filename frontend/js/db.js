@@ -343,6 +343,14 @@ window.DB = (() => {
     return api('POST', '/api/jd/posting', { url });
   }
 
+  /* 이미지로 된 공고를 **직접 올려서** 읽는다(2026-09-08). 주소가 없는 경우가 실제로
+     흔하다 — 카톡으로 받았거나 화면을 캡처해 둔 공고다.
+     images = [{ name, mime, data(base64, 접두사 없이) }]. 응답 모양은 jdPosting 과 같다
+     (text·weak·fromImage) — 화면이 같은 코드로 칸을 채운다. */
+  async function jdPostingImage(images) {
+    return api('POST', '/api/jd/posting-image', { images });
+  }
+
   /* ── 고용24 직무별 자소서 작성가이드 ─────────────────────────
      직무기술서 칸을 채우는 재료다. 검색은 기업명 또는 직무명 하나로 받는다 —
      고용24 검색칸이 그렇게 생겼고, 두 칸으로 나누면 어느 쪽에 넣을지 사용자가
@@ -595,7 +603,7 @@ window.DB = (() => {
     createUser, login, logout, withdraw, changePassword, completeOnboarding, confirmPayment, updateUser, requestRoleChange, upsertSpec, saveActivityStar, getProfile, updateProfile,
     classifyCompany, suggestCompanies, suggestCerts, recommendCerts, suggestMajors, suggestUniversities, classifyMajor, jobCatalog,
     mentors,
-    analyzeCas, casFit, specFingerprint, coachJd, draftJd, motiveJd, guideJd, jdPromptTemplate, companyAnalysis, companyBusiness, companyIndustryTree, jdPosting, jdGuideSearch, jdGuide,
+    analyzeCas, casFit, specFingerprint, coachJd, draftJd, motiveJd, guideJd, jdPromptTemplate, companyAnalysis, companyBusiness, companyIndustryTree, jdPosting, jdPostingImage, jdGuideSearch, jdGuide,
     donationMeta, donate, donationStats, donationsMine,
     specupExams, specupActivities,
     insightCategories, insightFeatured, listInsights, getInsight, createInsight, updateInsight, deleteInsight,

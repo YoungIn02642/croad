@@ -1065,6 +1065,13 @@
               placeholder="공고 주소를 붙여넣으면 본문을 가져옵니다 (복사가 막혔거나 이미지로 된 공고도)" />
             <button type="button" id="jd-url-go" class="wf-btn wf-btn--sm">가져오기</button>
           </div>
+          <!-- 주소가 없는 공고 — 카톡으로 받았거나 화면을 캡처해 둔 경우다.
+               올리기·붙여넣기·끌어다 놓기 셋 다 같은 곳으로 간다. -->
+          <div class="jd-img-row">
+            <input id="jd-img" type="file" accept="image/*" multiple hidden />
+            <button type="button" id="jd-img-go" class="wf-btn wf-btn--sm wf-btn--ghost">이미지 올리기</button>
+            <span class="jd-img-hint">사진으로 된 공고는 여기에 올리세요 — 아래 칸에 <b>붙여넣기(Ctrl+V)</b>·끌어다 놓기도 됩니다.</span>
+          </div>
           <div id="jd-url-msg" class="jd-url-msg" hidden></div>
           <textarea id="jd-text" class="jd-text" data-grow
             placeholder="공고 본문을 그대로 붙여넣어 주세요. 모집분야·근무조건·전형절차가 섞여 있어도 됩니다."></textarea>

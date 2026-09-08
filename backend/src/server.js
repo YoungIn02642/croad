@@ -60,7 +60,16 @@ app.use(cors({
    그런데 본문 파서가 먼저 걸러 버려서, 화면에는 '서버에서 문제가 생겼습니다'(500)만
    뜨고 용량 때문이라는 것을 알 수 없다.
    2MB 로 올려 두고, 실제 사진 한도(1MB)는 /api/profile 이 판단해 413 으로 돌려준다. */
-app.use(express.json({ limit: '2mb' }));
+/* ── 이미지 공고를 올리는 칸만 한도가 다르다 (2026-09-08, 사용자 요청) ────────
+   본문 파서는 **라우트보다 먼저** 돈다. 그래서 이 한 곳의 한도를 라우트에서 올려 봐야
+   소용이 없다 — 여기서 갈라 줘야 한다. 폰으로 찍은 공고 사진은 2MB 를 쉽게 넘는다.
+   (화면이 미리 줄여서 보내지만, 줄이지 못하는 형식이 있다 — 크롬은 HEIC 을 못 연다.)
+   전역 한도를 올리지 않는 이유는 그대로다: 다른 모든 요청까지 12MB 를 받아 주면
+   메모리를 그만큼 열어 두는 셈이다. */
+const UPLOAD_JSON_PATH = '/api/jd/posting-image';
+const jsonSmall = express.json({ limit: '2mb' });
+const jsonUpload = express.json({ limit: '12mb' });
+app.use((req, res, next) => (req.path === UPLOAD_JSON_PATH ? jsonUpload : jsonSmall)(req, res, next));
 app.use(cookieParser());
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 
@@ -493,6 +502,51 @@ app.post('/api/jd/posting', requireAuth, ah(async (req, res) => {
     return res.status(422).json({ error: `${r.message}${tail}`, kind: r.kind, title: r.title || null });
   }
   res.json({ ok: true, text: r.text, title: r.title, url: r.url, weak: r.weak });
+}));
+
+/* ── 이미지를 직접 올려서 읽는다 (2026-09-08, 사용자 요청) ────────────────
+   주소가 있어야 한다는 전제를 걷어내는 경로다. 공고를 **카카오톡으로 받았거나
+   화면을 캡처해 둔** 경우가 실제로 흔한데, 그때는 열어 줄 주소 자체가 없다.
+
+   ── 위 /api/jd/posting 과 무엇이 다른가 ──
+   받는 방법만 다르다. 읽는 것부터는 같은 코드를 탄다(posting-image.js askVision) —
+   프롬프트도 재시도도 한 곳에 있다.
+   대신 여기는 **HTML 도 weak 판정도 없다.** 사용자가 올린 그 이미지가 전부다.
+
+   ── 로그인·횟수 제한은 그대로 ──
+   주소를 여는 기능이 아니라 SSRF 는 없지만, 남의 AI 쿼터를 대신 쓰게 두면 안 된다.
+   위 가져오기와 **같은 카운터**를 쓴다 — 두 경로를 따로 세면 15회씩 30회가 된다. */
+app.post('/api/jd/posting-image', requireAuth, ah(async (req, res) => {
+  const images = Array.isArray(req.body?.images) ? req.body.images : [];
+  if (!images.length) return res.status(400).json({ error: '이미지를 올려 주세요.', kind: 'bad-image' });
+
+  if (postingRateLimited(req.user.id)) {
+    return res.status(429).json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.', kind: 'error' });
+  }
+  /* 키가 없으면 **할 수 없다고 분명히 말한다.** 조용히 빈 결과를 주면 사용자는
+     자기 사진이 잘못된 줄 알고 계속 다시 올린다(ai-provider.js 의 옛 Ollama 사고와 같은 결). */
+  if (!POSTING_IMG.isAvailable()) {
+    return res.status(503).json({ error: '지금은 이미지에서 글자를 읽을 수 없어요. 잠시 후 다시 시도해 주세요.', kind: 'off' });
+  }
+
+  const img = await POSTING_IMG.readUploadedImages(images);
+  if (!img.ok) {
+    const msg = {
+      'bad-image': '이미지를 읽지 못했어요 — 사진 파일(PNG·JPG·HEIC)인지 확인해 주세요.',
+      'not-posting': '이 이미지에서 채용공고 글자를 찾지 못했어요.',
+      'ai-failed': '이미지에서 글자를 읽어 보려 했지만 실패했어요. 잠시 후 다시 시도해 주세요.',
+      'no-image': '이미지를 올려 주세요.',
+    }[img.why] || '이미지를 읽지 못했어요.';
+    /* ai-failed 는 우리 쪽 사정(과부하·타임아웃)이라 사용자가 할 일이 '다시 하기' 다 —
+       사진이 잘못된 경우(422)와 상태코드를 가른다. */
+    return res.status(img.why === 'ai-failed' ? 502 : 422).json({ error: msg, kind: img.why });
+  }
+
+  res.json({
+    ok: true, text: img.text, title: null, url: null,
+    weak: POSTING.postingHits(img.text) < 2,
+    fromImage: img.count, imageModel: img.model,
+  });
 }));
 
 app.get('/api/auth/check-username', ah(async (req, res) => {

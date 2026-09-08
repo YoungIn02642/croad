@@ -88,6 +88,42 @@ function webp(w, h) {
   if (saved === undefined) delete process.env.GEMINI_API_KEY;
   else process.env.GEMINI_API_KEY = saved;
 
+  console.log('\n── 5. 사용자가 올린 이미지 — 내용으로 형식을 본다 ──');
+  /* 화면이 보내는 mime 은 파일 이름에서 추측한 값일 수 있고, 화면 자체를 바꿔서 보낼
+     수도 있다. 그래서 **바이트 앞머리**로 다시 확인한다. 이미지가 아닌 것을 모델에
+     태우면 돈만 쓰고 "공고가 아니다" 라는 답을 받는다. */
+  ok('PNG 를 알아본다', M.sniffMime(png(800, 600)) === 'image/png');
+  ok('JPEG 을 알아본다', M.sniffMime(jpeg(800, 600)) === 'image/jpeg');
+  ok('WebP 를 알아본다', M.sniffMime(webp(800, 600)) === 'image/webp');
+  /* 아이폰 기본 형식. 헤더로 크기를 못 읽지만 Gemini 는 읽는다 — 그래서 통과시킨다. */
+  const heic = Buffer.concat([Buffer.alloc(4), Buffer.from('ftypheic', 'ascii'), Buffer.alloc(16)]);
+  ok('HEIC 을 알아본다', M.sniffMime(heic) === 'image/heic');
+  ok('PDF 는 이미지가 아니다', M.sniffMime(Buffer.from('%PDF-1.4 어쩌구저쩌구 12345')) === null);
+  ok('빈 값도 안 죽는다', M.sniffMime(null) === null);
+
+  const key2 = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = 'test-key';
+  const notImage = await M.readUploadedImages([{ name: 'x.pdf', data: Buffer.from('%PDF-1.4 진짜 아님 12345').toString('base64') }]);
+  ok('이미지가 아니면 bad-image', notImage.ok === false && notImage.why === 'bad-image', `→ ${notImage.why}`);
+  /* 너무 큰 것은 모델에 태우기 전에 막는다 — 상한을 넘겨 보내면 그쪽에서 거절당하고
+     그 사유는 사용자에게 아무 도움이 안 된다. */
+  const huge = Buffer.concat([png(2000, 2000), Buffer.alloc(M.MAX_IMAGE_BYTES + 1)]);
+  const tooBig = await M.readUploadedImages([{ name: 'big.png', data: huge.toString('base64') }]);
+  ok('너무 크면 막는다', tooBig.ok === false && tooBig.why === 'bad-image', `→ ${tooBig.why}`);
+  /* 주소로 가져올 때(400×300)와 문턱이 다르다 — 여기는 사용자가 직접 고른 것이라
+     작다고 버리지 않는다. 말도 안 되는 것(100 미만)만 막는다. */
+  const tiny = await M.readUploadedImages([{ name: 't.png', data: png(40, 40).toString('base64') }]);
+  ok('1×1 같은 것은 막는다', tiny.ok === false && tiny.why === 'bad-image', `→ ${tiny.why}`);
+  ok('올린 것은 400×300 미만이어도 버리지 않는다',
+     (M.MIN_W === 400 && M.MIN_H === 300));   // 주소 경로의 문턱은 그대로여야 한다
+  const none2 = await M.readUploadedImages([]);
+  ok('빈 목록은 no-image', none2.ok === false && none2.why === 'no-image');
+  delete process.env.GEMINI_API_KEY;
+  const off2 = await M.readUploadedImages([{ name: 'a.png', data: png(800, 600).toString('base64') }]);
+  ok('키가 없으면 올려도 off', off2.ok === false && off2.why === 'off', `→ ${off2.why}`);
+  if (key2 === undefined) delete process.env.GEMINI_API_KEY;
+  else process.env.GEMINI_API_KEY = key2;
+
   console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
   process.exit(fail ? 1 : 0);
 })();

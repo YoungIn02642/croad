@@ -1497,13 +1497,50 @@ window.CompanyCover = (() => {
      우리가 들고 있을 이유가 없다. */
   const newsItems = () => analysis?.news?.items || [];
 
+  /* 기사 카드 한 장. 최신 뉴스와 주요 뉴스가 같은 모양을 써야 해서 함수로 뺐다 —
+     두 곳에 같은 마크업을 두면 한쪽만 고쳐진다.
+
+     제목과 링크만 담는다. 기사 본문을 요약해 담으면 지어낸 사실이 자소서로
+     흘러간다 — 이 화면이 AI 에게 기사를 요약시키지 않는 것과 같은 이유
+     (news.js 머리주석). 학생은 원문을 읽고 자기 말로 쓴다. */
+  function newsCard(it, prefix) {
+    const id = `news-${prefix}-${(it.url || it.title).slice(-40)}`;
+    /* 시기 배지는 목록마다 다르다 — 최신은 '오늘/N일 전'(daysAgo), 주요는 '약 N주 전'
+       (weekLabel). 폴백(웹 검색)에는 둘 다 없어서 아무것도 안 붙는다. */
+    const when = it.weekLabel
+      ? `<span class="co-news-when">${esc(it.weekLabel)}</span>`
+      : (typeof it.daysAgo === 'number'
+        ? `<span class="co-news-when">${it.daysAgo === 0 ? '오늘' : `${it.daysAgo}일 전`}</span>`
+        : '');
+    const buzz = it.outlets > 1 ? `<span class="co-news-buzz">언론사 ${it.outlets}곳</span>` : '';
+    return `<div class="co-news-item">
+      <div class="co-news-t">
+        <div class="co-news-badges">${when}${buzz}</div>
+        <a href="${esc(it.url || '#')}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
+        <div class="co-news-meta">${[it.date, hostOf(it.url)].filter(Boolean).map(esc).join(' · ')}</div>
+      </div>
+      ${pickBtn({
+        id, kind: 'news', text: it.title, url: it.url || '',
+        /* 검색 API 는 언론사 이름을 안 준다. 주소의 호스트를 쓴다 — 지어낸 값이
+           아니라 링크에 이미 들어 있는 사실이고, 날짜만 적힌 출처보다는
+           "어디 기사인가" 를 알 수 있다. */
+        source: [it.date, hostOf(it.url)].filter(Boolean).join(' · ') || '뉴스 검색',
+      })}
+    </div>`;
+  }
+
   function issueDetail(s) {
-    /* 최근 이슈는 **3개월을 2~3주 간격으로 끊어 뽑은 대표 기사**(서버 news.weekly)를
-       보여준다(사용자 지시). 이래야 같은 시기 기사 5건이 몰리지 않고 흐름이 보인다.
-       발행일이 없는 웹 폴백은 weekly 가 비므로, 그때만 기존 목록(items)으로 내려간다. */
+    /* ── 최신 / 주요를 나눠 보여준다 (사용자 지적 2026-09-08) ──────────────────
+       예전에는 weekly(3개월을 2~3주로 끊은 대표 기사) 하나만 보여줬다. 그러면 이번 주에
+       기사가 열 건 나와도 **한 건만** 뜬다 — 지원 직전에 "요즘 무슨 일 있나"를 보려는
+       사람에게는 없는 것과 같다(사용자: "최신 뉴스가 없음").
+         · 최신 뉴스 — 지금부터 1주일 안, 최신순 (서버 news.latest)
+         · 주요 뉴스 — 3개월 흐름, 구간별 대표 (서버 news.weekly)
+       발행일이 없는 웹 폴백은 둘 다 비므로 그때만 기존 목록(items)으로 내려간다. */
+    const latest = analysis?.news?.latest || [];
     const weekly = analysis?.news?.weekly || [];
     const items = weekly.length ? weekly : newsItems();
-    if (!items.length) {
+    if (!items.length && !latest.length) {
       return `<div class="co-note"><i class="ti ti-info-circle"></i>
         ${esc(analysis.newsError || s.note)}</div>`;
     }
@@ -1511,33 +1548,20 @@ window.CompanyCover = (() => {
     const naver = `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(selected.name)}`;
 
     return `
-      ${analysis.news.weeklyNote ? `<p class="jd-hint" style="margin:0 0 12px">${esc(analysis.news.weeklyNote)}</p>` : ''}
-      <div class="co-news">
-        ${items.map(it => {
-          /* 제목과 링크만 담는다. 기사 본문을 요약해 담으면 지어낸 사실이 자소서로
-             흘러간다 — 이 화면이 AI 에게 기사를 요약시키지 않는 것과 같은 이유
-             (news.js 머리주석). 학생은 원문을 읽고 자기 말로 쓴다. */
-          const id = `news-${(it.url || it.title).slice(-40)}`;
-          /* 시기 배지(weekLabel) 와 화제성(outlets = 같은 사건을 다룬 언론사 수)은
-             weekly 에만 있다. 없으면(폴백) 안 붙인다. */
-          const when = it.weekLabel ? `<span class="co-news-when">${esc(it.weekLabel)}</span>` : '';
-          const buzz = it.outlets > 1 ? `<span class="co-news-buzz">언론사 ${it.outlets}곳</span>` : '';
-          return `<div class="co-news-item">
-            <div class="co-news-t">
-              <div class="co-news-badges">${when}${buzz}</div>
-              <a href="${esc(it.url || '#')}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
-              <div class="co-news-meta">${[it.date, hostOf(it.url)].filter(Boolean).map(esc).join(' · ')}</div>
-            </div>
-            ${pickBtn({
-              id, kind: 'news', text: it.title, url: it.url || '',
-              /* 검색 API 는 언론사 이름을 안 준다. 주소의 호스트를 쓴다 — 지어낸 값이
-                 아니라 링크에 이미 들어 있는 사실이고, 날짜만 적힌 출처보다는
-                 "어디 기사인가" 를 알 수 있다. */
-              source: [it.date, hostOf(it.url)].filter(Boolean).join(' · ') || '뉴스 검색',
-            })}
-          </div>`;
-        }).join('')}
-      </div>
+      ${latest.length ? `
+        <div class="co-news-group">
+          <span class="wf-eyebrow">최신 뉴스</span>
+          ${analysis.news.latestNote ? `<p class="jd-hint" style="margin:4px 0 12px">${esc(analysis.news.latestNote)}</p>` : ''}
+          <div class="co-news">${latest.map(it => newsCard(it, 'new')).join('')}</div>
+        </div>` : `
+        ${analysis.news.latestNote ? `<p class="jd-hint" style="margin:0 0 12px">${esc(analysis.news.latestNote)}</p>` : ''}`}
+
+      ${items.length ? `
+        <div class="co-news-group" style="margin-top:${latest.length ? '22px' : '0'}">
+          <span class="wf-eyebrow">주요 뉴스</span>
+          ${analysis.news.weeklyNote ? `<p class="jd-hint" style="margin:4px 0 12px">${esc(analysis.news.weeklyNote)}</p>` : ''}
+          <div class="co-news">${items.map(it => newsCard(it, 'top')).join('')}</div>
+        </div>` : ''}
       <div style="margin-top:14px">
         <a class="wf-btn wf-btn--sm" href="${esc(naver)}" target="_blank" rel="noopener noreferrer">
           네이버 뉴스에서 더 보기

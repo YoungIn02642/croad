@@ -41,23 +41,30 @@ const NAVER_SECRET = (process.env.NAVER_CLIENT_SECRET || '').trim();
    응답 스키마(items[].title/originallink/description/pubDate)는 동일해서 파싱은 하나면 된다.
    그래서 **키 하나로 양쪽을 차례로 시도**하고, 통한 쪽을 기억한다(모델 자동 선택과 같은 방식).
    사용자가 어느 콘솔에서 발급받았는지 몰라도 그냥 동작하는 게 목적이다. */
-/* sort 는 sim(관련도)을 쓴다. date(최신순)로 하면 회사가 스치듯 언급된 기사가 앞에 온다 —
+/* ── 정렬은 두 가지를 다 쓴다 (사용자 지적 2026-09-08) ────────────────────────
+   기본은 sim(관련도)이다. date(최신순)로 하면 회사가 스치듯 언급된 기사가 앞에 온다 —
    실측으로 '현대오토에버' 검색 1위가 LG이노텍 MSCI 편입 기사였다. 지원동기 소재로는
-   '이 회사를 다룬 기사'가 필요하지 '이 회사를 언급한 최신 기사'가 아니다. */
+   '이 회사를 다룬 기사'가 필요하지 '이 회사를 언급한 최신 기사'가 아니다.
+
+   그런데 **관련도만 쓰니 최신 기사가 아예 안 나왔다**(사용자 지적: "최신 뉴스가 없음").
+   sim 은 오래된 기사도 관련도가 높으면 앞에 올리기 때문에, 100건을 받아도 이번 주
+   기사가 한 건도 없을 수 있다. 그래서 **최신순으로도 한 번 더 부른다.**
+   둘을 섞지 않고 화면에서 '최신 뉴스'와 '주요 뉴스'로 나눠 보여준다 — 성격이 다른
+   목록이라 한 줄로 세우면 어느 쪽 기준으로 정렬됐는지 아무도 모른다. */
 const ENDPOINTS = [
   {
     id: 'ncp',
     url: 'https://naverapihub.apigw.ntruss.com/search/v1/news',
     label: 'NCP NAVER API Hub',
     headers: (id, secret) => ({ 'X-NCP-APIGW-API-KEY-ID': id, 'X-NCP-APIGW-API-KEY': secret }),
-    params: q => ({ query: q, display: String(FETCH_COUNT), sort: 'sim', format: 'json' }),
+    params: (q, sort) => ({ query: q, display: String(FETCH_COUNT), sort, format: 'json' }),
   },
   {
     id: 'naver',
     url: 'https://openapi.naver.com/v1/search/news.json',
     label: '네이버 개발자센터 검색 API',
     headers: (id, secret) => ({ 'X-Naver-Client-Id': id, 'X-Naver-Client-Secret': secret }),
-    params: q => ({ query: q, display: String(FETCH_COUNT), sort: 'sim' }),
+    params: (q, sort) => ({ query: q, display: String(FETCH_COUNT), sort }),
   },
 ];
 
@@ -95,8 +102,8 @@ const stripUrls = s => String(s || '')
   .trim();
 
 /* ── 네이버 뉴스 검색 (NCP / 개발자센터 공통) ───────────────── */
-async function callEndpoint(ep, company) {
-  const res = await fetch(`${ep.url}?${new URLSearchParams(ep.params(company))}`, {
+async function callEndpoint(ep, company, sort = 'sim') {
+  const res = await fetch(`${ep.url}?${new URLSearchParams(ep.params(company, sort))}`, {
     headers: ep.headers(NAVER_ID, NAVER_SECRET),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
@@ -119,7 +126,7 @@ async function callEndpoint(ep, company) {
   }));
 }
 
-async function fromNaver(company, mode) {
+async function fromNaver(company, mode, sort = 'sim') {
   /* 어느 콘솔의 키인지 이미 알면 그것만, 모르면 둘 다 시도한다.
      인증 실패(401/403)일 때만 다음 후보로 넘어간다 — 쿼터 초과나 네트워크 오류에
      엉뚱한 엔드포인트를 또 때리지 않기 위해서다. */
@@ -136,7 +143,7 @@ async function fromNaver(company, mode) {
   for (const ep of candidates) {
     if (preferred.length && ep.id !== mode && !lastErr?.authFailed) break;
     try {
-      const items = await callEndpoint(ep, company);
+      const items = await callEndpoint(ep, company, sort);
       if (_resolvedEndpoint !== ep.id) {
         console.log(`[news] ${ep.label} 로 뉴스를 가져옵니다.`);
         if (preferred.length && ep.id !== mode) {
@@ -601,6 +608,51 @@ function weeksAgoLabel(dateStr, now) {
    (본문에 회사명이 한 번 나온 남의 기사).
    제목에 회사명이 있으면 그 기사는 그 회사를 **다룬** 기사다. 그런 후보가 한 건이라도
    있으면 그 안에서만 고르고, 하나도 없을 때만 나머지로 내려간다. */
+/* ── 최신 뉴스 (사용자 지적 2026-09-08) ──────────────────────────────────────
+   "하루 한 번 API 를 가져오는데, 가져온 시간부터 1주일 내 뉴스도 필요하다."
+   주간 대표(weeklyPicks)는 3개월을 18일씩 끊어 **한 구간에 한 건씩**만 고른다.
+   그래서 이번 주에 기사가 열 건 나와도 화면에는 한 건만 뜬다 — 지원 직전에
+   "요즘 무슨 일이 있나"를 보려는 사람에게는 그게 없는 것과 같다.
+
+   기준 시각은 **호출 시각**이다. 캐시를 두지 않으므로 '가져온 시간'이 곧 지금이고,
+   나중에 하루 한 번 받아 두게 바뀌어도 now 를 넘기면 그 시각이 기준이 된다.
+
+   날짜가 없는 기사(웹 폴백)는 넣을 수 없다 — 1주일 안인지 판정할 수가 없다.
+   여기서 억지로 넣으면 '최신'이라고 적힌 자리에 몇 년 전 기사가 앉는다. */
+const RECENT_DAYS = 7;
+
+function recentPicks(clustered, now = Date.now(), company = '', days = RECENT_DAYS) {
+  const key = String(company).replace(/\s+/g, '');
+  const inTitle = it => !!key && String(it.title).replace(/\s+/g, '').includes(key);
+  const from = now - days * DAY;
+
+  const fresh = clustered.filter(it => {
+    if (!it.date) return false;
+    const t = Date.parse(it.date);
+    return !Number.isNaN(t) && t >= from;
+  });
+  /* 주간 대표와 같은 규칙 — 제목에 회사가 있는 기사가 하나라도 있으면 그 안에서만
+     고른다. 스쳐 지나간 언급이 '최신 뉴스' 머리에 앉는 것을 막는다. */
+  const titled = fresh.filter(inTitle);
+  const pool = titled.length ? titled : fresh;
+
+  return pool
+    /* 최신순이 먼저다 — 이 목록의 존재 이유가 '최근'이다. 같은 날이면 여러 언론사가
+       함께 다룬 기사를, 그다음 취업과 맞닿은 기사를 올린다. */
+    .sort((a, b) =>
+      String(b.date).localeCompare(String(a.date)) ||
+      b.count - a.count ||
+      trendScore(b) - trendScore(a)
+    )
+    .slice(0, MAX_ITEMS)
+    .map(it => ({
+      ...it,
+      outlets: it.count,
+      daysAgo: Math.max(0, Math.round((now - Date.parse(it.date)) / DAY)),
+      looseMatch: !inTitle(it),
+    }));
+}
+
 function weeklyPicks(clustered, now = Date.now(), company = '') {
   const key = String(company).replace(/\s+/g, '');
   const inTitle = it => !!key && String(it.title).replace(/\s+/g, '').includes(key);
@@ -676,6 +728,17 @@ async function companyNews(companyName) {
     pool = pool.concat(...extra);
   }
 
+  /* ── 최신순으로 한 번 더 부른다 (사용자 지적 2026-09-08) ────────────────────
+     위 검색은 전부 관련도(sim) 순이다. sim 은 오래된 기사도 관련도가 높으면 앞에
+     올리므로, 100건을 받아도 **이번 주 기사가 한 건도 안 들어올 수 있다.**
+     ("최신 뉴스가 없음" 의 원인이 이것이다.) 최신순(date)으로 따로 받아 표본에 더한다.
+     실패해도 나머지는 그대로 간다 — 최신 칸만 비고 리포트는 성립한다. */
+  if (p !== 'web') {
+    try {
+      pool = pool.concat(onTopic(relevant(await fromNaver(company, p, 'date'), company)));
+    } catch { /* 최신 칸만 빈다 */ }
+  }
+
   /* 네이버가 회사와 무관한 기사만 준 경우 웹 검색으로 한 번 더 시도한다.
      실측: '아주산업' 처럼 기사가 적은 회사는 네이버가 검색어를 '아주'+'산업' 으로 쪼개
      우리銀·산업부 기사를 돌려준다(total 39만 건). relevant() 가 전부 걸러내 0건이 되는데,
@@ -692,7 +755,13 @@ async function companyNews(companyName) {
 
   /* 주간 대표 기사 — 날짜가 있는 경로(네이버)에서만 만들어진다.
      웹 폴백은 날짜를 못 주므로 빈 배열이 되고, 화면은 기존 목록만 보여준다. */
-  const weekly = weeklyPicks(cluster(pool), Date.now(), company);
+  const now = Date.now();
+  const clustered = cluster(pool);
+  const weekly = weeklyPicks(clustered, now, company);
+  /* 최신 뉴스 — 지금부터 1주일 안. 주간 대표와 같은 표본에서 뽑되 기준이 다르다
+     (저쪽은 '구간마다 한 건', 이쪽은 '최근 것부터'). 겹치는 기사가 있어도 그대로 둔다 —
+     같은 기사가 '이번 주 최신'이면서 '이번 구간 대표'인 것은 모순이 아니다. */
+  const latest = recentPicks(clustered, now, company);
   const keywords = newsKeywords(items, company);
   /* 실제로 어느 경로로 가져왔는지 — 시도 끝에 정해지므로 호출 뒤에 읽는다. */
   const finalProvider = used === 'web-fallback' ? 'web-fallback'
@@ -702,6 +771,18 @@ async function companyNews(companyName) {
     company,
     provider: finalProvider,
     items,
+    /* ── 최신 / 주요를 나눠 내려보낸다 (사용자 지적 2026-09-08) ──────────────
+       items 는 관련도 순이라 '주요 뉴스'이고, latest 는 1주일 안의 '최신 뉴스'다.
+       한 목록으로 합치지 않는 이유는 정렬 기준이 다르기 때문이다 — 섞으면 화면에서
+       어느 기준으로 줄 세운 것인지 알 수 없고, 최신 기사가 관련도에 밀려 사라진다. */
+    latest,
+    latestNote: latest.length
+      ? `지금부터 ${RECENT_DAYS}일 안에 나온 기사예요. 지원 직전이라면 여기부터 보세요 — `
+        + '면접에서 "최근 소식 아세요?" 를 물으면 이 범위에서 나옵니다.'
+      : (finalProvider.startsWith('web')
+        ? '웹 검색 결과에는 발행일이 없어 최신 기사를 가릴 수 없었어요. 아래 주요 뉴스를 확인해 주세요.'
+        : `최근 ${RECENT_DAYS}일 안에는 이 회사 기사가 없었어요. 아래 주요 뉴스와 시기별 흐름을 보세요.`),
+    recentDays: RECENT_DAYS,
     weekly,
     weeklyNote: weekly.length
       ? '최근 3개월을 2~3주 간격으로 끊어, 그 구간에 여러 언론사가 함께 다룬 기사를 한 건씩 골랐어요. '
@@ -751,6 +832,6 @@ const MOTIVE_GUIDE = {
 module.exports = {
   companyNews, provider, newsKeywords, tokenize, MOTIVE_GUIDE, MAX_ITEMS,
   // 테스트용 — 주간 묶기·목록 중복 제거는 외부 호출 없이 검증할 수 있어야 한다
-  cluster, weeklyPicks, bucketIndex, trendScore, PICKS, onTopic,
+  cluster, weeklyPicks, recentPicks, RECENT_DAYS, bucketIndex, trendScore, PICKS, onTopic,
   dedupeStories, SAME_STORY_GRAM, SAME_STORY_WORD,
 };

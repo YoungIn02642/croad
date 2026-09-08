@@ -109,6 +109,31 @@ const onlyLoose = NEWS.weeklyPicks(NEWS.cluster([loose[0]]), NOW, '아주산업'
 ok('제목 후보가 하나도 없으면 그때만 본문 언급을 쓰고 경고를 남긴다',
    onlyLoose && onlyLoose.looseMatch === true, `→ ${onlyLoose?.title}`);
 
+console.log('\n── 6-1. 최신 뉴스 (1주일) ──');
+/* 이 목록의 위험은 하나다 — '최신'이라고 적힌 자리에 옛날 기사가 앉는 것.
+   주간 대표(구간마다 한 건)와 달리 **1주일 안이면 여러 건을 다 보여준다**. */
+const recent = NEWS.recentPicks(clustered, NOW, '삼성전자');
+ok('1주일 안 기사만 넣는다',
+   recent.every(r => Date.parse(r.date) >= NOW - NEWS.RECENT_DAYS * 86400000),
+   `→ ${recent.map(r => r.date).join(', ')}`);
+ok('20일 전 기사는 최신이 아니다', !recent.some(r => r.title.includes('공채')));
+ok('최신순으로 세운다',
+   recent.every((r, i) => i === 0 || r.date <= recent[i - 1].date),
+   `→ ${recent.map(r => r.date).join(' ≥ ')}`);
+/* 주간 대표는 한 구간에서 한 건만 뽑는다. 같은 주에 사건이 둘이면 하나가 사라지는데,
+   그게 사용자가 지적한 "최신 뉴스가 없음" 의 실체다. 최신 목록은 둘 다 보여준다. */
+ok('같은 주의 다른 사건을 함께 보여준다 (주간 대표는 한 건만 뽑는다)',
+   recent.length > 1 && NEWS.weeklyPicks(clustered, NOW).filter(p => p.week === 0).length === 1,
+   `→ 최신 ${recent.length}건`);
+ok('며칠 전인지 붙인다', recent.every(r => typeof r.daysAgo === 'number' && r.daysAgo >= 0));
+ok('날짜가 없으면(웹 폴백) 최신 목록을 만들지 않는다',
+   NEWS.recentPicks(NEWS.cluster([{ title: '삼성전자 무언가', summary: '', url: 'x', date: null }]), NOW).length === 0);
+ok('최대 5건을 넘지 않는다', recent.length <= NEWS.MAX_ITEMS);
+/* 제목 우선 규칙은 주간 대표와 같아야 한다 — 스쳐 지나간 언급이 '최신' 머리에 앉으면 안 된다. */
+const looseRecent = NEWS.recentPicks(NEWS.cluster(loose), NOW, '아주산업');
+ok('제목에 회사가 있는 기사를 먼저 올린다',
+   looseRecent[0].title.startsWith('아주산업'), `→ ${looseRecent[0].title}`);
+
 /* ── 목록용 중복 제거 (dedupeStories) ─────────────────────────
    회사 리포트의 '최근 기사 5건'이 실제로 서로 다른 사건 5개여야 한다.
    아래 제목들은 2026-08-09 삼성전자 실제 응답에서 그대로 가져온 것이다 —

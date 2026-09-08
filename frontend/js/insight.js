@@ -38,7 +38,14 @@ window.Insight = (() => {
   let writeError = '';
   /* 글쓰기 칸에 적던 값. 오류가 나면 화면을 다시 그리는데, 그때 사라지면 안 된다 —
      프롬프트 원문은 수천 자짜리라 다시 붙여넣게 하면 그 자리에서 포기한다. */
-  let writeDraft = { category: '', title: '', body: '', promptText: '' };
+  let writeDraft = { category: '', title: '', body: '', promptText: '', isNotice: false };
+  /* 글쓰기 화면이 '새 글'인지 '수정'인지. null 이면 새 글이다.
+     ── 수정은 화면에만 없었다 (사용자 지적 2026-09-08) ──────────────────────
+     서버 PUT /api/insights/:id 도, DB.updateInsight() 도 처음부터 있었는데
+     **화면에서 아무도 부르지 않았다.** 상세에 삭제 버튼만 있어서, 글쓴이가 오타
+     하나를 고치려면 지우고 다시 쓰는 수밖에 없었다(조회수·댓글·담긴 수가 날아간다).
+     글쓰기 화면을 그대로 재사용한다 — 칸도 검사도 같아야 하므로 화면을 새로 만들지 않는다. */
+  let editingId = null;
   /* '내 북마크만 보기'. 카테고리와 **따로 둔다** — 카테고리 하나로 합치면
      '북마크 안의 AI 프롬프트' 처럼 겹쳐 보는 길이 막힌다. */
   let onlyBookmarked = false;
@@ -348,6 +355,7 @@ window.Insight = (() => {
         <div class="insight-post-body insight-md">${Markdown.render(post.body)}</div>
         ${promptBoxHtml(post, user)}
         ${mine ? `<div class="insight-post-actions">
+          <button class="topbar-link" id="insight-edit-post"><i class="ti ti-pencil"></i> 수정</button>
           <button class="topbar-link" id="insight-delete-post"><i class="ti ti-trash"></i> 삭제</button>
         </div>` : ''}
       </article>
@@ -466,9 +474,37 @@ window.Insight = (() => {
     if (!DB.currentUser()) return;
     view = 'write';
     writeError = '';
+    editingId = null;                       // 새 글 — 수정에서 넘어왔을 수 있으니 반드시 지운다
     /* 지금 보고 있던 카테고리로 시작한다 — 프롬프트 탭에서 글쓰기를 누른 사람은
        프롬프트를 올리려는 것이다. '전체'였으면 목록의 첫 카테고리로 떨어진다. */
-    writeDraft = { category: category || (categories[0]?.id || ''), title: '', body: '', promptText: '' };
+    writeDraft = { category: category || (categories[0]?.id || ''), title: '', body: '', promptText: '', isNotice: false };
+    render();
+  }
+
+  /* ── 수정 ────────────────────────────────────────────────────
+     상세에서 받아 둔 값으로 글쓰기 화면을 채운다. 서버에 다시 묻지 않는 이유는
+     detailData 가 방금 그 글이기 때문이다(openPost 가 채운다).
+
+     **카테고리는 못 바꾼다** — 서버 PUT 이 카테고리를 건드리지 않는다(라우터 주석:
+     "원래도 못 바꿨다"). 화면에서만 바꿀 수 있게 해 두면 사용자는 바꿨다고 믿는데
+     저장하면 그대로다. 고를 수 없게 막고 왜 그런지 적는다. */
+  function openEdit() {
+    const post = detailData?.post;
+    if (!post) return;
+    const user = DB.currentUser();
+    if (!user || post.authorId !== user.id) return;   // 서버도 막지만 버튼을 그릴 이유가 없다
+    view = 'write';
+    writeError = '';
+    editingId = post.id;
+    writeDraft = {
+      category: post.category,
+      title: post.title,
+      body: post.body,
+      promptText: post.promptText || '',
+      /* 공지 여부를 안 채우면, 관리자가 공지 글의 오타를 고치는 순간 체크가 풀린 채
+         저장돼 **공지가 조용히 내려간다**(서버는 관리자가 보낸 값을 그대로 믿는다). */
+      isNotice: Boolean(post.isNotice),
+    };
     render();
   }
 
@@ -481,21 +517,28 @@ window.Insight = (() => {
       title: g('insight-write-title')?.value ?? writeDraft.title,
       body: g('insight-write-body')?.value ?? writeDraft.body,
       promptText: g('insight-write-prompt')?.value ?? writeDraft.promptText,
+      /* 체크박스는 관리자에게만 그려진다. 없으면 지금 값을 그대로 둔다 —
+         일반 사용자가 공지 글을 고칠 때 false 로 덮어쓰면 공지가 풀린다. */
+      isNotice: g('insight-write-notice') ? g('insight-write-notice').checked : writeDraft.isNotice,
     };
     return writeDraft;
   }
 
   function writeHtml() {
+    const editing = Boolean(editingId);
     return `
-      <button class="insight-back" id="insight-back"><i class="ti ti-arrow-left"></i> 목록으로</button>
+      <button class="insight-back" id="insight-back"><i class="ti ti-arrow-left"></i> ${
+        editing ? '글로 돌아가기' : '목록으로'}</button>
       <div class="page-head">
-        <h1 class="page-title">글쓰기</h1>
+        <h1 class="page-title">${editing ? '글 수정' : '글쓰기'}</h1>
       </div>
       <div class="insight-write">
-        <select id="insight-write-cat">
+        <select id="insight-write-cat" ${editing ? 'disabled' : ''}>
           ${categories.map(c => `<option value="${esc(c.id)}" ${
             writeDraft.category === c.id ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}
         </select>
+        ${editing ? `<p class="insight-md-hint">카테고리는 바꿀 수 없어요.
+          바꾸려면 글을 지우고 새로 올려주세요.</p>` : ''}
         <input type="text" id="insight-write-title" maxlength="200" placeholder="제목"
                value="${esc(writeDraft.title)}" />
         <textarea id="insight-write-body" rows="10"
@@ -512,12 +555,12 @@ window.Insight = (() => {
         </p>
         ${DB.currentUser()?.isAdmin ? `
           <label class="insight-notice-toggle">
-            <input type="checkbox" id="insight-write-notice" />
+            <input type="checkbox" id="insight-write-notice" ${writeDraft.isNotice ? 'checked' : ''} />
             <span><b>공지로 올리기</b> — 목록 맨 위에 고정되고 다른 색으로 표시됩니다. 관리자만 보이는 항목이에요.</span>
           </label>` : ''}
         ${writeError ? `<div class="error-box">${esc(writeError)}</div>` : ''}
         <div class="insight-write-actions">
-          <button class="btn-save" id="insight-write-submit">등록</button>
+          <button class="btn-save" id="insight-write-submit">${editing ? '저장' : '등록'}</button>
           <button class="btn-cancel" id="insight-write-cancel">취소</button>
         </div>
       </div>
@@ -552,15 +595,24 @@ window.Insight = (() => {
 
   async function submitPost() {
     const d = readWriteForm();
-    const isNotice = Boolean(document.getElementById('insight-write-notice')?.checked);
     try {
-      const { post } = await DB.createInsight({
-        category: d.category,
-        title: d.title.trim(),
-        body: d.body.trim(),
-        isNotice,
-        promptText: d.promptText.trim(),
-      });
+      /* 수정과 등록은 보내는 값이 같고 주소만 다르다. 카테고리는 수정 때 안 보낸다 —
+         서버가 어차피 안 바꾸고, 보내면 '보냈는데 안 바뀌었다'가 된다. */
+      const { post } = editingId
+        ? await DB.updateInsight(editingId, {
+          title: d.title.trim(),
+          body: d.body.trim(),
+          isNotice: d.isNotice,
+          promptText: d.promptText.trim(),
+        })
+        : await DB.createInsight({
+          category: d.category,
+          title: d.title.trim(),
+          body: d.body.trim(),
+          isNotice: d.isNotice,
+          promptText: d.promptText.trim(),
+        });
+      editingId = null;
       await openPost(post.id);
     } catch (e) {
       writeError = e.message;
@@ -791,9 +843,20 @@ window.Insight = (() => {
     });
 
     document.getElementById('insight-write-open')?.addEventListener('click', openWrite);
-    document.getElementById('insight-write-cancel')?.addEventListener('click', () => { view = 'list'; loadList(); });
+    /* 수정 중에 취소·뒤로를 누르면 목록이 아니라 **보던 글로** 돌아간다. 목록으로
+       떨구면 사용자는 글을 다시 찾아 들어가야 하고, 무엇보다 '수정이 저장됐나'를
+       확인할 데가 없다. 새 글일 때만 목록으로 간다. */
+    const leaveWrite = () => {
+      const back = editingId;
+      editingId = null;
+      if (back) return openPost(back);
+      view = 'list'; loadList();
+    };
+    document.getElementById('insight-write-cancel')?.addEventListener('click', leaveWrite);
     document.getElementById('insight-write-submit')?.addEventListener('click', submitPost);
-    document.getElementById('insight-back')?.addEventListener('click', () => { view = 'list'; loadList(); });
+    document.getElementById('insight-back')?.addEventListener('click', leaveWrite);
+
+    document.getElementById('insight-edit-post')?.addEventListener('click', openEdit);
 
     document.getElementById('insight-delete-post')?.addEventListener('click', async () => {
       if (!confirm('이 글을 삭제할까요? 되돌릴 수 없어요.')) return;

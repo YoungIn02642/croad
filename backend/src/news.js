@@ -630,6 +630,21 @@ function weeksAgoLabel(dateStr, now) {
    여기서 억지로 넣으면 '최신'이라고 적힌 자리에 몇 년 전 기사가 앉는다. */
 const RECENT_DAYS = 7;
 
+/* ── 관련도순 목록 (사용자 지시 2026-09-09) ──────────────────────────────────
+   화면이 '관련도순 / 최신순' 토글로 갈리면서, 관련도 쪽도 최신 쪽과 **같은 값**을 달고
+   있어야 한다 — 언론사 수(화제성)와 '간접 언급' 표시가 한쪽에만 있으면 탭을 바꿀 때마다
+   정보가 들쭉날쭉해진다.
+   순서는 손대지 않는다. cluster() 가 입력 순서를 지키고 pool 은 관련도(sim) 순으로
+   받아온 것이라, **그대로가 곧 관련도순**이다. 여기서 다시 정렬하면 그 순서를 잃는다. */
+function topPicks(clustered, company = '') {
+  const key = String(company).replace(/\s+/g, '');
+  const inTitle = it => !!key && String(it.title).replace(/\s+/g, '').includes(key);
+
+  return dedupeStories(clustered, company)
+    .slice(0, MAX_ITEMS)
+    .map(it => ({ ...it, outlets: it.count, looseMatch: !inTitle(it) }));
+}
+
 function recentPicks(clustered, now = Date.now(), company = '', days = RECENT_DAYS) {
   const key = String(company).replace(/\s+/g, '');
   const inTitle = it => !!key && String(it.title).replace(/\s+/g, '').includes(key);
@@ -729,7 +744,9 @@ async function companyNews(companyName) {
      화면에는 5건이 뜨는데 실제 사건은 2개라, 학생이 쓸 소재는 두 개뿐인 셈이다.
      dedupeStories() 로 **서로 다른 사건 5개**를 내려보낸다. 화면 쪽에서 한 번 더 거르지
      않는다 — 같은 규칙이 두 곳에 있으면 어긋난다. */
-  let items = dedupeStories(dedupe(pool), company).slice(0, MAX_ITEMS);
+  /* cluster() 를 거치면 같은 사건의 언론사 수(count)가 붙는다 — 화면의 '언론사 N곳'
+     배지가 관련도 탭에서도 나오려면 이 경로여야 한다. 순서는 관련도 그대로다. */
+  let items = topPicks(cluster(pool), company);
 
   /* 주간 정리를 만들려면 5주치 표본이 필요하다. 회사명 단독 검색으로는 안 되므로
      주제를 붙인 검색을 함께 돌려 표본을 넓힌다(TREND_QUERIES 주석 참고).
@@ -762,7 +779,7 @@ async function companyNews(companyName) {
     try {
       const webRaw = await fromWeb(company);
       const webPool = onTopic(relevant(webRaw, company));
-      const webItems = dedupeStories(dedupe(webPool), company).slice(0, MAX_ITEMS);
+      const webItems = topPicks(cluster(webPool), company);
       if (webItems.length) { items = webItems; pool = webPool; used = 'web-fallback'; }
     } catch { /* 폴백까지 실패하면 그냥 0건으로 둔다 — 화면에 안내가 나간다 */ }
   }
@@ -794,8 +811,10 @@ async function companyNews(companyName) {
       ? `관련도가 높은 기사 중에서 ${RECENT_DAYS}일 안에 나온 것만 골랐어요. `
         + '지원 직전이라면 여기부터 보세요 — 면접에서 "최근 소식 아세요?" 를 물으면 이 범위에서 나옵니다.'
       : (finalProvider.startsWith('web')
-        ? '웹 검색 결과에는 발행일이 없어 최신 기사를 가릴 수 없었어요. 아래 주요 뉴스를 확인해 주세요.'
-        : `최근 ${RECENT_DAYS}일 안에는 이 회사 기사가 없었어요. 아래 주요 뉴스와 시기별 흐름을 보세요.`),
+        /* 화면이 '관련도순 / 최신순' 토글이라 '아래'라는 자리 안내는 더 이상 맞지 않는다
+           (2026-09-09). 최신순 탭은 이때 눌리지 않게 막히므로 이 문구는 안내로만 남는다. */
+        ? '웹 검색 결과에는 발행일이 없어 최신 기사를 가릴 수 없었어요. 관련도순으로 확인해 주세요.'
+        : `최근 ${RECENT_DAYS}일 안에는 이 회사 기사가 없었어요. 관련도순으로 보세요.`),
     recentDays: RECENT_DAYS,
     weekly,
     weeklyNote: weekly.length
@@ -846,6 +865,6 @@ const MOTIVE_GUIDE = {
 module.exports = {
   companyNews, provider, newsKeywords, tokenize, MOTIVE_GUIDE, MAX_ITEMS,
   // 테스트용 — 주간 묶기·목록 중복 제거는 외부 호출 없이 검증할 수 있어야 한다
-  cluster, weeklyPicks, recentPicks, RECENT_DAYS, bucketIndex, trendScore, PICKS, onTopic,
+  cluster, weeklyPicks, recentPicks, topPicks, RECENT_DAYS, bucketIndex, trendScore, PICKS, onTopic,
   dedupeStories, SAME_STORY_GRAM, SAME_STORY_WORD,
 };

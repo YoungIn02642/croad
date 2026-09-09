@@ -433,8 +433,25 @@ a.wf-btn { text-decoration: none; }
 }
 .co-news-item .wf-btn { flex: none; }
 
-/* 최신 뉴스 / 주요 뉴스 두 구획. 눈으로 갈리게 사이를 띄우고 제목을 붙인다. */
-.co-news-group + .co-news-group { padding-top: 4px; }
+/* ── 관련도순 / 최신순 토글 ──────────────────────────────────────────────
+   네이버 뉴스와 같은 모양이다(사용자 지시 2026-09-09). 버튼처럼 보이는 상자가 아니라
+   **글자 앞에 점**을 찍어 고른 쪽만 진하게 한다 — 기사 목록 위에 상자를 얹으면
+   그것이 제목보다 먼저 읽힌다. */
+.co-news-sort { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.co-news-sort-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 0; border: 0; background: none; cursor: pointer;
+  font-size: 13.5px; color: var(--wf-mute);
+}
+.co-news-sort-btn::before {
+  content: ''; width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; opacity: .45;
+}
+.co-news-sort-btn:hover:not(:disabled) { color: var(--wf-body); }
+.co-news-sort-btn.is-on { color: var(--wf-ink); font-weight: 700; }
+.co-news-sort-btn.is-on::before { opacity: 1; }
+/* 최신순에 기사가 없을 때. 눌러도 빈 목록이 나오면 고장으로 읽히므로 아예 막는다. */
+.co-news-sort-btn:disabled { opacity: .38; cursor: not-allowed; }
 
 .co-kw { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .co-kw-item {

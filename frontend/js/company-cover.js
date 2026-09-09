@@ -297,6 +297,13 @@ window.CompanyCover = (() => {
      어떤 회사인지도 모르는 상태에서 그 회사의 8월 주가 기사부터 읽게 된다.
      카드 번호도 01 개요 → 03 최근 이슈 순인데 세 번째가 열려 있었다. */
   let step     = 'overview';
+  /* 최근 이슈의 정렬 — 'sim'(관련도순) · 'date'(최신순). 네이버 뉴스와 같은 방식으로
+     한 목록을 토글로 바꿔 보여준다(사용자 지시 2026-09-09, 네이버 화면 캡처).
+     기본이 관련도순인 것도 네이버와 같다 — 지원동기 소재로는 '이 회사를 다룬 기사'가
+     먼저다(news.js ENDPOINTS 주석의 실측).
+     **받아오는 데이터는 그대로다.** 서버는 예전처럼 weekly 와 latest 를 둘 다 내려주고,
+     화면이 어느 쪽을 보여줄지만 고른다 — 토글을 눌러도 다시 부르지 않는다. */
+  let newsSort = 'sim';
   let loading  = false;
   let error    = null;
   let query    = '';
@@ -1548,7 +1555,13 @@ window.CompanyCover = (() => {
        발행일이 없는 웹 폴백은 둘 다 비므로 그때만 기존 목록(items)으로 내려간다. */
     const latest = analysis?.news?.latest || [];
     const weekly = analysis?.news?.weekly || [];
-    const items = weekly.length ? weekly : newsItems();
+    /* ── '관련도순' 에는 관련도 목록을 보여준다 (사용자 지시 2026-09-09) ──────────
+       예전에는 이 자리에 weekly(3개월을 2~3주로 끊은 시기별 대표)를 보여줬다. 그때는
+       칸 이름이 '최근 이슈' 하나라 문제가 없었는데, 이제 탭에 **'관련도순'** 이라고
+       적히므로 시기별 대표를 보여주면 이름과 내용이 어긋난다.
+       weekly 는 화제성·시기로 고른 것이지 관련도순이 아니다.
+       관련도 목록(items)이 비는 경우(웹 폴백 등)에만 weekly 로 내려간다. */
+    const items = newsItems().length ? newsItems() : weekly;
     if (!items.length && !latest.length) {
       return `<div class="co-note"><i class="ti ti-info-circle"></i>
         ${esc(analysis.newsError || s.note)}</div>`;
@@ -1556,21 +1569,42 @@ window.CompanyCover = (() => {
     const kws = (analysis.news.keywords || []).slice(0, 8);
     const naver = `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(selected.name)}`;
 
-    return `
-      ${latest.length ? `
-        <div class="co-news-group">
-          <span class="wf-eyebrow">최신 뉴스</span>
-          ${analysis.news.latestNote ? `<p class="jd-hint" style="margin:4px 0 12px">${esc(analysis.news.latestNote)}</p>` : ''}
-          <div class="co-news">${latest.map(it => newsCard(it, 'new')).join('')}</div>
-        </div>` : `
-        ${analysis.news.latestNote ? `<p class="jd-hint" style="margin:0 0 12px">${esc(analysis.news.latestNote)}</p>` : ''}`}
+    /* ── 네이버 뉴스와 같은 토글 (사용자 지시 2026-09-09) ──────────────────────
+       두 목록을 위아래로 쌓아 두면 화면이 길어지고, 무엇보다 **같은 기사가 두 번**
+       보인다(이번 주 최신이면서 이번 구간 대표인 기사는 실제로 흔하다).
+       네이버처럼 **한 자리에서 정렬을 바꾼다.** 데이터는 둘 다 이미 받아 둔 것이라
+       토글은 다시 부르지 않는다 — 누르는 즉시 바뀐다.
 
-      ${items.length ? `
-        <div class="co-news-group" style="margin-top:${latest.length ? '22px' : '0'}">
-          <span class="wf-eyebrow">주요 뉴스</span>
-          ${analysis.news.weeklyNote ? `<p class="jd-hint" style="margin:4px 0 12px">${esc(analysis.news.weeklyNote)}</p>` : ''}
-          <div class="co-news">${items.map(it => newsCard(it, 'top')).join('')}</div>
-        </div>` : ''}
+       최신순에 기사가 없으면 그 탭은 못 누르게 막고 이유를 적는다. 눌렀는데 빈 목록이
+       나오면 고장으로 읽힌다. */
+    const canDate = latest.length > 0;
+    const sort = (newsSort === 'date' && !canDate) ? 'sim' : newsSort;
+    const list = sort === 'date' ? latest : items;
+    /* 관련도순 안내는 화면이 쓴다 — 서버의 weeklyNote 는 '3개월을 2~3주로 끊었다'는
+       시기별 설명이라, 관련도 목록을 보여주는 이 자리와 맞지 않는다. weekly 로
+       내려간 경우(관련도 목록이 빌 때)에만 그 설명이 맞다. */
+    const note = sort === 'date'
+      ? analysis.news.latestNote
+      : (newsItems().length
+        /* 이 자리는 esc() 로 그대로 나가는 칸이라 마크다운이 안 먹는다 — 별표를 쓰면
+           화면에 별표가 그대로 보인다(실측). 강조 없이 문장으로 쓴다. */
+        ? '이 회사를 실제로 다룬 기사부터 보여줍니다. 여러 건을 늘어놓지 말고 한 건만 골라 쓰세요.'
+        : analysis.news.weeklyNote);
+
+    const tab = (id, label, on, disabled) =>
+      `<button type="button" class="co-news-sort-btn${on ? ' is-on' : ''}"
+        data-news-sort="${id}" ${disabled ? 'disabled title="최근 1주일 안에 나온 기사가 없어요"' : ''}
+        aria-pressed="${on}">${label}</button>`;
+
+    return `
+      <div class="co-news-sort">
+        ${tab('sim', '관련도순', sort === 'sim', false)}
+        ${tab('date', '최신순', sort === 'date', !canDate)}
+      </div>
+      ${note ? `<p class="jd-hint" style="margin:0 0 12px">${esc(note)}</p>` : ''}
+      ${list.length
+        ? `<div class="co-news">${list.map(it => newsCard(it, sort)).join('')}</div>`
+        : ''}
       <div style="margin-top:14px">
         <a class="wf-btn wf-btn--sm" href="${esc(naver)}" target="_blank" rel="noopener noreferrer">
           네이버 뉴스에서 더 보기
@@ -1662,6 +1696,11 @@ window.CompanyCover = (() => {
     // 기업분석 5단계 카드 — 누른 칸만 아래에 펼친다
     box.querySelectorAll('[data-step]').forEach(el =>
       el.addEventListener('click', () => { step = el.dataset.step; paint(); }));
+
+    /* 최근 이슈 정렬(관련도순·최신순). 서버를 다시 부르지 않는다 — 두 목록 다 이미
+       받아 둔 값이라 화면만 갈아 끼운다. */
+    box.querySelectorAll('[data-news-sort]').forEach(el =>
+      el.addEventListener('click', () => { newsSort = el.dataset.newsSort; paint(); }));
 
     /* 돌아가는 자리가 둘이다(리포트 맨 위 · 사이드바 아래). querySelector 로
        하나만 잡으면 위엣것만 살고 사이드바 버튼이 죽는다. */

@@ -66,11 +66,28 @@ function categoryName(code) {
   return mentorCategories().find(M => M.code === code)?.name || '';
 }
 
-/* 멘토 찾기의 '분야' 필터에 깔 분류. **멘토가 직접 정한 '멘토링 가능 분야'(mentorFields)에
-   실제로 있는 것만** 깐다(사용자 지시). 멘토가 정하고 멘티가 그 안에서 고르는 구조라,
-   아무 멘토도 안 고른 분야를 칩으로 깔면 눌러도 0명이 된다. */
+/* ── 이 멘토가 걸리는 분야 (사용자 지적 2026-09-10) ──────────────────────────
+   원칙은 그대로다 — 멘토가 직접 고른 '멘토링 가능 분야'(mentorFields)가 있으면 그것만
+   본다. 멘토가 정하고 멘티가 그 안에서 고르는 구조다.
+
+   그런데 **아무도 안 고르면 칩 줄이 '전체' 하나만 남아** 분류 필터가 통째로 죽는다.
+   실제로 그랬다: 멘토는 있는데 mentorFields 가 빈 배열이라 교집합이 0이었고, 화면에는
+   고를 것이 아무것도 없었다. 프로필에서 그 칸을 반드시 채우게 하지 않는 이상 계속 생긴다.
+
+   그래서 안 골랐으면 **본인 직무의 분류(jobMajor)** 로 본다. 지어낸 값이 아니라
+   멘토가 자기 스펙에 적어 둔 직무 그대로다 — 카카오 백엔드 개발자가 그 직무의 분야에
+   걸리는 것은 엉뚱하지 않다. 고른 사람은 고른 대로, 안 고른 사람은 자기 직무로.
+   목록과 필터가 **같은 함수**를 봐야 한다. 한쪽만 고치면 칩은 뜨는데 눌러도 0명이 된다. */
+function mentorFieldsOf(m) {
+  const picked = (m.mentorFields || []).filter(Boolean).map(String);
+  if (picked.length) return picked;
+  return m.jobMajor ? [String(m.jobMajor)] : [];
+}
+
+/* 멘토 찾기의 '분야' 필터에 깔 분류. 아무 멘토도 안 걸리는 분야는 깔지 않는다 —
+   눌러도 0명인 칩을 두면 고를 것이 있는 척하는 화면이 된다. */
 function offeredFieldCategories() {
-  const offered = new Set(MENTORS.flatMap(m => m.mentorFields || []));
+  const offered = new Set(MENTORS.flatMap(mentorFieldsOf));
   return mentorCategories().filter(M => offered.has(M.code));
 }
 
@@ -646,11 +663,9 @@ function getFilteredMentors(){
   const sortBy   = $('#sort-by') ? $('#sort-by').value : 'recommend';
 
   let list = MENTORS.filter(m=>{
-    /* 분야는 멘토가 정한 '멘토링 가능 분야'(mentorFields)로 거른다(사용자 지시).
-       멘토가 정하고 멘티가 그 안에서 고르는 구조다. 분야를 안 정한 멘토는
-       '전체' 에서만 보인다 — 임의로 아무 분야에 넣으면 그 분야를 고른 후배에게
-       엉뚱한 선배가 뜬다. */
-    if (searchFilter!=='전체' && !(m.mentorFields||[]).includes(searchFilter)) return false;
+    /* 분야는 mentorFieldsOf 로 거른다 — 칩을 까는 쪽과 **같은 함수**여야 한다.
+       한쪽만 고치면 칩은 떴는데 눌러도 0명이 되는, 더 나쁜 화면이 된다. */
+    if (searchFilter!=='전체' && !mentorFieldsOf(m).includes(searchFilter)) return false;
     if (fCompany!=='all' && m.company!==fCompany) return false;
     /* 경력을 안 적은 멘토(years=null)는 연차 필터를 걸면 빠진다. 1년차로 치면
        '경력 없음' 과 '1년차' 가 한 칸에 섞인다. */
@@ -968,17 +983,34 @@ function paintReqCal(){
   const y = reqCal.getFullYear(), mo = reqCal.getMonth();
   const daysInMonth = new Date(y, mo+1, 0).getDate();
   const openDates = [...reqAvail.keys()].sort();
-  /* 열린 날이 있는 달 사이에서만 이동한다 — 빈 달을 계속 넘기게 두지 않는다. */
-  const minM = openDates.length ? new Date(openDates[0]) : new Date();
-  const maxM = openDates.length ? new Date(openDates[openDates.length-1]) : new Date();
-  const minMonth = new Date(minM.getFullYear(), minM.getMonth(), 1);
-  const maxMonth = new Date(maxM.getFullYear(), maxM.getMonth(), 1);
+  /* ── 열린 날이 없어도 달은 넘길 수 있다 (사용자 지시 2026-09-10) ──────────────
+     예전에는 '열린 날이 있는 달 사이' 로만 이동을 묶었다. 그래서 **멘토가 일정을
+     하나도 안 열었으면 min=max=이번 달이라 양쪽 화살표가 다 잠겼고**, 달력이 고장난
+     것처럼 보였다. 열린 날이 한 달에만 있어도 그 달에 갇혔다.
+     이제 범위는 **이번 달 ~ 6개월 뒤**로 두고(멘토 쪽 MONTHS_AHEAD 와 같은 폭),
+     그보다 앞뒤에 열린 날이 있으면 거기까지 넓힌다. 고를 수 있는 날을 늘리는 게
+     아니라 **둘러볼 수 있게** 하는 것이다 — 안 연 날은 그대로 눌리지 않는다. */
+  const MONTHS_AHEAD = 6;
+  const now = new Date();
+  const bounds = [new Date(now.getFullYear(), now.getMonth(), 1),
+                  new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD, 1)];
+  for (const ds of [openDates[0], openDates[openDates.length - 1]]) {
+    if (!ds) continue;
+    const d = new Date(ds);
+    bounds.push(new Date(d.getFullYear(), d.getMonth(), 1));
+  }
+  const minMonth = new Date(Math.min(...bounds));
+  const maxMonth = new Date(Math.max(...bounds));
 
   const cells = [];
+  /* 이 달에 열린 날이 하나라도 있나 — 없으면 "다른 달을 보라"고 알려 준다.
+     빈 달력만 있으면 신청을 못 하는 줄 알고 나가 버린다. */
+  let hasOpenThisMonth = false;
   for (let i=0; i<new Date(y,mo,1).getDay(); i++) cells.push('<span class="mp-cal-pad"></span>');
   for (let d=1; d<=daysInMonth; d++){
     const date = reqYmd(new Date(y,mo,d));
     const open = reqAvail.has(date);
+    if (open) hasOpenThisMonth = true;
     const cls = ['mp-cal-day'];
     if (!open) cls.push('past');                 // 멘토가 안 연 날은 고를 수 없다
     if (open) cls.push('has');
@@ -999,7 +1031,9 @@ function paintReqCal(){
       ${REQ_WD.map((w,i)=>`<span class="mp-cal-wd${i===0?' sun':i===6?' sat':''}">${w}</span>`).join('')}
       ${cells.join('')}
     </div>
-    ${openDates.length ? '' : '<div class="sf-hint-inline">멘토가 아직 일정을 열지 않았어요.</div>'}`;
+    ${openDates.length
+      ? (hasOpenThisMonth ? '' : '<div class="sf-hint-inline">이 달에는 열린 날이 없어요. 화살표로 다른 달을 보세요.</div>')
+      : '<div class="sf-hint-inline">멘토가 아직 일정을 열지 않았어요.</div>'}`;
 }
 
 function paintReqTimes(){

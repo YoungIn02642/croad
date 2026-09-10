@@ -45,11 +45,12 @@
    env: DART_API_KEY (https://opendart.fss.or.kr 에서 무료 발급) */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const fs = require('fs');
+const { cachePath } = require('../src/cache-dir');
 const path = require('path');
 const zlib = require('zlib');
 
 const API_KEY = (process.env.DART_API_KEY || '').trim();
-const OUT_PATH = path.join(__dirname, '..', 'data', 'dart-corps.json');
+const OUT_PATH = cachePath('dart-corps.json');
 const ALL = !process.argv.includes('--listed-only');
 const SOFT = process.argv.includes('--if-possible');
 

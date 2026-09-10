@@ -28,13 +28,14 @@
    env: DART_API_KEY
    ══════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 const { normalize } = require('./company-classify');
 
 const API_KEY = (process.env.DART_API_KEY || '').trim();
 const TIMEOUT_MS = Number(process.env.DART_TIMEOUT_MS || 8000);
 const BASE = 'https://opendart.fss.or.kr/api';
-const CORPS_PATH = path.join(__dirname, '..', 'data', 'dart-corps.json');
+const CORPS_PATH = cachePath('dart-corps.json');
 /* 업종코드는 이름 색인과 **다른 파일**에 있다. 만드는 값이 다르기 때문이다.
      이름 색인(6MB) — DART 가 통째로 주는 원본. 받으면 그만이라 깃에 안 넣고 빌드에서 받는다
      업종코드(72KB) — 회사마다 기업개황을 한 번씩 불러 채운 값(호출 3,981번). 깃에 넣는다

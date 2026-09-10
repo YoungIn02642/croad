@@ -17,10 +17,11 @@
      node scripts/fetch-work24-jobs.js --if-possible   # 빌드용. 실패해도 0 으로 끝난다
 */
 const fs = require('fs');
+const { cachePath } = require('../src/cache-dir');
 const path = require('path');
 const CRAWL = require('../src/work24-crawl');
 
-const OUT = path.join(__dirname, '..', 'data', 'work24-jobs.json');
+const OUT = cachePath('work24-jobs.json');
 const TIMEOUT_MS = Number(process.env.WORK24_TIMEOUT_MS || 30000);
 /* 페이지 사이에 쉰다. 하루 한 번 40여 회라 서두를 이유가 없고, 남의 서버다. */
 const GAP_MS = Number(process.env.WORK24_GAP_MS || 1200);

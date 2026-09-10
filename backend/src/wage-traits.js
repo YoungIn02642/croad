@@ -33,10 +33,11 @@
     전량이 필요하고 자주 안 바뀌는 자료였다.)
    ══════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 
 const BASE = 'https://www.wagework.go.kr/pt/b/a/';
-const CACHE_DIR = path.join(__dirname, '..', 'data', 'wage-traits');
+const CACHE_DIR = cachePath('wage-traits');
 const TIMEOUT_MS = Number(process.env.WAGE_TRAITS_TIMEOUT_MS || 8000);
 
 /* 축 7개. key 는 우리가 쓰는 이름, ep 는 엔드포인트 조각.

@@ -27,13 +27,15 @@
    나중에 채운다.
    ══════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+/* 이 파일에는 이미 cachePath(접수번호) 가 있다 — 이름이 겹치므로 별칭으로 받는다. */
+const { cachePath: volumePath } = require('./cache-dir');
 const path = require('path');
 const zlib = require('zlib');
 const dart = require('./dart');
 
 const BASE = 'https://opendart.fss.or.kr/api';
 const TIMEOUT_MS = 30000;                 // 십수 MB 를 받는다 — 다른 호출보다 길게 잡는다
-const CACHE_DIR = path.join(__dirname, '..', 'data', 'dart-report');
+const CACHE_DIR = volumePath('dart-report');
 
 /* 한 절에서 화면에 올릴 최대 분량. 넘치면 뒤는 원문 링크로 보낸다.
    사업보고서는 한 절이 수천 자인 회사가 있는데(삼성전자 사업의 개요 6문단),

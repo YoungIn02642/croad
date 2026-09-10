@@ -15,8 +15,8 @@ backend/data/db.json
 # DART 고유번호 색인. 커밋하지 않는다 — 공시대상 전체 11만여 건이라 6MB 이고,
 # 다시 받을 때마다 그 크기가 히스토리에 통째로 쌓인다. 우리가 만든 자료가 아니라
 # DART 가 매일 주는 원본이라 받아 오면 그만이다.
-#   배포: 빌드 단계에서 자동 (루트 package.json 의 build)
-#   로컬: npm run build   (키가 없으면 건너뛴다 — 기업분석만 빈다)
+#   배포: 서버가 부팅 뒤 받는다 (daily-refresh.js → 볼륨 CACHE_DIR, docs/배포.md 10장)
+#   로컬: npm run fetch-all   (키가 없으면 건너뛴다 — 기업분석만 빈다)
 backend/data/dart-corps.json
 # 공공기관 채용공고(잡알리오) — 하루 한 번 새로 받는 원본이라 커밋하지 않는다.
 # 16-9 의 교훈: 넣기 전에 '비싸게 만든 값'이 같이 들어 있지 않은지 확인했다 —

@@ -983,17 +983,34 @@ function paintReqCal(){
   const y = reqCal.getFullYear(), mo = reqCal.getMonth();
   const daysInMonth = new Date(y, mo+1, 0).getDate();
   const openDates = [...reqAvail.keys()].sort();
-  /* 열린 날이 있는 달 사이에서만 이동한다 — 빈 달을 계속 넘기게 두지 않는다. */
-  const minM = openDates.length ? new Date(openDates[0]) : new Date();
-  const maxM = openDates.length ? new Date(openDates[openDates.length-1]) : new Date();
-  const minMonth = new Date(minM.getFullYear(), minM.getMonth(), 1);
-  const maxMonth = new Date(maxM.getFullYear(), maxM.getMonth(), 1);
+  /* ── 열린 날이 없어도 달은 넘길 수 있다 (사용자 지시 2026-09-10) ──────────────
+     예전에는 '열린 날이 있는 달 사이' 로만 이동을 묶었다. 그래서 **멘토가 일정을
+     하나도 안 열었으면 min=max=이번 달이라 양쪽 화살표가 다 잠겼고**, 달력이 고장난
+     것처럼 보였다. 열린 날이 한 달에만 있어도 그 달에 갇혔다.
+     이제 범위는 **이번 달 ~ 6개월 뒤**로 두고(멘토 쪽 MONTHS_AHEAD 와 같은 폭),
+     그보다 앞뒤에 열린 날이 있으면 거기까지 넓힌다. 고를 수 있는 날을 늘리는 게
+     아니라 **둘러볼 수 있게** 하는 것이다 — 안 연 날은 그대로 눌리지 않는다. */
+  const MONTHS_AHEAD = 6;
+  const now = new Date();
+  const bounds = [new Date(now.getFullYear(), now.getMonth(), 1),
+                  new Date(now.getFullYear(), now.getMonth() + MONTHS_AHEAD, 1)];
+  for (const ds of [openDates[0], openDates[openDates.length - 1]]) {
+    if (!ds) continue;
+    const d = new Date(ds);
+    bounds.push(new Date(d.getFullYear(), d.getMonth(), 1));
+  }
+  const minMonth = new Date(Math.min(...bounds));
+  const maxMonth = new Date(Math.max(...bounds));
 
   const cells = [];
+  /* 이 달에 열린 날이 하나라도 있나 — 없으면 "다른 달을 보라"고 알려 준다.
+     빈 달력만 있으면 신청을 못 하는 줄 알고 나가 버린다. */
+  let hasOpenThisMonth = false;
   for (let i=0; i<new Date(y,mo,1).getDay(); i++) cells.push('<span class="mp-cal-pad"></span>');
   for (let d=1; d<=daysInMonth; d++){
     const date = reqYmd(new Date(y,mo,d));
     const open = reqAvail.has(date);
+    if (open) hasOpenThisMonth = true;
     const cls = ['mp-cal-day'];
     if (!open) cls.push('past');                 // 멘토가 안 연 날은 고를 수 없다
     if (open) cls.push('has');
@@ -1014,7 +1031,9 @@ function paintReqCal(){
       ${REQ_WD.map((w,i)=>`<span class="mp-cal-wd${i===0?' sun':i===6?' sat':''}">${w}</span>`).join('')}
       ${cells.join('')}
     </div>
-    ${openDates.length ? '' : '<div class="sf-hint-inline">멘토가 아직 일정을 열지 않았어요.</div>'}`;
+    ${openDates.length
+      ? (hasOpenThisMonth ? '' : '<div class="sf-hint-inline">이 달에는 열린 날이 없어요. 화살표로 다른 달을 보세요.</div>')
+      : '<div class="sf-hint-inline">멘토가 아직 일정을 열지 않았어요.</div>'}`;
 }
 
 function paintReqTimes(){

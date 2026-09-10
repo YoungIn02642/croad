@@ -20,10 +20,11 @@
      node scripts/fetch-wevity.js --if-possible    # 빌드·자동갱신용. 실패해도 0 으로 끝난다
 */
 const fs = require('fs');
+const { cachePath } = require('../src/cache-dir');
 const path = require('path');
 const CRAWL = require('../src/wevity-crawl');
 
-const OUT = path.join(__dirname, '..', 'data', 'wevity.json');
+const OUT = cachePath('wevity.json');
 const TIMEOUT_MS = Number(process.env.WEVITY_TIMEOUT_MS || 20000);
 /* robots 가 GPTBot 에게 `Crawl-delay: 3` 을 건다. 우리는 GPTBot 이 아니지만
    **그 사이트가 밝힌 속도를 지키는 것이 맞다.** 하루 한 번이라 서두를 이유도 없다. */

@@ -23,11 +23,12 @@
    · **끌 수 있다.** DAILY_REFRESH=off — 개발 중에 남의 서버를 자꾸 부르지 않게
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { CACHE_DIR } = require('./cache-dir');
 const path = require('path');
 const { spawn } = require('child_process');
 
 const SCRIPTS = path.join(__dirname, '..', 'scripts');
-const DATA = path.join(__dirname, '..', 'data');
+const DATA = CACHE_DIR;
 
 /* 하루 한 번. 캐시가 이보다 젊으면 부팅 때 받지 않는다. */
 const PERIOD_MS = 24 * 60 * 60 * 1000;
@@ -43,6 +44,14 @@ const JOBS = [
   /* 스펙업의 공모전·대외활동. 온통청년(API)은 화면이 그때그때 부르고, 이쪽만
      받아 둔다 — 목록은 매일, 상세는 처음 보는 것만 연다(fetch-wevity.js). */
   { id: 'wevity', script: 'fetch-wevity.js', cache: 'wevity.json', label: '공모전·대외활동(위비티)' },
+  /* ── DART 기업 색인 (2026-09-10) ────────────────────────────────────────
+     예전에는 빌드(`npm run build`)에서만 받았다. 배포 시간을 줄이려고 빌드에서
+     수집을 통째로 뺐으므로(볼륨 도입), **여기가 유일한 공급 경로다** — 빠지면
+     기업분석의 개요·재무·경쟁사 칸이 영영 빈다.
+     다른 셋과 성격이 조금 다르다: 공시대상 전체 11만여 건이라 6MB 이고, 매일
+     바뀌는 자료가 아니다. 그래도 같은 자리에 두는 편이 낫다 — 장치가 하나면
+     "언제 갱신되나" 를 한 곳만 보면 된다(캐시가 싱싱하면 어차피 안 받는다). */
+  { id: 'dart', script: 'fetch-dart-corps.js', cache: 'dart-corps.json', label: 'DART 기업 색인' },
 ];
 
 const running = new Set();

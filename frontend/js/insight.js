@@ -66,6 +66,32 @@ window.Insight = (() => {
      navigate() 와 onEnter() 의 순서에 기대지 않으려고 키로 주고받는다. */
   const LS_OPEN = 'careerly_insight_open';
 
+  /* 목록으로 — 주소도 같이 되돌린다. 안 그러면 화면은 목록인데 주소는 #insight/post/12
+     라서, 그 상태로 뒤로가기를 누르면 아무 일도 안 일어나는 것처럼 보인다. */
+  function goList({ push = true } = {}) {
+    view = 'list';
+    currentPostId = null;
+    editingId = null;
+    if (push) navigateSub('insight', '');
+    return loadList();
+  }
+
+  /* ── 주소 → 화면 (app.js 라우터가 부른다) ──────────────────────────────
+     뒤로/앞으로 가기와 새로고침·링크 진입이 모두 이 한 곳을 지난다.
+     여기서는 **절대 히스토리를 쌓지 않는다** — 이미 그 주소에 서 있기 때문이다. */
+  function onRoute(sub) {
+    const [kind, raw] = String(sub || '').split('/');
+    const id = raw ? decodeURIComponent(raw) : '';
+    if (kind === 'post' && id) return openPost(id, { push: false });
+    if (kind === 'edit' && id) {
+      /* 수정 화면은 글 내용이 있어야 그린다. 새로고침으로 바로 들어온 경우
+         detailData 가 비어 있으므로 글부터 받아 온 뒤에 연다. */
+      return openPost(id, { push: false }).then(() => { if (detailData?.post) openEdit({ push: false }); });
+    }
+    if (kind === 'write') { openWrite({ push: false }); return; }
+    return goList({ push: false });
+  }
+
   async function onEnter() {
     if (!categories.length) {
       try { categories = (await DB.insightCategories()).categories; }
@@ -320,9 +346,12 @@ window.Insight = (() => {
   }
 
   // ── 상세 ────────────────────────────────────────────────────
-  async function openPost(id) {
+  /* push=false 면 히스토리를 쌓지 않는다 — 뒤로가기로 되돌아온 경우다(onRoute).
+     거기서 또 쌓으면 뒤로가기가 앞으로 가기가 되어 페이지를 빠져나갈 수 없다. */
+  async function openPost(id, { push = true } = {}) {
     currentPostId = id;
     view = 'detail';
+    if (push) navigateSub('insight', 'post/' + encodeURIComponent(id));
     const box = root();
     if (box) box.innerHTML = loadingHtml();
     try {
@@ -470,11 +499,12 @@ window.Insight = (() => {
   }
 
   // ── 글쓰기 ──────────────────────────────────────────────────
-  function openWrite() {
+  function openWrite({ push = true } = {}) {
     if (!DB.currentUser()) return;
     view = 'write';
     writeError = '';
     editingId = null;                       // 새 글 — 수정에서 넘어왔을 수 있으니 반드시 지운다
+    if (push) navigateSub('insight', 'write');
     /* 지금 보고 있던 카테고리로 시작한다 — 프롬프트 탭에서 글쓰기를 누른 사람은
        프롬프트를 올리려는 것이다. '전체'였으면 목록의 첫 카테고리로 떨어진다. */
     writeDraft = { category: category || (categories[0]?.id || ''), title: '', body: '', promptText: '', isNotice: false };
@@ -488,7 +518,7 @@ window.Insight = (() => {
      **카테고리는 못 바꾼다** — 서버 PUT 이 카테고리를 건드리지 않는다(라우터 주석:
      "원래도 못 바꿨다"). 화면에서만 바꿀 수 있게 해 두면 사용자는 바꿨다고 믿는데
      저장하면 그대로다. 고를 수 없게 막고 왜 그런지 적는다. */
-  function openEdit() {
+  function openEdit({ push = true } = {}) {
     const post = detailData?.post;
     if (!post) return;
     const user = DB.currentUser();
@@ -496,6 +526,7 @@ window.Insight = (() => {
     view = 'write';
     writeError = '';
     editingId = post.id;
+    if (push) navigateSub('insight', 'edit/' + encodeURIComponent(post.id));
     writeDraft = {
       category: post.category,
       title: post.title,
@@ -842,7 +873,7 @@ window.Insight = (() => {
       }
     });
 
-    document.getElementById('insight-write-open')?.addEventListener('click', openWrite);
+    document.getElementById('insight-write-open')?.addEventListener('click', () => openWrite());
     /* 수정 중에 취소·뒤로를 누르면 목록이 아니라 **보던 글로** 돌아간다. 목록으로
        떨구면 사용자는 글을 다시 찾아 들어가야 하고, 무엇보다 '수정이 저장됐나'를
        확인할 데가 없다. 새 글일 때만 목록으로 간다. */
@@ -850,19 +881,22 @@ window.Insight = (() => {
       const back = editingId;
       editingId = null;
       if (back) return openPost(back);
-      view = 'list'; loadList();
+      goList();
     };
     document.getElementById('insight-write-cancel')?.addEventListener('click', leaveWrite);
     document.getElementById('insight-write-submit')?.addEventListener('click', submitPost);
     document.getElementById('insight-back')?.addEventListener('click', leaveWrite);
 
-    document.getElementById('insight-edit-post')?.addEventListener('click', openEdit);
+    /* () => 로 감싼다. addEventListener 가 넘기는 이벤트 객체가 그대로 옵션 자리에
+       들어가면 push 가 undefined 라 기본값(true)으로 살긴 하지만, 인자 규약이
+       흐려진다 — openWrite 도 같은 이유로 감싼다. */
+    document.getElementById('insight-edit-post')?.addEventListener('click', () => openEdit());
 
     document.getElementById('insight-delete-post')?.addEventListener('click', async () => {
       if (!confirm('이 글을 삭제할까요? 되돌릴 수 없어요.')) return;
       try {
         await DB.deleteInsight(currentPostId);
-        view = 'list'; loadList();
+        goList();
       } catch (e) { alert(e.message); }
     });
 
@@ -906,5 +940,5 @@ window.Insight = (() => {
     }));
   }
 
-  return { onEnter, LS_OPEN };
+  return { onEnter, onRoute, LS_OPEN };
 })();

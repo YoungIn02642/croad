@@ -376,7 +376,10 @@ window.CompanyCover = (() => {
     if (fresh) bindPick(fresh);
   }
 
-  async function select(name) {
+  /* push=false 면 히스토리를 쌓지 않는다 — 뒤로가기로 되돌아온 경우다(onRoute).
+     거기서 또 쌓으면 뒤로가기가 앞으로 가기가 되어 회사 찾기를 빠져나갈 수 없다. */
+  async function select(name, { push = true } = {}) {
+    if (push) navigateSub('company', encodeURIComponent(name));
     const featured = FEATURED.find(c => c.name === name);
     selected = { name, industry: featured?.industry || null };
     analysis = null; error = null; loading = true;
@@ -424,7 +427,10 @@ window.CompanyCover = (() => {
      늦게 도착한 응답이 selected 가 null 인 채로 화면을 다시 그린다.
      검색어·자동완성도 비운다. 남겨 두면 '회사 찾기' 를 눌렀는데 전에 치던 글자가
      그대로 있어서, 돌아온 것이 아니라 되돌아가지 못한 것처럼 보인다. */
-  function back() {
+  function back({ push = true } = {}) {
+    /* 주소도 같이 되돌린다. 안 그러면 화면은 검색인데 주소는 #company/삼성전자 라서,
+       그 상태로 뒤로가기를 누르면 아무 일도 안 일어나는 것처럼 보인다. */
+    if (push) navigateSub('company', '');
     reqSeq++;
     selected = null; analysis = null; businessText = null; error = null;
     loading = false; query = ''; suggestions = [];
@@ -1704,7 +1710,7 @@ window.CompanyCover = (() => {
 
     /* 돌아가는 자리가 둘이다(리포트 맨 위 · 사이드바 아래). querySelector 로
        하나만 잡으면 위엣것만 살고 사이드바 버튼이 죽는다. */
-    box.querySelectorAll('[data-back]').forEach(el => el.addEventListener('click', back));
+    box.querySelectorAll('[data-back]').forEach(el => el.addEventListener('click', () => back()));
 
     box.querySelectorAll('[data-tocoach]').forEach(el =>
       el.addEventListener('click', () => {
@@ -1810,6 +1816,15 @@ window.CompanyCover = (() => {
 
      넘겨받은 회사(careerly_company_open)는 예외다 — 다른 화면이 "이 회사를 열어라"
      하고 보낸 것이라 그대로 연다. */
+  /* ── 주소 → 화면 (app.js 라우터가 부른다) ──────────────────────────────
+     #company/삼성전자 면 그 회사 리포트를, #company 면 회사 찾기 화면을 연다.
+     여기서는 **절대 히스토리를 쌓지 않는다** — 이미 그 주소에 서 있기 때문이다. */
+  function onRoute(sub) {
+    const name = String(sub || '').split('/')[0];
+    if (name) return select(decodeURIComponent(name), { push: false });
+    return back({ push: false });
+  }
+
   function onEnter() {
     Roadmap.mount('rm-bar-company', 'company');
     /* 1단계에서 고른 기업분류를 받아 온다. 화면에서 직접 바꾼 적이 없을 때만 —
@@ -1822,8 +1837,12 @@ window.CompanyCover = (() => {
       select(handoff);
       return;
     }
-    back();
+    /* push:false 다. onEnter 는 **주소를 정하는 쪽이 아니라 따르는 쪽**이다 —
+       다른 페이지에서 #company/삼성전자 로 뒤로가기하면 showPage 가 onEnter 를 먼저
+       부르는데, 여기서 주소를 '#company' 로 밀어 버리면 그 뒤 onRoute 가 읽을 회사명이
+       사라져 리포트가 안 열린다(히스토리도 한 칸 더 쌓인다). */
+    back({ push: false });
   }
 
-  return { onEnter, select, evidenceOf };
+  return { onEnter, onRoute, select, evidenceOf };
 })();

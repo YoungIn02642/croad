@@ -20,7 +20,13 @@ const NAV_HIGHLIGHT = ['career', 'dashboard', 'specup', 'jd', 'search', 'mentori
 /* 멘토링 계열 화면 — mentoring.js 가 렌더를 담당 */
 const MENTORING_PAGES = ['dashboard', 'search', 'profile', 'mentoring'];
 
+/* 지금 보이는 페이지. popstate 가 "같은 페이지 안에서의 이동인가"를 이걸로 가른다. */
+let _activePage = null;
+/* 방금 연 페이지의 onEnter 가 끝나는 시점. 하위 화면은 그 뒤에 열어야 덮이지 않는다. */
+let _enterDone = Promise.resolve();
+
 function showPage(page) {
+  _activePage = page;
   /* 로그인 후 되돌아갈 후보 — 이어서 작업할 수 있는 화면에 머물 때만 갱신한다
      (RESUMABLE_PAGES 주석 참고). 하위 경로(#company/… 등)까지 담아 자리를 살린다. */
   if (RESUMABLE_PAGES.includes(page)) {
@@ -71,9 +77,13 @@ function showPage(page) {
   if (page === 'specup')     SpecUp.onEnter();
   if (page === 'jd')         JdCoach.onEnter();
   if (page === 'write')      JdCoach.onEnterWrite();
-  if (page === 'company')    CompanyCover.onEnter();
+  if (page === 'company')    _enterDone = Promise.resolve(CompanyCover.onEnter());
   if (page === 'donate')     Donate.onEnter();
-  if (page === 'insight')    Insight.onEnter();
+  /* ── onEnter 가 끝난 뒤에 하위 화면을 연다 (실측 2026-09-10) ────────────────
+     Insight.onEnter 는 비동기다. #insight/post/12 로 바로 들어오면 routeSub 가 글을
+     여는 사이에 **뒤늦게 끝난 onEnter 가 목록으로 덮어썼다** — 링크를 받은 사람에게는
+     글이 안 열리는 것으로 보인다. 끝나는 시점을 잡아 두고 그 뒤에 연다. */
+  if (page === 'insight')    _enterDone = Promise.resolve(Insight.onEnter());
   if (MENTORING_PAGES.includes(page)) Mentoring.onEnter(page);
 
   if (page !== 'main') window.scrollTo({ top: 0 });
@@ -197,9 +207,60 @@ function pageFromHash() {
   return (window.location.hash.replace('#', '').split(/[/?]/)[0]) || 'main';
 }
 
+/* ── 페이지 안에서 또 갈리는 화면 (사용자 지적 2026-09-10) ────────────────────
+   커뮤니티 글을 열고 **마우스 옆 버튼으로 뒤로가기**를 누르면 목록이 아니라 그 전에
+   보던 다른 페이지로 튀었다. 원인은 하나다 — 페이지 안에서 화면이 바뀔 때(목록→상세,
+   회사 검색→리포트) 주소도 히스토리도 그대로라, 브라우저가 보기에는 **아무 일도
+   일어나지 않은 것**이라서 뒤로가기가 페이지 자체를 떠난다.
+
+   그래서 그런 화면은 하위 경로를 쌓는다(#insight/post/12 · #company/삼성전자).
+   모듈은 두 가지만 지키면 된다:
+     · 화면을 바꿀 때 navigateSub(page, sub) 를 부른다
+     · onRoute(sub) 를 내보내 그 경로의 화면을 **히스토리를 쌓지 않고** 복원한다
+   주소가 화면을 가리키게 되므로, 새로고침하거나 링크를 보내도 같은 자리가 열린다. */
+const SUBVIEW_PAGES = {
+  insight: () => window.Insight,
+  company: () => window.CompanyCover,
+};
+
+/* 해시의 '/' 뒷부분. #insight/post/12 → 'post/12' */
+function subFromHash() {
+  const h = window.location.hash.replace(/^#/, '').split('?')[0];
+  const i = h.indexOf('/');
+  return i === -1 ? '' : h.slice(i + 1);
+}
+
+/* 모듈이 부른다 — 페이지 안에서 화면을 바꿀 때 히스토리를 한 칸 쌓는다.
+   같은 주소면 쌓지 않는다(같은 글을 두 번 열었을 때 뒤로가기가 헛도는 것을 막는다). */
+function navigateSub(page, sub) {
+  const hash = '#' + page + (sub ? '/' + sub : '');
+  if (window.location.hash === hash) return;
+  history.pushState({ page, sub: sub || '' }, '', hash);
+}
+window.navigateSub = navigateSub;
+
+async function routeSub(page) {
+  const mod = SUBVIEW_PAGES[page] && SUBVIEW_PAGES[page]();
+  if (!mod || typeof mod.onRoute !== 'function') return;
+  /* 페이지를 막 연 참이면 그 준비가 끝나기를 기다린다. 같은 페이지 안에서의 이동이면
+     이미 끝나 있으므로 곧바로 통과한다. */
+  try { await _enterDone; } catch { /* onEnter 가 실패해도 하위 화면은 시도한다 */ }
+  /* 기다리는 사이에 사용자가 또 움직였을 수 있다. 지금 주소를 다시 읽는다 —
+     들고 있던 값으로 열면 이미 떠난 화면이 뒤늦게 튀어나온다. */
+  if (_activePage === page) mod.onRoute(subFromHash());
+}
+
 window.addEventListener('popstate', e => {
   const page = (e.state && PAGES.includes(e.state.page)) ? e.state.page : pageFromHash();
-  showPage(PAGES.includes(page) ? page : 'main');
+  const target = PAGES.includes(page) ? page : 'main';
+
+  /* 같은 페이지 안에서의 이동이면 페이지를 다시 열지 않는다 — showPage 가 onEnter 를
+     부르고, onEnter 는 목록을 처음부터 다시 받아 온다. 상세→목록으로 돌아가는 것뿐인데
+     화면이 한 번 깜빡이고 스크롤도 잃는다. */
+  if (target === _activePage && SUBVIEW_PAGES[target]) { routeSub(target); return; }
+
+  showPage(target);
+  routeSub(target);
 });
 
 // ── Nav auth state ───────────────────────────────────────────
@@ -430,7 +491,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (me && !me.needsOnboarding && target === 'main' && getReturn()) {
     goAfterLogin();
   } else {
-    showPage(me?.needsOnboarding ? 'onboarding' : target);
+    const first = me?.needsOnboarding ? 'onboarding' : target;
+    showPage(first);
+    /* 주소에 하위 경로가 붙어 있으면(#insight/post/12 — 새로고침·링크로 들어온 경우)
+       그 화면까지 열어 준다. 안 하면 링크를 받은 사람은 목록만 보게 된다. */
+    routeSub(first);
   }
   updateNavAuth();
   paintSocialButtons();

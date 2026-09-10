@@ -28,7 +28,13 @@ window.MentorProfile = (() => {
      30분 단위로 쪼개면 칸이 48개가 되어 고르기 힘들고, 실제 멘토링이
      30~60분이라 1시간 단위면 충분하다. */
   const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
-  const MONTHS_AHEAD = 3;        // 이 달부터 3개월까지만 연다 — 더 멀면 약속을 못 지킨다
+  /* ── 얼마나 앞까지 여나 (사용자 지시 2026-09-10) ────────────────────────────
+     3개월이었다. "더 멀면 약속을 못 지킨다"는 이유였는데, 그러면 **해를 넘길 수가 없다** —
+     9월에는 12월까지가 끝이라 내년 1월 일정을 아예 못 연다. 학생이 상담을 잡는 시기가
+     하반기에 몰리는 것을 생각하면 연말에 막히는 쪽이 더 손해다. 6개월로 늘린다.
+     달력·목록은 해가 바뀌면 연도를 같이 적는다(안 적으면 올해 1월인지 내년 1월인지 모른다).
+     서버는 날짜 범위를 막지 않는다 — 형식과 200개 상한만 본다(server.js). */
+  const MONTHS_AHEAD = 6;
   const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
   let tlState = [];       // 타임라인 편집 상태 [{t, d, s}]
@@ -340,21 +346,81 @@ window.MentorProfile = (() => {
       host.innerHTML = `<div class="sf-hint-inline">아직 연 일정이 없어요. 날짜를 골라 시간을 선택해 주세요.</div>`;
       return;
     }
+    /* ── 쭉 늘어놓지 않는다 (사용자 지적 2026-09-10) ─────────────────────────
+       한 줄에 하루씩 그리다 보니 39일을 열면 39줄이 됐고, 화면을 한참 굴려야
+       아래 칸이 나왔다. 게다가 줄마다 '18:00 · 19:00 · 20:00 · 21:00' 이 반복돼
+       **다른 정보가 없는데 자리만 넓게 먹었다.**
+       두 가지로 줄인다:
+         · 달로 묶는다 — 39일이 3~4덩이가 된다. 달마다 통째로 지우는 길도 생긴다
+         · 이어지는 시간은 구간으로 압축한다 (18:00·19:00·20:00·21:00 → 18:00~21:00)
+       그래서 하루가 한 줄이 아니라 **칩 하나**가 되고, 여러 개가 한 줄에 들어간다. */
+    const total = list.reduce((n, [, ts]) => n + ts.size, 0);
+    const thisYear = new Date().getFullYear();
+
+    const months = new Map();
+    for (const row of list) {
+      const key = row[0].slice(0, 7);            // YYYY-MM
+      if (!months.has(key)) months.set(key, []);
+      months.get(key).push(row);
+    }
+
     host.innerHTML = `
-      <div class="mp-avail-title">열어 둔 일정 ${list.length}일</div>
-      <div class="mp-avail-list">
-        ${list.map(([date, ts]) => {
-          const d = new Date(date);
-          return `<div class="mp-avail-row">
-            <span class="mp-avail-date">${d.getMonth() + 1}/${d.getDate()} (${WEEKDAYS[d.getDay()]})</span>
-            <span class="mp-avail-times">${[...ts].sort().join(' · ')}</span>
-            <button type="button" class="sf-chip-x" data-avail-remove="${date}" aria-label="삭제">
-              <i class="ti ti-x"></i>
-            </button>
-          </div>`;
-        }).join('')}
-      </div>`;
+      <div class="mp-avail-title">열어 둔 일정 <b>${list.length}일</b>
+        <span class="mp-avail-sub">· 시간 ${total}개 · 시작 시간 기준</span></div>
+      ${[...months.entries()].map(([key, rows]) => {
+        const [my, mm] = key.split('-').map(Number);
+        /* 해가 바뀌면 연도를 적는다. '1월' 만 적으면 올해 1월인지 내년 1월인지
+           알 수 없다 — 일정은 연말에 다음 해로 넘어간다(사용자 지시 2026-09-10). */
+        const label = my === thisYear ? `${mm}월` : `${my}년 ${mm}월`;
+        return `<div class="mp-avail-month">
+          <div class="mp-avail-mhead">
+            <span class="mp-avail-mname">${label}</span>
+            <span class="mp-avail-mcount">${rows.length}일</span>
+            <button type="button" class="mp-avail-mclear" data-avail-month="${key}">이 달 비우기</button>
+          </div>
+          <div class="mp-avail-grid">
+            ${rows.map(([date, ts]) => {
+              const d = new Date(date);
+              const all = [...ts].sort();
+              return `<span class="mp-avail-chip" title="${all.join(', ')}">
+                <b>${d.getMonth() + 1}/${d.getDate()}</b>
+                <i class="mp-avail-wd">${WEEKDAYS[d.getDay()]}</i>
+                <span class="mp-avail-time">${timeRanges(all)}</span>
+                <button type="button" class="sf-chip-x" data-avail-remove="${date}" aria-label="삭제">
+                  <i class="ti ti-x"></i>
+                </button>
+              </span>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}`;
   }
+
+  /* 이어지는 정시(00분)를 구간으로 묶는다. 18·19·20·21 → '18:00~21:00'.
+     ── 끝 시각을 22:00 으로 적지 않는다 ──
+     여기 값은 전부 **시작 시간**이다. 21시 칸을 열었다고 22시에 끝난다고 단정할 수
+     없고(모드마다 길이가 다르다), 22:00 으로 적으면 22시 칸도 연 것으로 읽힌다.
+     그래서 마지막 시작 시간을 그대로 쓰고, 제목줄에 '시작 시간 기준' 을 밝힌다.
+     정시가 아닌 값(:30 등)은 묶지 않고 그대로 둔다 — 서버는 허용하는 형식이다. */
+  function timeRanges(times) {
+    const out = [];
+    let start = null, prevH = null;
+    const flush = () => {
+      if (start == null) return;
+      out.push(start === hhmm(prevH) ? start : `${start}~${hhmm(prevH)}`);
+      start = null; prevH = null;
+    };
+    for (const t of times) {
+      const h = /^(\d{2}):00$/.test(t) ? Number(t.slice(0, 2)) : null;
+      if (h == null) { flush(); out.push(t); continue; }
+      if (start != null && h === prevH + 1) { prevH = h; continue; }
+      flush();
+      start = t; prevH = h;
+    }
+    flush();
+    return out.join(', ');
+  }
+  const hhmm = h => `${String(h).padStart(2, '0')}:00`;
 
   function paintSchedule() { paintCalendar(); paintTimes(); paintSummary(); }
 
@@ -487,6 +553,24 @@ window.MentorProfile = (() => {
     });
 
     document.getElementById('mp-avail-summary').addEventListener('click', e => {
+      /* 달 통째로 비우기 — 39일을 하나씩 지우게 두지 않는다(사용자 지적 2026-09-10).
+         되돌릴 수 없으므로 몇 일이 지워지는지 세어서 묻는다. */
+      const mbtn = e.target.closest('[data-avail-month]');
+      if (mbtn) {
+        const key = mbtn.dataset.availMonth;
+        const hit = [...availState.keys()].filter(d => d.startsWith(key));
+        const [my, mm] = key.split('-').map(Number);
+        if (!hit.length) return;
+        if (!confirm(`${my}년 ${mm}월에 열어 둔 ${hit.length}일을 모두 비울까요?`)) return;
+        for (const d of hit) {
+          availState.delete(d);
+          pickedDates.delete(d);
+          if (anchorDate === d) anchorDate = null;
+        }
+        paintSchedule();
+        return;
+      }
+
       const btn = e.target.closest('[data-avail-remove]');
       if (!btn) return;
       const date = btn.dataset.availRemove;

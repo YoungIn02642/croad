@@ -1261,16 +1261,41 @@ input[readonly]:focus { border-color: var(--border); box-shadow: none; }
 .mp-times-tip { margin: 10px 0 0; font-size: 12px; color: var(--text-m); }
 
 /* 달력만으로는 '다음 달에 뭘 열었더라'를 알 수 없어 아래에 목록으로 한 번 더 */
+/* ── 열어 둔 일정 (사용자 지적 2026-09-10) ─────────────────────────────────
+   예전에는 하루에 한 줄씩 세로로 쌓았다. 39일을 열면 39줄이라 화면을 한참 굴려야
+   했고, 줄마다 같은 시간대가 반복돼 자리만 먹었다. 달로 묶고 하루를 **칩 하나**로
+   줄여서 여러 개가 한 줄에 들어가게 한다. */
 .mp-avail-summary { margin-top: 16px; }
-.mp-avail-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-.mp-avail-list { display: flex; flex-direction: column; gap: 6px; }
-.mp-avail-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--surface-2); font-size: 13px;
+.mp-avail-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.mp-avail-title b { font-weight: 800; }
+.mp-avail-sub { font-weight: 500; color: var(--text-s); font-size: 12px; }
+
+.mp-avail-month { margin-bottom: 12px; }
+.mp-avail-month:last-child { margin-bottom: 0; }
+.mp-avail-mhead {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 6px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
-.mp-avail-date { font-weight: 700; flex-shrink: 0; }
-.mp-avail-times { color: var(--text-s); flex: 1; min-width: 0; font-size: 12px; }
+.mp-avail-mname { font-size: 13px; font-weight: 800; }
+.mp-avail-mcount { font-size: 12px; color: var(--text-s); }
+/* 달 통째로 비우기. 평소에는 눈에 안 띄게 두고 마우스를 올리면 드러낸다 —
+   되돌릴 수 없는 버튼이라 먼저 읽히면 안 된다(누를 때 한 번 더 묻는다). */
+.mp-avail-mclear {
+  margin-left: auto; border: 0; background: none; cursor: pointer;
+  font-size: 12px; color: var(--text-s); padding: 2px 4px; border-radius: 6px;
+}
+.mp-avail-mclear:hover { color: #c0392b; background: rgba(192,57,43,.08); }
+
+.mp-avail-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.mp-avail-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 6px 6px 10px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2); font-size: 12.5px; white-space: nowrap;
+}
+.mp-avail-chip > b { font-weight: 800; }
+.mp-avail-wd { font-style: normal; color: var(--text-s); font-size: 11.5px; }
+.mp-avail-time { color: var(--text-s); font-size: 12px; }
 
 /* ── 경력 (멘토) ─────────────────────────────────────────── */
 .sf-career-list { display: flex; flex-direction: column; gap: 12px; }

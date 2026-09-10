@@ -10,21 +10,24 @@
     "backend 만 올렸다가 'Cannot find module ../../../frontend/js/cas.js' 로 죽었다.",
     "workspaces 를 쓰면 루트에서 npm ci 한 번으로 backend 의존성까지 깔린다.",
     "",
-    "build 는 깃에 넣지 않는 원본 자료를 배포 때마다 받는 단계다(.gitignore 참고).",
-    "  - DART 기업 색인 6MB — 없으면 기업분석의 개요·재무·경쟁사 칸이 빈다",
-    "  - 공공기관 채용공고(잡알리오) — 없으면 회사 리포트의 채용공고 칸이 빈다",
-    "  - 고용24 채용공고(공개 화면 크롤링) — 민간 공고가 여기서 들어온다",
-    "  - 공모전·대외활동(위비티) — 없으면 스펙업이 온통청년 결과만 보여준다",
-    "셋 다 --if-possible 이라 키가 없거나 소스가 죽어 있으면 건너뛰고 배포는 계속된다.",
-    "여기는 **새로 뜬 인스턴스가 첫날부터 자료를 갖고 시작하게** 하는 자리다.",
-    "그 뒤의 갱신은 서버 안 daily-refresh.js 가 하루 한 번 맡는다 (2026-09-06)."
+    "build 에서 외부 자료 수집을 뺐다 (2026-09-10, 사용자 지시).",
+    "  예전에는 여기서 DART 색인·잡알리오·고용24·위비티를 순차로 받았다. 그런데",
+    "  대부분이 크롤링 예의를 지키느라 자는 시간이라(고용24 238페이지 x 1.2초,",
+    "  위비티 (30페이지 + 상세 80건) x 3초) 배포 한 번이 13~17분이었다.",
+    "  근본 원인은 디스크가 일회용이라는 것이다 — 배포마다 컨테이너가 새로 만들어져",
+    "  받아 둔 11MB 짜리 캐시가 사라지므로 매번 처음부터 다시 받았다.",
+    "  이제 볼륨(CACHE_DIR)에 캐시가 살아남고, 서버가 부팅 뒤 daily-refresh.js 로",
+    "  받는다. 캐시가 20시간 이내면 아예 안 받는다 — 배포는 1~2분이다.",
+    "  수동으로 받고 싶으면 npm run fetch-all (로컬에서 쓴다).",
+    "  볼륨 설정은 docs/배포.md 10장."
   ],
   "workspaces": [
     "backend"
   ],
   "scripts": {
     "start": "node backend/src/server.js",
-    "build": "node backend/scripts/fetch-dart-corps.js --if-possible && node backend/scripts/fetch-alio-jobs.js --if-possible && node backend/scripts/fetch-work24-jobs.js --if-possible && node backend/scripts/fetch-wevity.js --if-possible",
+    "build": "echo \"[build] 외부 자료 수집은 빌드에서 하지 않습니다 — 서버가 부팅 뒤 볼륨에 받습니다(daily-refresh).\"",
+    "fetch-all": "node backend/scripts/fetch-dart-corps.js --if-possible && node backend/scripts/fetch-alio-jobs.js --if-possible && node backend/scripts/fetch-work24-jobs.js --if-possible && node backend/scripts/fetch-wevity.js --if-possible",
     "dev": "npm --workspace backend run dev",
     "preview": "node backend/scripts/preview-frontend.js",
     "test": "for f in test/*.test.js; do node \"$f\" | tail -1; done"

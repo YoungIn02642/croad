@@ -30,6 +30,7 @@
 */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const fs = require('fs');
+const { cachePath } = require('../src/cache-dir');
 const path = require('path');
 
 const RAW_KEY = (process.env.DATA_GO_KR_SERVICE_KEY || '').trim();
@@ -71,7 +72,7 @@ try {
   API = `${u.origin}${u.pathname}`;
 } catch { /* 주소가 아니면 아래 검증에서 걸린다 */ }
 
-const OUT = path.join(__dirname, '..', 'data', 'alio-jobs.json');
+const OUT = cachePath('alio-jobs.json');
 const PER_PAGE = 100;
 const MAX_PAGES = 60;                 // 6,000건. 넘으면 늘리되 일일 한도를 함께 본다
 const TIMEOUT_MS = Number(process.env.ALIO_TIMEOUT_MS || 15000);
@@ -222,7 +223,7 @@ const totalOf = json => {
         console.log('   ', k.padEnd(22), String(Array.isArray(v) ? `[배열 ${v.length}]` : v ?? '').slice(0, 60));
       }
     }
-    const dump = path.join(__dirname, '..', 'data', '.alio-probe.json');
+    const dump = cachePath('.alio-probe.json');
     fs.writeFileSync(dump, JSON.stringify(json, null, 2), 'utf8');
     console.log(`\n원문 저장: ${dump}  (확인 후 지우세요 — data/ 에 남기지 않는다)`);
     return;

@@ -8,6 +8,7 @@
    (작업정리 2-3-1). 같은 실수를 반복하지 않으려고 specup.js 가 붙여 준
    `payload` 를 그대로 내려보낸다. */
 const express = require('express');
+const { cachePath } = require('../cache-dir');
 const specup = require('../specup');
 const LOGO = require('../company-logo');
 const path = require('path');
@@ -110,7 +111,7 @@ router.get('/logo', ah(async (req, res) => {
    카드가 통째로 깨진다.
 
    못 찾으면 204 — 화면이 주관기관 로고, 그것도 없으면 이모지로 물러난다. */
-const POSTER_DIR = path.join(__dirname, '..', '..', 'data', 'posters');
+const POSTER_DIR = cachePath('posters');
 
 router.get('/poster', ah(async (req, res) => {
   const id = String(req.query.id || '').trim();

@@ -24,10 +24,11 @@
    깨진 이미지 아이콘을 띄우면 학생은 우리 화면이 고장 난 줄 안다.
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 const { urlProblem, normalizeUrl } = require('./posting-fetch');
 
-const DIR = path.join(__dirname, '..', 'data', 'logos');
+const DIR = cachePath('logos');
 const TIMEOUT_MS = Number(process.env.LOGO_TIMEOUT_MS || 8000);
 const MAX_BYTES = Number(process.env.LOGO_MAX_BYTES || 512 * 1024);
 /* 못 찾은 도메인을 매번 다시 두드리지 않는다. 하루 지나면 다시 본다
@@ -53,7 +54,7 @@ const misses = new Map();          // host → 마지막으로 못 찾은 시각
    회사 리포트를 그릴 때 remember() 로 적어 두고, 로고 라우트가 hostFor() 로 찾는다.
    재시작하면 사라지므로 파일에도 남긴다 — 없으면 리포트를 다시 열기 전까지 로고가
    안 뜬다. */
-const HOSTS = path.join(__dirname, '..', 'data', 'company-logo-hosts.json');
+const HOSTS = cachePath('company-logo-hosts.json');
 let _hosts = null;
 
 function hosts() {

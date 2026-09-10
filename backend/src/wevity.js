@@ -18,10 +18,11 @@
    **온통청년 것을 남긴다** — 지역이 붙어 있어 카드가 더 쓸모 있기 때문이다.
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 const CRAWL = require('./wevity-crawl');
 
-const CACHE = path.join(__dirname, '..', 'data', 'wevity.json');
+const CACHE = cachePath('wevity.json');
 
 let _cache = null;
 let _mtime = 0;

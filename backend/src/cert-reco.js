@@ -37,9 +37,10 @@
    **모르는 것은 null 로 둔다.** 화면은 null 이면 빈칸을 내주고 학생이 직접 적는다.
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 
-const ALIO_PATH = path.join(__dirname, '..', 'data', 'alio-jobs.json');
+const ALIO_PATH = cachePath('alio-jobs.json');
 
 /* ── NCS 대분류 이름 정규화 ────────────────────────────────────
    같은 분류를 두 자료가 조금 다르게 적는다. 큐넷은 '안전관리'·'환경.에너지' 로

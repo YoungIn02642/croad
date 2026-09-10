@@ -3,7 +3,7 @@
    합격 자소서 표본 구조 통계 (A) — question-prompts.js 상수의 실측 근거
 
    ── 무엇을 확인하려고 만들었나 ──────────────────────────────
-   question-prompts.js 의 숫자들(덩이별 share%, 문장 환산 상수 SENT=65, 분량 하한 90%)은
+   question-prompts.js 의 숫자들(덩이별 share%, 문장 환산 상수 SENT, 분량 하한 90%)은
    **모델을 움직이려고 고른 값**이지 합격 자소서를 재서 나온 값이 아니다. 주석에도
    "실측한 평균 63~78자의 아래쪽" 처럼 어림으로 적혀 있다. 이 스크립트는 그 값들을
    실제 합격 자소서 72편에 대 본다. 틀렸으면 바꿀 근거가 되고, 맞으면 근거가 생긴다.
@@ -48,7 +48,9 @@ function main() {
     process.exit(1);
   }
   const S = doc.samples;
-  console.log(`합격 자소서 구조 통계 — 답변 ${S.length}편 (원문 ${doc.files}개 파일, ${doc.builtAt})\n`);
+  /* doc.files 는 **마지막 빌드에 쓴 폴더**의 파일 수다. --merge 로 예전 표본을
+     이어 붙이면 답변 수와 안 맞는다 — 그래서 '마지막 빌드' 라고 밝혀 적는다. */
+  console.log(`합격 자소서 구조 통계 — 답변 ${S.length}편 (마지막 빌드 원문 ${doc.files}개 파일, ${doc.builtAt})\n`);
 
   /* ── 1. 분류가 먹히는가 ────────────────────────────────────
      프롬프트 사양은 유형이 걸려야 붙는다. 안 걸리면 골격도 분량표도 통째로 빠진
@@ -74,8 +76,13 @@ function main() {
   console.log(`  문장 수      평균 ${r1(avg(sents))}문장 · 중앙값 ${med(sents)}문장`);
   console.log(`  문장당 글자  평균 ${Math.round(avg(cps))}자 · 중앙값 ${med(cps)}자`
     + ` · 범위 ${Math.min(...cps)}~${Math.max(...cps)}자`);
-  console.log(`               → question-prompts.js 의 SENT 상수는 현재 65자`);
-  const gap = Math.round(avg(cps)) - 65;
+  /* ── 값을 하드코딩하지 않는다 (실측 2026-09-10) ────────────────────────
+     '65자' 를 글로 박아 뒀는데, 2026-09-08 에 상수를 54 로 내리고도 이 줄은 그대로라
+     **보고서가 "현재 65자" 라고 거짓말을 하고 있었다.** 실측을 대 보는 도구가 스스로
+     낡은 값을 말하면 그 도구를 못 믿는다. 사양 파일에서 직접 읽는다. */
+  const SENT = QP.SENT_CHARS;
+  console.log(`               → question-prompts.js 의 SENT 상수는 현재 ${SENT}자`);
+  const gap = Math.round(avg(cps)) - SENT;
   console.log(`               → 실측과 ${gap === 0 ? '일치' : `${Math.abs(gap)}자 ${gap > 0 ? '작다(문장 수를 과다 요구)' : '크다(문장 수를 과소 요구)'}`}\n`);
 
   /* ── 3. 문단 ──────────────────────────────────────────────

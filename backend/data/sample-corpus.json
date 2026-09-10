@@ -1,10 +1,925 @@
 {
-  "builtAt": "2026-09-08",
+  "builtAt": "2026-09-10",
   "note": "합격 자소서 표본의 구조 지표만 담는다. 답변 본문은 들어 있지 않다(남의 저작물).",
-  "files": 20,
+  "files": 10,
   "samples": [
     {
       "id": "s001",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "해당 직무의 지원 동기와 본인이 지원 직무에 적합하다는 것을 나타낼 수 있는 강점과 약점을 구체적으로 기술해 주세요. (최소 100자, 최대 800자 입력 가능)",
+      "chars": 1975,
+      "sents": 41,
+      "charsPerSent": 48,
+      "paras": 9,
+      "perPara": [
+        {
+          "sents": 12,
+          "chars": 591,
+          "numbers": 2
+        },
+        {
+          "sents": 3,
+          "chars": 89,
+          "numbers": 4
+        },
+        {
+          "sents": 1,
+          "chars": 5,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 81,
+          "numbers": 4
+        },
+        {
+          "sents": 12,
+          "chars": 556,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 80,
+          "numbers": 4
+        },
+        {
+          "sents": 4,
+          "chars": 242,
+          "numbers": 1
+        },
+        {
+          "sents": 4,
+          "chars": 175,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 156,
+          "numbers": 0
+        }
+      ],
+      "numbers": 15,
+      "numberDensity": 0.76,
+      "subheads": 4,
+      "firstSentChars": 45,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s002",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "지원분야 지원 동기 / 성장 과정 (학창 시절 등)",
+      "chars": 811,
+      "sents": 16,
+      "charsPerSent": 51,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 90,
+          "numbers": 0
+        },
+        {
+          "sents": 15,
+          "chars": 721,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.12,
+      "subheads": 0,
+      "firstSentChars": 40,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s003",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "성격 상의 장점 및 단점, 특기",
+      "chars": 734,
+      "sents": 15,
+      "charsPerSent": 49,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 29,
+          "numbers": 0
+        },
+        {
+          "sents": 8,
+          "chars": 439,
+          "numbers": 2
+        },
+        {
+          "sents": 6,
+          "chars": 266,
+          "numbers": 0
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.27,
+      "subheads": 1,
+      "firstSentChars": 29,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s004",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "지원 분야 관련 경험 (인턴, Project, 학회, 사업, 공모전 및 해외 거주 경험 등) / 인생에서의 성공 및 실패 사례",
+      "chars": 803,
+      "sents": 19,
+      "charsPerSent": 42,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 38,
+          "numbers": 0
+        },
+        {
+          "sents": 10,
+          "chars": 297,
+          "numbers": 25
+        },
+        {
+          "sents": 8,
+          "chars": 408,
+          "numbers": 1
+        },
+        {
+          "sents": 1,
+          "chars": 60,
+          "numbers": 6
+        }
+      ],
+      "numbers": 32,
+      "numberDensity": 3.99,
+      "subheads": 2,
+      "firstSentChars": 38,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s005",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "자동차 산업의 변화에 대비하여 현대자동차가 나아가야 할 방향에 대한 자신의 생각을 서술해 주십시오. (600자)",
+      "chars": 458,
+      "sents": 8,
+      "charsPerSent": 57,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 458,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 52,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s006",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "본인이 지원한 직무를 한 가지 키워드로 설명하고, 직무에 지원한 동기 및 본인만의 차별화된 강점을 서술해 주십시오. (700)",
+      "chars": 531,
+      "sents": 12,
+      "charsPerSent": 44,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 12,
+          "chars": 531,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 45,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s007",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원자님이 HD현대에 적합하다고 생각하는 이유와 HD현대에서 이루고 싶은 꿈을 설명해 주세요. (500자)",
+      "chars": 373,
+      "sents": 6,
+      "charsPerSent": 62,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 268,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 105,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.27,
+      "subheads": 1,
+      "firstSentChars": 63,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s008",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "지원한 직무를 잘 수행하기 위해 어떤 노력을 해왔고, 지원한 회사에서 어떻게 성장하고 싶은지 설명해 주세요. (500자)",
+      "chars": 391,
+      "sents": 8,
+      "charsPerSent": 49,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 103,
+          "numbers": 0
+        },
+        {
+          "sents": 4,
+          "chars": 184,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 104,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 0,
+      "firstSentChars": 38,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s009",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "다른 사람들과 협업하여 공동의 목표를 달성한 경험과 해당 과정에서 본인은 어떠한 역할을 수행하였는지 설명해 주세요. (500자)",
+      "chars": 386,
+      "sents": 11,
+      "charsPerSent": 35,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 137,
+          "numbers": 2
+        },
+        {
+          "sents": 4,
+          "chars": 217,
+          "numbers": 2
+        },
+        {
+          "sents": 1,
+          "chars": 32,
+          "numbers": 0
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 1.04,
+      "subheads": 0,
+      "firstSentChars": 40,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s010",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "지원자님은 무엇을 할 때 가장 큰 보람과 행복을 느끼는지에 대해 설명해 주세요. (500자)",
+      "chars": 365,
+      "sents": 8,
+      "charsPerSent": 46,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 246,
+          "numbers": 1
+        },
+        {
+          "sents": 2,
+          "chars": 119,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.27,
+      "subheads": 1,
+      "firstSentChars": 33,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s011",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "LG에너지솔루션 및 모집분야에 지원한 동기를 구체적으로 소개해주세요.",
+      "chars": 732,
+      "sents": 12,
+      "charsPerSent": 61,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 571,
+          "numbers": 1
+        },
+        {
+          "sents": 3,
+          "chars": 161,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.14,
+      "subheads": 2,
+      "firstSentChars": 38,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s012",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "지금까지 살아오면서 가장 많은 노력을 쏟아부었던 성공 혹은 실패 경험과 그 과정을 통해 무엇을 배웠는지 소개해주세요",
+      "chars": 675,
+      "sents": 14,
+      "charsPerSent": 48,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 76,
+          "numbers": 0
+        },
+        {
+          "sents": 5,
+          "chars": 147,
+          "numbers": 2
+        },
+        {
+          "sents": 7,
+          "chars": 452,
+          "numbers": 1
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.44,
+      "subheads": 1,
+      "firstSentChars": 41,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s013",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "자신의 역량을 개발하고 향상시키기 위해 가장 최선을 다했던 경험을 기술해주세요. (차별점/강점/약점 등 내용 포함)",
+      "chars": 755,
+      "sents": 16,
+      "charsPerSent": 47,
+      "paras": 4,
+      "perPara": [
+        {
+          "sents": 3,
+          "chars": 182,
+          "numbers": 1
+        },
+        {
+          "sents": 5,
+          "chars": 178,
+          "numbers": 5
+        },
+        {
+          "sents": 5,
+          "chars": 233,
+          "numbers": 3
+        },
+        {
+          "sents": 3,
+          "chars": 162,
+          "numbers": 0
+        }
+      ],
+      "numbers": 9,
+      "numberDensity": 1.19,
+      "subheads": 0,
+      "firstSentChars": 59,
+      "firstSentHasNumber": true,
+      "brackets": 2
+    },
+    {
+      "id": "s014",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "국토교통과학기술진흥원의 주요역할을 간략하게 기술하고, 지원동기를 서술해 주십시오.",
+      "chars": 477,
+      "sents": 7,
+      "charsPerSent": 68,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 7,
+          "chars": 477,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 38,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s015",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "직무기술서에 기술된 직무에 대하여 본인의 차별성과 경쟁력이 무엇인지 서술해 주십시오.",
+      "chars": 475,
+      "sents": 8,
+      "charsPerSent": 59,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 475,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 1,
+      "firstSentChars": 43,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s016",
+      "typeId": "competency",
+      "typeLabel": "직무 관련 경험·역량",
+      "question": "귀하가 속해있던 조직(학교 등)의 발전이나 조직 구성원간의 화합을 위해 노력한 경험을 서술해 주십시오.",
+      "chars": 455,
+      "sents": 8,
+      "charsPerSent": 57,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 455,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.22,
+      "subheads": 1,
+      "firstSentChars": 61,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s017",
+      "typeId": "trait",
+      "typeLabel": "성격의 장단점",
+      "question": "본인의 장점과 단점은 무엇입니까? 그리고 단점을 극복하기 위해 어떤 노력을 하고 계십니까? (최소 200자, 최대 1,000자 입력가능)",
+      "chars": 711,
+      "sents": 14,
+      "charsPerSent": 51,
+      "paras": 6,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 108,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 151,
+          "numbers": 3
+        },
+        {
+          "sents": 2,
+          "chars": 127,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 79,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 149,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 97,
+          "numbers": 0
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.42,
+      "subheads": 2,
+      "firstSentChars": 49,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s018",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "재학 또는 재직기간 동안 가장 뛰어난 업적은 무엇입니까? 그리고 왜 그렇게 생각하는지 기술해 주십시오. (최소 200자, 최대 1,000자 입력가능)",
+      "chars": 716,
+      "sents": 10,
+      "charsPerSent": 72,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 320,
+          "numbers": 2
+        },
+        {
+          "sents": 3,
+          "chars": 215,
+          "numbers": 2
+        },
+        {
+          "sents": 3,
+          "chars": 181,
+          "numbers": 4
+        }
+      ],
+      "numbers": 8,
+      "numberDensity": 1.12,
+      "subheads": 1,
+      "firstSentChars": 30,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s019",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "재학 또는 재직기간 동안 리더십을 발휘한 경험을 기술해 주십시오. (최소 200자, 최대 1,000자 입력가능)",
+      "chars": 756,
+      "sents": 16,
+      "charsPerSent": 47,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 253,
+          "numbers": 0
+        },
+        {
+          "sents": 9,
+          "chars": 404,
+          "numbers": 5
+        },
+        {
+          "sents": 2,
+          "chars": 99,
+          "numbers": 0
+        }
+      ],
+      "numbers": 5,
+      "numberDensity": 0.66,
+      "subheads": 1,
+      "firstSentChars": 34,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s020",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "웹젠에 입사 지원한 동기는 무엇입니까? (최소 200자, 최대 1,000자 입력가능)",
+      "chars": 702,
+      "sents": 6,
+      "charsPerSent": 117,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 1,
+          "chars": 364,
+          "numbers": 0
+        },
+        {
+          "sents": 2,
+          "chars": 151,
+          "numbers": 0
+        },
+        {
+          "sents": 3,
+          "chars": 187,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 2,
+      "firstSentChars": 364,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s021",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "추가적으로 자신에 대해 소개할 내용을 기술해 주십시오. (최대 1,000자 입력가능)",
+      "chars": 697,
+      "sents": 9,
+      "charsPerSent": 77,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 4,
+          "chars": 273,
+          "numbers": 3
+        },
+        {
+          "sents": 5,
+          "chars": 424,
+          "numbers": 1
+        }
+      ],
+      "numbers": 4,
+      "numberDensity": 0.57,
+      "subheads": 2,
+      "firstSentChars": 31,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s022",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "공단이 지향하는 가치는 무엇이라고 생각하며, 그 가치를 창출하기 위해 본인은 어떠한 준비가 되어있는지, 본인의 역량을 개발하기 위하여 어떤 노력을 하였는지 구체적인 사례를 들어 기술해 주십시오. (1000자)",
+      "chars": 730,
+      "sents": 16,
+      "charsPerSent": 46,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 139,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 295,
+          "numbers": 1
+        },
+        {
+          "sents": 7,
+          "chars": 296,
+          "numbers": 0
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.14,
+      "subheads": 2,
+      "firstSentChars": 54,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s023",
+      "typeId": null,
+      "typeLabel": null,
+      "question": "직무능력기술서 (띄어쓰기 제외, 700자 이내, 210자 이상)",
+      "chars": 658,
+      "sents": 4,
+      "charsPerSent": 165,
+      "paras": 3,
+      "perPara": [
+        {
+          "sents": 2,
+          "chars": 115,
+          "numbers": 5
+        },
+        {
+          "sents": 2,
+          "chars": 274,
+          "numbers": 5
+        },
+        {
+          "sents": 2,
+          "chars": 269,
+          "numbers": 5
+        }
+      ],
+      "numbers": 15,
+      "numberDensity": 2.28,
+      "subheads": 0,
+      "firstSentChars": 2,
+      "firstSentHasNumber": true,
+      "brackets": 0
+    },
+    {
+      "id": "s024",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "공사 체험형 인턴 지원동기 및 입사를 통해 기대하고 있는 개인적인 목표는 무엇인지 기술해 주십시오.",
+      "chars": 637,
+      "sents": 12,
+      "charsPerSent": 53,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 302,
+          "numbers": 0
+        },
+        {
+          "sents": 7,
+          "chars": 335,
+          "numbers": 0
+        }
+      ],
+      "numbers": 0,
+      "numberDensity": 0,
+      "subheads": 3,
+      "firstSentChars": 41,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s025",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "공사의 조직문화(협력, 도전, 포용) 중 지원자가 가장 부합하다고 생각하는 가치에 대하여 지원자의 학업, 경험*(동아리·대외활동 등)을 기반으로 에피소드 형식으로 기술해 주십시오. * 경력사항 기반 작성 지양",
+      "chars": 654,
+      "sents": 15,
+      "charsPerSent": 44,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 5,
+          "chars": 194,
+          "numbers": 0
+        },
+        {
+          "sents": 10,
+          "chars": 460,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.15,
+      "subheads": 3,
+      "firstSentChars": 31,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s026",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "공사 상품(보금자리론, 주택보증, 주택연금 등) 중 지원자가 가장 관심을 갖고 있는 상품을 1가지 선택하고, 그 이유와 본인이 기여할 수 있는 방안에 대해 기술해 주십시오.",
+      "chars": 656,
+      "sents": 16,
+      "charsPerSent": 41,
+      "paras": 2,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 298,
+          "numbers": 1
+        },
+        {
+          "sents": 10,
+          "chars": 358,
+          "numbers": 1
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.3,
+      "subheads": 3,
+      "firstSentChars": 26,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s027",
+      "typeId": "motive",
+      "typeLabel": "지원동기·입사 후 포부",
+      "question": "한국지능정보사회진흥원 지원 동기와 어떤 부분에 기여하고 싶은지 구체적으로 작성해 주시기 바랍니다.",
+      "chars": 390,
+      "sents": 6,
+      "charsPerSent": 65,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 390,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.26,
+      "subheads": 0,
+      "firstSentChars": 56,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s028",
+      "typeId": "challenge",
+      "typeLabel": "문제 해결·도전",
+      "question": "당면한 문제를 효과적으로 해결했던 경험에 대해 구체적으로 작성해 주시기 바랍니다.",
+      "chars": 391,
+      "sents": 8,
+      "charsPerSent": 49,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 8,
+          "chars": 391,
+          "numbers": 3
+        }
+      ],
+      "numbers": 3,
+      "numberDensity": 0.77,
+      "subheads": 0,
+      "firstSentChars": 57,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s029",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "자신이 속한 조직이나 단체 생활에서 다른 구성원과 발생한 어려움이나 갈등을 극복한 경험에 대해 구체적으로 작성해 주시기 바랍니다.",
+      "chars": 388,
+      "sents": 6,
+      "charsPerSent": 65,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 6,
+          "chars": 388,
+          "numbers": 1
+        }
+      ],
+      "numbers": 1,
+      "numberDensity": 0.26,
+      "subheads": 0,
+      "firstSentChars": 73,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s030",
+      "typeId": "collab",
+      "typeLabel": "협업 경험",
+      "question": "공공기관에서 근무하는 직원에게 가장 중요하다고 판단되는 덕목 3개를 우선순위별로 그 이유와 함께 작성하여 주시기 바랍니다.",
+      "chars": 398,
+      "sents": 9,
+      "charsPerSent": 44,
+      "paras": 1,
+      "perPara": [
+        {
+          "sents": 9,
+          "chars": 398,
+          "numbers": 2
+        }
+      ],
+      "numbers": 2,
+      "numberDensity": 0.5,
+      "subheads": 0,
+      "firstSentChars": 49,
+      "firstSentHasNumber": false,
+      "brackets": 0
+    },
+    {
+      "id": "s031",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "지원동기 및 입사 후 포부",
@@ -37,7 +952,7 @@
       "brackets": 0
     },
     {
-      "id": "s002",
+      "id": "s032",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "전공 및 기술 능력",
@@ -75,7 +990,7 @@
       "brackets": 0
     },
     {
-      "id": "s003",
+      "id": "s033",
       "typeId": null,
       "typeLabel": null,
       "question": "교내외 활동 및 경력",
@@ -118,7 +1033,7 @@
       "brackets": 0
     },
     {
-      "id": "s004",
+      "id": "s034",
       "typeId": "trait",
       "typeLabel": "성격의 장단점",
       "question": "성격 및 장단점",
@@ -156,7 +1071,7 @@
       "brackets": 0
     },
     {
-      "id": "s005",
+      "id": "s035",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "성장과정",
@@ -184,7 +1099,7 @@
       "brackets": 0
     },
     {
-      "id": "s006",
+      "id": "s036",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "일반적으로 경험하기 힘든 특별한 체험/남다른 성취경험",
@@ -212,7 +1127,7 @@
       "brackets": 0
     },
     {
-      "id": "s007",
+      "id": "s037",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "물류에 대한 가치관",
@@ -240,7 +1155,7 @@
       "brackets": 0
     },
     {
-      "id": "s008",
+      "id": "s038",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "지원동기 및 입사 후 포부",
@@ -273,7 +1188,7 @@
       "brackets": 0
     },
     {
-      "id": "s009",
+      "id": "s039",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "해당회사 및 직무에 지원하는 동기에 대해 기술해 주시기 바랍니다.",
@@ -301,7 +1216,7 @@
       "brackets": 0
     },
     {
-      "id": "s010",
+      "id": "s040",
       "typeId": "trait",
       "typeLabel": "성격의 장단점",
       "question": "본인의 성장과정 및 성격의 장단점에 대하여 기술해 주시기 바랍니다",
@@ -324,7 +1239,7 @@
       "brackets": 0
     },
     {
-      "id": "s011",
+      "id": "s041",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "도전적인 목표를 정하고 열정적으로 일을 추진했던 경험을 구체적으로 기술해 주시기 바랍니다.",
@@ -347,7 +1262,7 @@
       "brackets": 0
     },
     {
-      "id": "s012",
+      "id": "s042",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "BGF가 생각하는 '좋은 친구'는 '언제 어디서나 최상의 상품과 서비스를 제공하여 고객가치를 실현하고 사회발전에 공헌하는 기업'입니다. 고객과 사회의 '좋은 친구'인 BGF리테일에 지원하게 된 동기에 대해 기술해주세요.",
@@ -370,7 +1285,7 @@
       "brackets": 0
     },
     {
-      "id": "s013",
+      "id": "s043",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "그동안 쌓은 지식, 능력, 활동 및 경험 등을 기반으로 지원한 직무에 본인이 가장 적합하다는 것을 구체적인 업무 내용과 매칭하여 말씀해 주세요.",
@@ -393,7 +1308,7 @@
       "brackets": 0
     },
     {
-      "id": "s014",
+      "id": "s044",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "BGF의 5가지 가치관(채용홈페이지 '우리의 가치관' 참조) 중 본인을 가장 잘 표현하는 가치관 1개를 선택하고, 그 이유를 본인의 경험과 함께 작성해 주세요.",
@@ -416,7 +1331,7 @@
       "brackets": 0
     },
     {
-      "id": "s015",
+      "id": "s045",
       "typeId": "trait",
       "typeLabel": "성격의 장단점",
       "question": "평소 CU편의점 이용 시 느낀 장단점을 기술하고, CU편의점의 경쟁력을 제고할 수 있는 아이디어를 설명해 주세요. 가능하다면 지원한 직무와 연계하여 적어주시고, 어려운 경우 고객 입장에서 설명해 주세요.",
@@ -439,7 +1354,7 @@
       "brackets": 0
     },
     {
-      "id": "s016",
+      "id": "s046",
       "typeId": null,
       "typeLabel": null,
       "question": "한미그룹에 지원하게 된 계기와, 여러 기업 중 한미그룹을 선택한 이유를 구체적으로 작성해 주십시오.",
@@ -487,7 +1402,7 @@
       "brackets": 0
     },
     {
-      "id": "s017",
+      "id": "s047",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "지원하신 직무에 관심을 갖게 된 계기와 지금까지 해당 직무 수행을 위해 준비해온 경험 및 역량을 구체적으로 설명해 주십시오. (최소 700자, 최대 1,000자 입력가능)",
@@ -535,7 +1450,7 @@
       "brackets": 0
     },
     {
-      "id": "s018",
+      "id": "s048",
       "typeId": null,
       "typeLabel": null,
       "question": "한미그룹의 10가지 인재상에 비추어, 본인이 어떻게 부합하는지 경험을 바탕으로 작성해 주십시오. (최소 500자, 최대 800자 입력가능)",
@@ -573,7 +1488,7 @@
       "brackets": 0
     },
     {
-      "id": "s019",
+      "id": "s049",
       "typeId": null,
       "typeLabel": null,
       "question": "본인이 지원한 한미그룹의 사업영역(제약, 바이오, 식품, 화장품, IT 등)에 대한 최근 트렌드나 이슈를 선정하여 자신의 견해를 작성해주십시오. (최소 700자, 최대 1,000자 입력가능)",
@@ -621,7 +1536,7 @@
       "brackets": 0
     },
     {
-      "id": "s020",
+      "id": "s050",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "본인이 지원하는 직무에 관심을 갖게 된 계기와 이 직무를 수행하기 위해 어떤 노력을 했는지 작성해 주세요.",
@@ -649,7 +1564,7 @@
       "brackets": 0
     },
     {
-      "id": "s021",
+      "id": "s051",
       "typeId": null,
       "typeLabel": null,
       "question": "그 밖에 본인에 대해 어필하고 싶은 부분을 자유롭게 작성해 주세요.",
@@ -672,7 +1587,7 @@
       "brackets": 0
     },
     {
-      "id": "s022",
+      "id": "s052",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "삼성전자를 지원한 이유와 입사 후 회사에서 이루고 싶은 꿈을 기술하십시오.",
@@ -720,7 +1635,7 @@
       "brackets": 0
     },
     {
-      "id": "s023",
+      "id": "s053",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "본인의 성장과정을 간략히 기술하되 현재의 자신에게 가장 큰 영향을 끼친 사건, 인물 등을 포함하여 기술하시기 바랍니다.",
@@ -803,7 +1718,7 @@
       "brackets": 0
     },
     {
-      "id": "s024",
+      "id": "s054",
       "typeId": null,
       "typeLabel": null,
       "question": "최근 사회 이슈 중 중요하다고 생각되는 한 가지를 선택하고 이에 관한 자신의 견해를 기술해 주시기 바랍니다.",
@@ -861,7 +1776,7 @@
       "brackets": 0
     },
     {
-      "id": "s025",
+      "id": "s055",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "지원한 직무 관련 본인이 갖고 있는 전문지식/경험(심화전공, 프로젝트, 논문, 공모전 등)을 작성하고,",
@@ -919,7 +1834,7 @@
       "brackets": 0
     },
     {
-      "id": "s026",
+      "id": "s056",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "지원동기",
@@ -957,7 +1872,7 @@
       "brackets": 0
     },
     {
-      "id": "s027",
+      "id": "s057",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "핵심역량",
@@ -1000,7 +1915,7 @@
       "brackets": 0
     },
     {
-      "id": "s028",
+      "id": "s058",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "성장과정",
@@ -1033,7 +1948,7 @@
       "brackets": 0
     },
     {
-      "id": "s029",
+      "id": "s059",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "입사 후 포부",
@@ -1066,7 +1981,7 @@
       "brackets": 0
     },
     {
-      "id": "s030",
+      "id": "s060",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "본인이 지원하고자 하는 직무 분야와 관련하여 어떠한 역량을 갖추고 있는지 기술하고 이를 통해 어떻게 한국영상자료원에 기여할 수 있는지 기술해 주십시오. (500자 이내)",
@@ -1089,7 +2004,7 @@
       "brackets": 0
     },
     {
-      "id": "s031",
+      "id": "s061",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "주어진 과제나 업무를 위해 필요한 기술을 배우고 이를 적절히 활용하여 성공적으로 완수할 수 있었던 경험에 대해 구체적으로 기술해 주십시오. (500자 이내)",
@@ -1112,7 +2027,7 @@
       "brackets": 0
     },
     {
-      "id": "s032",
+      "id": "s062",
       "typeId": null,
       "typeLabel": null,
       "question": "본인이 관심 있는 분야에 대해 알기 위해 지식이나 정보를 수집하고 분석하는 등의 노력을 기울였던 경험을 기술해 주십시오. (500자 이내)",
@@ -1135,7 +2050,7 @@
       "brackets": 0
     },
     {
-      "id": "s033",
+      "id": "s063",
       "typeId": null,
       "typeLabel": null,
       "question": "다양한 활동을 하면서 불편함을 감수하고 정해진 원칙·규칙을 철저히 지켰던 경험에 대해 기술해 주십시오. (500자 이내)",
@@ -1158,7 +2073,7 @@
       "brackets": 0
     },
     {
-      "id": "s034",
+      "id": "s064",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "조직(회사, 학회, 동아리, 프로젝트 등)에서 시간과 일정을 효율적으로 관리하여 주어진 업무나 과제를 효과적으로 해결했던 경험을 기술해 주십시오. (500자 이내)",
@@ -1181,7 +2096,7 @@
       "brackets": 0
     },
     {
-      "id": "s035",
+      "id": "s065",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "넥센타이어에 지원하게 된 이유와 준비과정을 서술해주세요. 500자",
@@ -1204,7 +2119,7 @@
       "brackets": 0
     },
     {
-      "id": "s036",
+      "id": "s066",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "귀하가 지원한 직무의 역량을 발전시키기 위해서 도전했던 경험 또는 프로젝트를 서술해주세요. 500자",
@@ -1227,7 +2142,7 @@
       "brackets": 0
     },
     {
-      "id": "s037",
+      "id": "s067",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "귀하가 생각하는 소통과 협력은 무엇인지 서술해주세요. 500자",
@@ -1250,7 +2165,7 @@
       "brackets": 0
     },
     {
-      "id": "s038",
+      "id": "s068",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "넥센타이어에 입사한다면 이루고자 하는 목표를 서술해주세요. 500자",
@@ -1278,7 +2193,7 @@
       "brackets": 0
     },
     {
-      "id": "s039",
+      "id": "s069",
       "typeId": "trait",
       "typeLabel": "성격의 장단점",
       "question": "본인 성격의 장단점을 자신의 성장과정과 경험을 기반으로 서술하여 주십시오(600자)",
@@ -1301,7 +2216,7 @@
       "brackets": 0
     },
     {
-      "id": "s040",
+      "id": "s070",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "현대자동차그룹 핵심가치(고객 최우선, 도전적 실행, 소통과 협력, 인재존중, 글로벌 지향) 중 본인의 경험을 기반으로 실천사례를 제시하시오(600자)",
@@ -1329,7 +2244,7 @@
       "brackets": 0
     },
     {
-      "id": "s041",
+      "id": "s071",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "본인이 회사를 선택함에 있어 중요시 여기는 가치와 현대제철이 왜 그 가치와 부합하는지 본인의 의견을 서술하여 주십시오(600자)",
@@ -1357,7 +2272,7 @@
       "brackets": 0
     },
     {
-      "id": "s042",
+      "id": "s072",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "해당 직무에 지원한 동기와 해당 직무에 본인이 적합한 이유 및 근거를 본인의 경험, 전공 등과 연계하여 서술하여 주십시오(600자)",
@@ -1385,7 +2300,7 @@
       "brackets": 0
     },
     {
-      "id": "s043",
+      "id": "s073",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "지원동기를 구체적으로 기술해주세요",
@@ -1408,7 +2323,7 @@
       "brackets": 0
     },
     {
-      "id": "s044",
+      "id": "s074",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "성장과정을 구체적으로 기술해주세요.",
@@ -1431,7 +2346,7 @@
       "brackets": 0
     },
     {
-      "id": "s045",
+      "id": "s075",
       "typeId": null,
       "typeLabel": null,
       "question": "학업 이외에 관심과 열정을 가지고 했던 다양한 경험 중 기억에 남는 것을 구체적으로 기술해주세요",
@@ -1454,7 +2369,7 @@
       "brackets": 0
     },
     {
-      "id": "s046",
+      "id": "s076",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "제일기획을 지원한 이유와 입사 후 회사에서 이루고 싶은 꿈을 기술하십시오.",
@@ -1487,7 +2402,7 @@
       "brackets": 0
     },
     {
-      "id": "s047",
+      "id": "s077",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "본인의 성장과정을 간략히 기술하되 현재의 자신에게 가장 큰 영향을 끼친 사건, 인물 등을 포함하여 기술하시기 바랍니다. (※작품속 가상인물도 가능)",
@@ -1540,7 +2455,7 @@
       "brackets": 0
     },
     {
-      "id": "s048",
+      "id": "s078",
       "typeId": null,
       "typeLabel": null,
       "question": "최근 사회이슈 중 중요하다고 생각되는 한가지를 선택하고 이에 관한 자신의 견해를 기술해 주시기 바랍니다.",
@@ -1583,7 +2498,7 @@
       "brackets": 0
     },
     {
-      "id": "s049",
+      "id": "s079",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "(주)스크린에스피이코리아 지원 동기와 본인의 어떤 특성이 지원 직무에 잘 부합하는지 사례를 들어 상세히 기술하여 주십시오.",
@@ -1616,7 +2531,7 @@
       "brackets": 0
     },
     {
-      "id": "s050",
+      "id": "s080",
       "typeId": "trait",
       "typeLabel": "성격의 장단점",
       "question": "본인의 강점 및 약점에 대해서 기술하여 주십시오.",
@@ -1644,7 +2559,7 @@
       "brackets": 0
     },
     {
-      "id": "s051",
+      "id": "s081",
       "typeId": "growth",
       "typeLabel": "성장 경험",
       "question": "인생에서 가장 중요하다고 생각하는 가치를 쓰고, 가장 중요하게 생각하는 이유 및 그 가치를 실천한 사례를 구체적으로 기술하여 주십시오.",
@@ -1672,7 +2587,7 @@
       "brackets": 0
     },
     {
-      "id": "s052",
+      "id": "s082",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "다른 사람과 함께 일(경험)을 했을 때 그 사람은 귀하를 어떻게 판단했고, 귀하는 그 사람을 어떻게 판단했는지 구체적인 사례와 이유를 들어 설명해 주십시오.",
@@ -1710,7 +2625,7 @@
       "brackets": 0
     },
     {
-      "id": "s053",
+      "id": "s083",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "지원직무에 대한 본인의 역량과 해당 역량을 갖추기 위한 노력과 경험에 대해 작성해주세요(프로젝트/기타경험 등)",
@@ -1763,7 +2678,7 @@
       "brackets": 0
     },
     {
-      "id": "s054",
+      "id": "s084",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "성장과정, 장단점, 사회활동 경험, 지원동기 및 입사 후 포부, 특기사항 등 본인을 표현하고 싶은 내용을 형식, 내용 관계없이 자유롭게 작성 바랍니다.",
@@ -1836,7 +2751,7 @@
       "brackets": 0
     },
     {
-      "id": "s055",
+      "id": "s085",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "지원 동기",
@@ -1869,7 +2784,7 @@
       "brackets": 0
     },
     {
-      "id": "s056",
+      "id": "s086",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "직무 역량",
@@ -1902,7 +2817,7 @@
       "brackets": 0
     },
     {
-      "id": "s057",
+      "id": "s087",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "협업 경험",
@@ -1935,7 +2850,7 @@
       "brackets": 0
     },
     {
-      "id": "s058",
+      "id": "s088",
       "typeId": null,
       "typeLabel": null,
       "question": "프로세스 개선 경험",
@@ -1968,7 +2883,7 @@
       "brackets": 0
     },
     {
-      "id": "s059",
+      "id": "s089",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "입사 후 포부",
@@ -2001,7 +2916,7 @@
       "brackets": 0
     },
     {
-      "id": "s060",
+      "id": "s090",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "지원하신 직무를 수행하기 위해 필요한 역량을 기르고자 어떤 노력을 했는지 구체적인 사례에 근거하여 서술해주세요. [250~ 500자] Guide> 어떤 역량인지/ 역량을 기르기 위한 학습방법, 경험, 기간 등/ 적용사례/ 활동 단체나 네트워크 등 경험의 사실관계를 확인할 수 있도록 세부적으로 작성",
@@ -2024,7 +2939,7 @@
       "brackets": 0
     },
     {
-      "id": "s061",
+      "id": "s091",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "실패한 경험에 대하여 서술해주세요. [250~500자] Guide> 어떤 일을 목표로 했는지/ 목표 달성을 위해 들인 노력/ 수행 과정에서 부딪힌 장애물/ 그때의 감정과 생각/ 실패원인/ 이를 통해 배운 점 등 경험의 사실관계를 확인할 수 있도록 세부적으로 작성",
@@ -2047,7 +2962,7 @@
       "brackets": 0
     },
     {
-      "id": "s062",
+      "id": "s092",
       "typeId": null,
       "typeLabel": null,
       "question": "물류업계의 현재 트렌드와 미래 물류업의 전망에 대해 구체적인 근거를 포함하여 서술해주세요. [250~500자]",
@@ -2075,7 +2990,7 @@
       "brackets": 0
     },
     {
-      "id": "s063",
+      "id": "s093",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "입사 5년 후, 회사에서 내가 듣고 싶은 나의 평판은 무엇인지 보기에서 하나 선택하고 그 이유를 구체적으로 서술해주세요. [250~500자] A. 기존 방식에 얽매이지 않고 업무를 수행하는 창의적 직원/ B. 주어진 업무를 완벽하게 수행하여 조직에서 인정받는 직원/ C. 사회성이 좋고 인간적이어서 조직내 평판이 좋은 직원",
@@ -2103,7 +3018,7 @@
       "brackets": 0
     },
     {
-      "id": "s064",
+      "id": "s094",
       "typeId": null,
       "typeLabel": null,
       "question": "(선택문항) 이외에 본인을 어필하고 싶은 내용을 자유롭게 서술해주세요. [250~500자]",
@@ -2131,7 +3046,7 @@
       "brackets": 0
     },
     {
-      "id": "s065",
+      "id": "s095",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "한국장학재단에 입사 지원을 해야겠다고 결심하게 된 계기는 무엇인지 구체적으로 기술해 주십시오.",
@@ -2154,7 +3069,7 @@
       "brackets": 0
     },
     {
-      "id": "s066",
+      "id": "s096",
       "typeId": "competency",
       "typeLabel": "직무 관련 경험·역량",
       "question": "재단의 직무를 수행함에 있어 본인이 가지고 있는 차별화된 경쟁력이 무엇인지 기술해 주십시오.",
@@ -2177,7 +3092,7 @@
       "brackets": 0
     },
     {
-      "id": "s067",
+      "id": "s097",
       "typeId": null,
       "typeLabel": null,
       "question": "타인으로부터 큰 신뢰를 받은 경험이나 새로운 아이디어를 가지고 자신만의 창의적인 아이디어를 발휘하였던 경험을 기술해 주십시오.",
@@ -2200,7 +3115,7 @@
       "brackets": 0
     },
     {
-      "id": "s068",
+      "id": "s098",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "공동과제 수행 시 자신에게 주어진 과업 이상을 했던 경험이나 일을 추진하는 데 있어 타인과의 협력으로 큰 성과를 거두었던 경험을 기술해 주십시오.",
@@ -2223,7 +3138,7 @@
       "brackets": 0
     },
     {
-      "id": "s069",
+      "id": "s099",
       "typeId": null,
       "typeLabel": null,
       "question": "최근 한국원자력연구원의 주요 이슈에 대해 한 가지를 선택하여 언급하고, 그것에 대한 본인의 의견을 기술하십시오.?(최대 800자 입력가능)",
@@ -2251,7 +3166,7 @@
       "brackets": 0
     },
     {
-      "id": "s070",
+      "id": "s100",
       "typeId": "challenge",
       "typeLabel": "문제 해결·도전",
       "question": "수행예정 직무를 선택하게 된 배경, 직무를 수행함에 있어서 예상되는 어려움, 이를 극복할 수 있는 본인만의 강점에 대해 기술하십시오.?(최대 600자 입력가능)",
@@ -2279,7 +3194,7 @@
       "brackets": 0
     },
     {
-      "id": "s071",
+      "id": "s101",
       "typeId": "collab",
       "typeLabel": "협업 경험",
       "question": "지원자 본인이 동료 또는 주위 사람들과 적극적으로 소통하고 협력하면서 융화를 위해 노력하는 사람임을 보여주는 최근 3년 이내의 사례 하나를 기술하십시오.?(최대 600자 입력가능)",
@@ -2307,7 +3222,7 @@
       "brackets": 0
     },
     {
-      "id": "s072",
+      "id": "s102",
       "typeId": "motive",
       "typeLabel": "지원동기·입사 후 포부",
       "question": "한국원자력연구원 입원 이후 이루고자 하는 자기성장 및 연구원에 대한 기여 목표가 무엇인지 기술하고 이러한 목표를 이루기 위해 어떠한 노력을 기울일 것인지 기술하십시오.?(최대 600자 입력가능)",

@@ -99,8 +99,20 @@ function ok(name, cond, extra = '') {
     ok('표본 JSON 에 답변 본문이 없다',
       doc.samples.every(s => typeof s.chars === 'number' && !('text' in s) && !('body' in s)));
 
-    /* 합격 자소서는 완성된 글이라 대괄호가 있을 수 없다. 있으면 파싱이 틀린 것이다. */
-    ok('표본에 대괄호가 없다(파싱 건전성)', doc.samples.every(s => s.brackets === 0));
+    /* ── '대괄호 0개' 는 표본이 늘자 너무 빡빡해졌다 (실측 2026-09-10) ──────────
+       원래 뜻은 "우리가 쓰는 빈칸 대괄호가 섞여 들어오면 파싱이 틀린 것" 이었다.
+       그런데 102편으로 늘리니 **지원자가 직접 쓴 대괄호**가 나왔다 —
+       합격자소서 25 의 "[TENG 제작]과 [살균] 두 가지 주제로 나누어" 처럼 문장 한가운데
+       말머리로 쓴 것이다. 파싱 오류가 아니라 원문 그대로다.
+       그래서 '하나도 없어야 한다' 대신 **드물어야 한다**로 바꾼다. 파싱이 통째로
+       틀어지면(우리 템플릿이 섞여 들어오면) 비율과 편당 개수가 같이 튀므로 여전히 걸린다. */
+    const withBrackets = doc.samples.filter(s => s.brackets > 0);
+    ok('대괄호가 있는 표본은 드물다(파싱 건전성)',
+      withBrackets.length / doc.samples.length < 0.05,
+      `→ ${withBrackets.length}/${doc.samples.length}편`);
+    ok('한 편에 대괄호가 몰려 있지 않다',
+      doc.samples.every(s => s.brackets <= 3),
+      `→ 최대 ${Math.max(0, ...doc.samples.map(s => s.brackets))}개`);
 
     /* 블록은 숫자와 지시문만이어야 한다 — 표본 문항이 통째로 실리면 그것도 유출이다. */
     const sampleQs = doc.samples.map(s => s.question).filter(t => t.length > 20);

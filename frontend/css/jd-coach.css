@@ -181,7 +181,10 @@ a.wf-btn { text-decoration: none; }
 .company-page { background: var(--wf-canvas); min-height: calc(100vh - 64px); }
 
 /* ── 상태 1 · 검색 우선 ──────────────────────────────────── */
-.co-search-page { padding: clamp(48px, 8vh, 88px) clamp(20px, 4vw, 32px) 80px; }
+/* 회사 찾기는 유일하게 전체 폭이었다 — 넓은 화면에서 목록이 끝까지 늘어져
+   한 줄이 눈으로 따라가기 힘들었다 (2026-09-10). */
+.co-search-page { max-width: var(--page-w); margin: 0 auto;
+  padding: clamp(48px, 8vh, 88px) clamp(20px, 4vw, 32px) 80px; }
 .co-search-head { max-width: 660px; margin: 0 auto; text-align: center; }
 .co-search-head h1 {
   margin-top: 12px; font-size: 44.8px; line-height: 46.6px; font-weight: 600; color: var(--wf-ink);
@@ -607,7 +610,9 @@ a.wf-btn { text-decoration: none; }
    문서형 에디터: 칸이 내용만큼 자라고, 다 쓴 칸은 접힌다.
    진행도는 **본문 위 가로 막대**로 올렸다(예전 보라 세로 사이드바를 대체).
    ════════════════════════════════════════════════════════════ */
-.jd-shell { max-width: 1320px; margin: 0 auto; padding: 28px clamp(20px, 3.4vw, 32px) 80px; }
+/* 1320 → 공통 폭 (2026-09-10). 안쪽 .jd-layout 은 '232px + 1fr' 그리드라
+   본문 열이 그만큼 좁아질 뿐 배치는 그대로다. */
+.jd-shell { max-width: var(--page-w); margin: 0 auto; padding: 28px clamp(20px, 3.4vw, 32px) 80px; }
 
 .jd-head { max-width: 720px; margin-bottom: 24px; }
 .jd-head h1 { margin-top: 12px; font-size: 32px; line-height: 41.6px; font-weight: 500; color: var(--wf-ink); }

@@ -3,8 +3,8 @@
    ════════════════════════════════════════════════════════════ */
 
 .home {
-  width: 100%; max-width: 1120px;
-  margin: 0 auto; padding: 0 32px 40px;
+  width: 100%; max-width: var(--page-w);   /* 1120 → 공통 폭 (2026-09-10) */
+  margin: 0 auto; padding: 0 var(--page-pad) 40px;
   flex: 1;
 }
 

@@ -388,4 +388,6 @@ function badExampleRule(id) {
 
 const starModeOf = id => specFor(id)?.starMode || null;
 
-module.exports = { SPECS, specFor, frameBlock, typeRules, badExampleRule, starModeOf };
+/* 문장 환산 상수를 밖에서도 읽을 수 있게 내보낸다 — 실측 보고서(analyze-samples.js)가
+   이 값을 글로 박아 두었다가 상수만 바뀌어 거짓말을 한 적이 있다(2026-09-10). */
+module.exports = { SPECS, specFor, frameBlock, typeRules, badExampleRule, starModeOf, SENT_CHARS: 54 };

@@ -1453,13 +1453,17 @@ assertConnection()
         + `카카오로그인 ${on(process.env.KAKAO_REST_API_KEY)} · `
         + `AI ${on(process.env.GROQ_API_KEY)} · `
         + `뉴스 ${require('./news').provider()} · `
-        /* 기업 색인(dart-corps.json)은 깃에 없다 — 빌드에서 받는다(.gitignore 참고).
-           클론만 하고 npm run build 를 안 돌리면 기업분석이 통째로 빈 채로 뜨는데,
-           화면만 봐서는 "DART 가 자료를 안 준다"로 보인다. 그래서 여기서 밝힌다.
-           파일을 읽지는 않는다 — 6MB 를 부팅에 파싱할 이유가 없다(첫 요청 때 읽는다). */
+        /* 기업 색인(dart-corps.json)은 깃에 없다 — 서버가 부팅 뒤 받는다(daily-refresh).
+           없는 채로 뜨면 기업분석이 통째로 비는데, 화면만 봐서는 "DART 가 자료를 안 준다"
+           로 보인다. 그래서 여기서 밝힌다. 파일을 읽지는 않는다 — 6MB 를 부팅에 파싱할
+           이유가 없다(첫 요청 때 읽는다). */
         + `기업분석 ${!process.env.DART_API_KEY ? '꺼짐(키 없음)'
             : require('fs').existsSync(require('./dart').CORPS_PATH) ? '켜짐'
-            : '색인 없음 — npm run build'}`);
+            : '색인 없음 — 곧 받습니다(daily-refresh)'}`);
+
+      /* 받아오는 자료가 어디 사는지 한 줄 남긴다. 볼륨이 안 붙은 채로 떠 있는 것을
+         모르면 "왜 배포마다 또 받지?" 를 한참 헤맨다(2026-09-10). */
+      console.log(require('./cache-dir').describe());
     });
   })
   .catch((e) => {

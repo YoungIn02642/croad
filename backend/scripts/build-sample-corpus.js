@@ -20,8 +20,18 @@
    B(비슷한 문항 찾기)가 그것 없이는 동작하지 않는다.
 
    ── 실행 ────────────────────────────────────────────────────
-     node backend/scripts/build-sample-corpus.js [표본폴더]
+     node backend/scripts/build-sample-corpus.js [표본폴더] [--merge]
    기본 폴더는 저장소 루트의 '자소서 코치 딥러닝 합격자소서' 다(있을 때만 돈다).
+
+   ── --merge 가 왜 필요한가 (실측 2026-09-10) ────────────────
+   원문은 깃에 없다(남의 저작물). 그래서 **폴더에 지금 있는 파일이 곧 전부**가 되고,
+   그냥 다시 돌리면 예전에 재 둔 것이 통째로 사라진다. 실제로 그랬다 — 표본 10편을
+   더 받았는데 폴더에는 새 10개만 있었고, 그대로 빌드했으면 **먼저 잰 20편(72문항)이
+   날아갔다.** 다시 잴 방법이 없다(원문이 없으니).
+   --merge 는 이미 있는 지표를 남기고 새로 잰 것만 더한다. 같은 답변인지는
+   **문항 + 글자 수 + 문장 수**로 본다 — 본문을 저장하지 않으므로 이것이 우리가 가진
+   가장 좁은 지문이고, 서로 다른 답변이 셋 다 같을 확률은 사실상 없다.
+   원문을 전부 갖고 있다면 --merge 없이 도는 편이 낫다(그때가 진짜 전수 집계다).
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
 const path = require('path');
@@ -40,12 +50,33 @@ const NOISE = /^(보기|답변|접기|펼치기|더보기|글자수|자소서 �
    목표로" 로 나열하고, 다음 문항이 3. 으로 이어진다). 번호만 보면 그 나열이 문항으로
    잡혀서 답변이 토막 난다.
    그래서 **직전 문항 번호 + 1 일 때만** 문항으로 본다. 나열은 1 로 되돌아가므로 걸러진다. */
+/* ── 그 규칙만으로는 부족했다 (실측 2026-09-10) ─────────────────────────────
+   합격자소서 29 의 1번 답변(직무능력기술서)이 본문에서 다시 번호를 매긴다:
+       1. 직무능력기술서 …                          ← 진짜 문항
+       1. 자격(지식)                                ← 1 로 되돌아가 걸러짐(규칙이 먹힌다)
+       2. 경험 - 지역신용보증재단 현장실습(2개월)      ← **이전+1 이라 문항으로 잡혔다**
+       3. 경력 - 주택도시보증공사 인턴(6개월)         ← 마찬가지
+       2. 공사 체험형 인턴 지원동기 …                 ← 진짜 문항인데 prevNo 가 3 이라 **버려졌다**
+   가짜 둘이 들어오고 진짜 둘이 사라진다. 뒤엣것이 더 나쁘다 — 버려진 문항의 답변 글이
+   앞 항목에 통째로 붙어 길이·문장 수를 오염시킨다.
+
+   그래서 **이력서 항목의 생김새**를 걸러낸다. 좁은 규칙이라는 것을 알고 넣는다 —
+   '자격(지식)'(소제목)과 '핵심역량'(진짜 문항)을 뜻으로 가르는 방법이 없기 때문이다.
+   대신 걸러낸 줄을 빌드 로그에 남긴다. 새 표본에서 다른 모양이 나오면 눈에 띈다. */
+const RESUME_LINE = [
+  /[-–—]\s*\S.*\(\s*\d+\s*(개월|년|주|주간)\s*\)\s*$/,   // 경력 - 어디 인턴(6개월)
+  /^(자격|지식|자격증|수상|어학)\s*[(（]/,                // 자격(지식)
+  /^\d{4}[.\-/]\d{1,2}/,                                // 2019.09 ~ … (기간 줄)
+];
+
 function questionAt(line, prevNo) {
   const m = /^\s*(\d{1,2})\s*\.\s*(.+)$/.exec(line);
   if (!m) return null;
   const no = Number(m[1]);
   if (no !== prevNo + 1) return null;
-  return { no, text: m[2].trim() };
+  const text = m[2].trim();
+  if (RESUME_LINE.some(re => re.test(text))) return { skip: true, text };
+  return { no, text };
 }
 
 /* ── 소제목 ──────────────────────────────────────────────────
@@ -137,6 +168,10 @@ function measure(question, bodyLines) {
   };
 }
 
+/* 문항으로 오인될 뻔한 이력서 줄. 빌드 로그에 모아 찍는다 — 조용히 거르면
+   새 표본에서 다른 모양이 나왔을 때 아무도 모른다. */
+const skippedLines = [];
+
 /* ── 파일 한 편 → 답변 여러 편 ───────────────────────────── */
 function parseFile(file) {
   const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
@@ -154,6 +189,14 @@ function parseFile(file) {
   for (const ln of lines) {
     if (NOISE.test(ln)) continue;
     const hit = questionAt(ln, prevNo);
+    /* 이력서 줄로 판정된 것은 **문항으로도 안 잡고 prevNo 도 안 올린다.** 올리면
+       바로 뒤에 오는 진짜 문항이 번호가 안 맞아 통째로 버려진다(위 주석의 사고).
+       본문의 일부이므로 답변에는 그대로 남긴다. */
+    if (hit && hit.skip) {
+      skippedLines.push(`${path.basename(file)}: ${hit.text}`);
+      if (q) body.push(ln);
+      continue;
+    }
     if (hit) { flush(); q = hit; prevNo = hit.no; continue; }
     if (q) body.push(ln);
   }
@@ -161,8 +204,13 @@ function parseFile(file) {
   return out;
 }
 
+/* 같은 답변인가. 본문이 없으므로 문항 + 길이 지표로 본다. */
+const fingerprint = s => `${s.question}||${s.chars}||${s.sents}`;
+
 function main() {
-  const dir = process.argv[2] || DEFAULT_DIR;
+  const args = process.argv.slice(2);
+  const merge = args.includes('--merge');
+  const dir = args.find(a => !a.startsWith('--')) || DEFAULT_DIR;
   if (!fs.existsSync(dir)) {
     console.log(`표본 폴더가 없습니다: ${dir}`);
     console.log('원문은 저장소에 커밋하지 않으므로(남의 저작물), 폴더가 없으면 그냥 건너뜁니다.');
@@ -181,23 +229,43 @@ function main() {
     got.forEach((g, i) => samples.push({ id: `s${String(samples.length + 1).padStart(3, '0')}`, ...g }));
   }
 
-  const byType = {};
-  for (const s of samples) {
-    const k = s.typeId || '(미분류)';
-    byType[k] = (byType[k] || 0) + 1;
+  /* ── 이미 재 둔 것과 합친다 ────────────────────────────────────────────
+     원문이 깃에 없어서, 합치지 않으면 이번 폴더에 없는 표본이 통째로 사라진다.
+     새로 잰 쪽을 먼저 넣고, 예전 것 중 같은 지문이 없는 것만 뒤에 붙인다
+     (같은 답변이면 새로 잰 값이 맞다 — 파서가 그새 고쳐졌을 수 있다). */
+  let merged = samples;
+  let kept = 0;
+  if (merge) {
+    let prev = null;
+    try { prev = JSON.parse(fs.readFileSync(OUT, 'utf8')); } catch { prev = null; }
+    const seen = new Set(samples.map(fingerprint));
+    const carry = (prev?.samples || []).filter(s => !seen.has(fingerprint(s)));
+    kept = carry.length;
+    merged = [...samples, ...carry]
+      .map((s, i) => ({ ...s, id: `s${String(i + 1).padStart(3, '0')}` }));
   }
 
   const doc = {
     builtAt: new Date().toISOString().slice(0, 10),
     note: '합격 자소서 표본의 구조 지표만 담는다. 답변 본문은 들어 있지 않다(남의 저작물).',
     files: files.length,
-    samples,
+    samples: merged,
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(doc, null, 2) + '\n', 'utf8');
 
   console.log(`파일 ${files.length}개 → 답변 ${samples.length}편${skipped ? ` (건너뜀 ${skipped})` : ''}`);
-  console.log('유형별:', Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(' · '));
+  if (skippedLines.length) {
+    console.log(`문항이 아니라 이력서 줄로 보여 건너뛴 줄 ${skippedLines.length}개:`);
+    for (const line of skippedLines) console.log(`  · ${line.slice(0, 76)}`);
+  }
+  if (merge) console.log(`이미 재 둔 표본 ${kept}편을 남겨 합쳤습니다 → 모두 ${merged.length}편`);
+  else if (fs.existsSync(OUT)) {
+    console.log('※ 이번 폴더에 없는 예전 표본은 사라집니다. 남기려면 --merge 를 붙이세요.');
+  }
+  const byAll = {};
+  for (const s of merged) { const k = s.typeId || '(미분류)'; byAll[k] = (byAll[k] || 0) + 1; }
+  console.log('유형별:', Object.entries(byAll).map(([k, v]) => `${k} ${v}`).join(' · '));
   console.log(`→ ${path.relative(ROOT, OUT)}`);
 }
 

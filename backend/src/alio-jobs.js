@@ -22,10 +22,11 @@
    뜨면 민간 기업이 "지금 안 뽑는다"로 읽힌다. 에러도 안 나는 오해라 6-3 부류다.
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 const { sameCompany, dday } = require('./company-name');
 
-const CACHE = path.join(__dirname, '..', 'data', 'alio-jobs.json');
+const CACHE = cachePath('alio-jobs.json');
 const MAX_ITEMS = 8;
 
 let _cache = null;

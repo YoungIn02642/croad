@@ -20,11 +20,12 @@
    마감이 지난 공고는 여기서 거른다.
    ════════════════════════════════════════════════════════════ */
 const fs = require('fs');
+const { cachePath } = require('./cache-dir');
 const path = require('path');
 const { sameCompany, dday } = require('./company-name');
 const { unescapeEntities } = require('./work24-crawl');
 
-const CACHE = path.join(__dirname, '..', 'data', 'work24-jobs.json');
+const CACHE = cachePath('work24-jobs.json');
 const MAX_ITEMS = 8;
 
 let _cache = null;

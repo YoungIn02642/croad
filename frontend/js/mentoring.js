@@ -66,11 +66,28 @@ function categoryName(code) {
   return mentorCategories().find(M => M.code === code)?.name || '';
 }
 
-/* 멘토 찾기의 '분야' 필터에 깔 분류. **멘토가 직접 정한 '멘토링 가능 분야'(mentorFields)에
-   실제로 있는 것만** 깐다(사용자 지시). 멘토가 정하고 멘티가 그 안에서 고르는 구조라,
-   아무 멘토도 안 고른 분야를 칩으로 깔면 눌러도 0명이 된다. */
+/* ── 이 멘토가 걸리는 분야 (사용자 지적 2026-09-10) ──────────────────────────
+   원칙은 그대로다 — 멘토가 직접 고른 '멘토링 가능 분야'(mentorFields)가 있으면 그것만
+   본다. 멘토가 정하고 멘티가 그 안에서 고르는 구조다.
+
+   그런데 **아무도 안 고르면 칩 줄이 '전체' 하나만 남아** 분류 필터가 통째로 죽는다.
+   실제로 그랬다: 멘토는 있는데 mentorFields 가 빈 배열이라 교집합이 0이었고, 화면에는
+   고를 것이 아무것도 없었다. 프로필에서 그 칸을 반드시 채우게 하지 않는 이상 계속 생긴다.
+
+   그래서 안 골랐으면 **본인 직무의 분류(jobMajor)** 로 본다. 지어낸 값이 아니라
+   멘토가 자기 스펙에 적어 둔 직무 그대로다 — 카카오 백엔드 개발자가 그 직무의 분야에
+   걸리는 것은 엉뚱하지 않다. 고른 사람은 고른 대로, 안 고른 사람은 자기 직무로.
+   목록과 필터가 **같은 함수**를 봐야 한다. 한쪽만 고치면 칩은 뜨는데 눌러도 0명이 된다. */
+function mentorFieldsOf(m) {
+  const picked = (m.mentorFields || []).filter(Boolean).map(String);
+  if (picked.length) return picked;
+  return m.jobMajor ? [String(m.jobMajor)] : [];
+}
+
+/* 멘토 찾기의 '분야' 필터에 깔 분류. 아무 멘토도 안 걸리는 분야는 깔지 않는다 —
+   눌러도 0명인 칩을 두면 고를 것이 있는 척하는 화면이 된다. */
 function offeredFieldCategories() {
-  const offered = new Set(MENTORS.flatMap(m => m.mentorFields || []));
+  const offered = new Set(MENTORS.flatMap(mentorFieldsOf));
   return mentorCategories().filter(M => offered.has(M.code));
 }
 
@@ -646,11 +663,9 @@ function getFilteredMentors(){
   const sortBy   = $('#sort-by') ? $('#sort-by').value : 'recommend';
 
   let list = MENTORS.filter(m=>{
-    /* 분야는 멘토가 정한 '멘토링 가능 분야'(mentorFields)로 거른다(사용자 지시).
-       멘토가 정하고 멘티가 그 안에서 고르는 구조다. 분야를 안 정한 멘토는
-       '전체' 에서만 보인다 — 임의로 아무 분야에 넣으면 그 분야를 고른 후배에게
-       엉뚱한 선배가 뜬다. */
-    if (searchFilter!=='전체' && !(m.mentorFields||[]).includes(searchFilter)) return false;
+    /* 분야는 mentorFieldsOf 로 거른다 — 칩을 까는 쪽과 **같은 함수**여야 한다.
+       한쪽만 고치면 칩은 떴는데 눌러도 0명이 되는, 더 나쁜 화면이 된다. */
+    if (searchFilter!=='전체' && !mentorFieldsOf(m).includes(searchFilter)) return false;
     if (fCompany!=='all' && m.company!==fCompany) return false;
     /* 경력을 안 적은 멘토(years=null)는 연차 필터를 걸면 빠진다. 1년차로 치면
        '경력 없음' 과 '1년차' 가 한 칸에 섞인다. */

@@ -551,11 +551,7 @@ window.SpecUp = (() => {
     if (tab === 'cert') return certTab(resolved);
     /* 어학도 같다 — TOEIC·OPIc 네 칸은 고정 목록이고 공식 접수 페이지로 보내는 게
        전부라, 로그인 전에도 볼 수 있어야 한다. 내 점수·선배 평균만 로그인이 필요하다. */
-    if (tab === 'lang') {
-      return (resolved.ok ? '' : notice('🔒', '내 점수와 선배 평균을 보려면 스펙이 필요해요',
-        '로그인하고 어학 점수를 입력하면 선배 평균과 비교해 드려요.'))
-        + langTab(resolved.ok ? resolved.ctx : { spec: {}, agg: {} });
-    }
+    if (tab === 'lang') return langTab(resolved.ok ? resolved.ctx : { spec: {}, agg: {} });
     return blocked(resolved);
   }
 
@@ -877,66 +873,95 @@ window.SpecUp = (() => {
      국가자격 시험일정에도 없다. 없는 것을 있는 척 정적 표로 박아 두면 다음 달에
      조용히 틀린 날짜가 된다 — 이 저장소가 제일 경계하는 부류라 넣지 않았다.
      대신 공식 접수 페이지로 바로 보낸다. */
-  const LANG_ROWS = [
-    { key: 'toeic',         label: 'TOEIC',          unit: '점',   url: 'https://exam.toeic.co.kr' },
-    { key: 'toeicSpeaking', label: 'TOEIC Speaking', unit: '',     url: 'https://exam.toeic.co.kr' },
-    { key: 'opic',          label: 'OPIc',           unit: '',     url: 'https://www.opic.or.kr' },
-    { key: 'toefl',         label: 'TOEFL',          unit: '점',   url: 'https://www.ets.org/toefl' },
-  ];
+  /* ── 목록은 CAS 가 단일 출처다 (사용자 지시 2026-09-11) ────────────────────
+     예전에는 여기 네 줄을 따로 박아 뒀다. 그래서 **스펙 입력에는 있는 TEPS·G-TELP·
+     TOPIK 과 제2외국어 7종이 이 화면에만 없었다** — 같은 목록이 두 벌이면 반드시 갈린다.
+     `CAS.LANG_TESTS`(영어 등 7종)와 `CAS.FOREIGN_TESTS`(제2외국어 7종)를 그대로 쓴다.
+     여기서 더하는 것은 **접수 페이지 주소뿐**이다. 주소를 모르는 시험은 안 적는다 —
+     추측한 주소로 보내면 엉뚱한 데로 데려간다.
+
+     ── 시험 일정 API 가 없다 ──
+     시행기관(YBM·크레듀·ETS·일본국제교류기금 …)이 공개 API 를 열지 않는다. 국가자격
+     시험일정에도 없다. 없는 것을 있는 척 정적 표로 박아 두면 다음 달에 조용히 틀린
+     날짜가 된다 — 이 저장소가 제일 경계하는 부류라 넣지 않았다. 공식 페이지로 보낸다. */
+  const LANG_URLS = {
+    toeic:         'https://exam.toeic.co.kr',
+    toeicSpeaking: 'https://exam.toeic.co.kr',
+    opic:          'https://www.opic.or.kr',
+    toefl:         'https://www.ets.org/toefl',
+    teps:          'https://www.teps.or.kr',
+    gtelp:         'https://www.gtelp.co.kr',
+    topik:         'https://www.topik.go.kr',
+    jlpt:          'https://www.jlpt.or.kr',
+    hsk:           'https://www.hsk.or.kr',
+    hskk:          'https://www.hsk.or.kr',
+    /* DELF·DALF 는 확실한 공식 접수 주소를 못 찾았다(delfdalf.kr 는 응답 없음).
+       추측한 주소로 보내면 엉뚱한 데로 데려가므로 **링크를 안 건다.** */
+    dele:          'https://seul.cervantes.es',
+    goethe:        'https://www.goethe.de/ins/kr/ko/sta/seo.html',
+    torfl:         'https://www.torfl.kr',
+  };
 
   function langTab(ctx) {
-    const mine = ctx.spec.scores || {};
-    const peer = ctx.agg.scores || {};
+    const mine = ctx.spec?.scores || {};
+    const peer = ctx.agg?.scores || {};
 
-    const cards = LANG_ROWS.map(l => {
-      const p = peer[l.key];
-      const m = mine[l.key];
-      /* ── 선배도 나도 없어도 카드를 그린다 (사용자 지시 2026-09-11) ──────────
-         예전에는 여기서 건너뛰었다. 그래서 **선배 스펙이 아직 없는 지금은 네 칸이
-         전부 사라져** 어학 탭이 통째로 비었다. 그런데 TOEIC·OPIc 은 직무군과 상관없이
-         누구에게나 해당하는 고정 목록이라, 비교할 값이 없다고 항목까지 감출 이유가 없다.
-         비교값이 없으면 '미응시' 로 두고 접수 페이지로 보낸다 — 그게 이 화면이 할 수
-         있는 일의 전부이고, 빈 화면보다는 낫다. */
-
+    /* 영어 등 점수·등급 시험. 선배 평균이 있으면 차이를 말하고, 없으면 내 기록만 둔다. */
+    const langCards = (CAS.LANG_TESTS || []).map(t => {
+      const p = peer[t.id];
+      const m = mine[t.id];
+      const unit = t.kind === 'score' ? '점' : '';
       const gap = (typeof p?.avg === 'number' && typeof m === 'number') ? p.avg - m : null;
-      const status = m == null
+      const status = m == null || m === ''
         ? { text: '미응시', cls: 'is-lack' }
         : gap == null
           ? { text: '보유', cls: 'is-have' }
-          : gap > 0 ? { text: `${gap}${l.unit} 부족`, cls: 'is-lack' }
+          : gap > 0 ? { text: `${gap}${unit} 부족`, cls: 'is-lack' }
                     : { text: '평균 이상', cls: 'is-have' };
 
       return card({
         emoji: '🗣️',
         coverTag: '어학',
-        palKey: l.label,
+        palKey: t.label,
         badges: [status, p ? { text: `표본 ${p.n}명`, cls: 'is-peer' } : null],
-        title: l.label,
-        org: p ? `선배 평균 ${p.avg}${l.unit}` : '선배 자료 없음',
-        foot: `<span class="sup-foot-txt">내 점수 <b>${m == null ? '없음' : esc(String(m)) + l.unit}</b></span>`,
-        url: l.url,
-        cta: '접수',
+        title: t.label,
+        org: p ? `선배 평균 ${p.avg}${unit}` : '',
+        foot: `<span class="sup-foot-txt">내 기록 <b>${m == null || m === '' ? '없음' : esc(String(m)) + unit}</b></span>`,
+        url: LANG_URLS[t.id],
+        cta: LANG_URLS[t.id] ? '접수' : null,
       });
-    }).filter(Boolean);
+    });
 
-    /* 네 칸은 늘 그려지므로 여기 걸릴 일이 없다. 그래도 남겨 둔다 —
-       LANG_ROWS 를 비우는 실수를 하면 빈 화면 대신 이 문구가 뜬다. */
-    if (!cards.filter(Boolean).length) {
-      return notice('📭', '어학 항목이 없어요', '표시할 어학 시험 목록이 비어 있어요.');
-    }
+    /* ── 제2외국어 (사용자 지시 2026-09-11) ─────────────────────────────────
+       스펙 입력에는 진작부터 있었는데(`scores.foreign`) 이 화면에만 없었다.
+       점수가 아니라 **등급**으로만 받고, CAS 어학 점수에는 반영되지 않는다
+       (cas.js FOREIGN_TESTS 주석 — 반영하려면 별도 배점 설계가 필요하다).
+       그래서 '부족/평균 이상' 을 말하지 않는다. 있으면 등급을, 없으면 미응시를 둔다. */
+    const myForeign = new Map((mine.foreign || [])
+      .filter(x => x && x.test).map(x => [x.test, x.level || '']));
 
-    /* 선배 표본이 하나도 없으면 '목표치' 를 말할 수 없다. 그 사실을 먼저 밝힌다 —
-       '미응시' 만 넉 줄 떠 있으면 무엇과 비교된 것인지 알 수 없다. */
-    const noPeer = LANG_ROWS.every(l => !peer[l.key]);
-    const peerNote = noPeer
-      ? notice('📊', '아직 비교할 선배 성적이 없어요',
-          '선배들이 어학 점수를 입력하면 목표치가 여기에 함께 표시됩니다. 그전에는 시험 정보와 접수 페이지만 안내해요.')
-      : '';
+    const foreignCards = (CAS.FOREIGN_TESTS || []).map(t => {
+      const lv = myForeign.get(t.id);
+      return card({
+        emoji: '🌏',
+        coverTag: '제2외국어',
+        palKey: t.label,
+        badges: [lv ? { text: lv, cls: 'is-have' } : { text: '미응시', cls: 'is-lack' }],
+        title: t.label,
+        org: `등급 ${t.levels[0]} ~ ${t.levels[t.levels.length - 1]}`,
+        foot: `<span class="sup-foot-txt">내 기록 <b>${lv ? esc(lv) : '없음'}</b></span>`,
+        url: LANG_URLS[t.id],
+        cta: LANG_URLS[t.id] ? '접수' : null,
+      });
+    });
 
-    return peerNote + listHead(cards.filter(Boolean).length) + grid(cards.filter(Boolean)) + `
-      <div class="sup-src">
-        목표치는 <b>${esc(ctx.scopeLabel)} 선배 평균</b>이에요. 어학시험은 시행기관이 공개 API 를
-        열지 않아 접수 일정을 자동으로 가져오지 못합니다 — ‘접수’ 로 공식 페이지에서 확인하세요.
+    return listHead(langCards.length) + grid(langCards)
+      + `<div class="sup-subhead">제2외국어</div>`
+      + grid(foreignCards)
+      + `<div class="sup-src">
+        어학시험은 시행기관이 공개 API 를 열지 않아 접수 일정을 자동으로 가져오지 못합니다 —
+        ‘접수’ 로 공식 페이지에서 확인하세요.${ctx.scopeLabel ? ` 목표치는 <b>${esc(ctx.scopeLabel)} 선배 평균</b>이에요.` : ''}
+        제2외국어는 기록용이라 CAS 점수에는 반영되지 않습니다.
       </div>`;
   }
 

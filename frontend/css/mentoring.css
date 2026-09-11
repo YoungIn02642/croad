@@ -1296,3 +1296,8 @@ body.sup-modal-open { overflow: hidden; }
 }
 .sup-schedtable td { font-size: 13.5px; font-weight: 600; }
 .sup-schedtable td:last-child { width: 88px; text-align: right; font-weight: 400; }
+
+/* 어학 탭 안의 구획 제목(제2외국어). 카드 격자 사이를 갈라 준다. */
+.sup-subhead {
+  margin: 26px 0 12px; font-size: 14px; font-weight: 800; color: var(--color-text-primary);
+}

@@ -893,6 +893,13 @@ window.SpecUp = (() => {
     gtelp:         'https://www.gtelp.co.kr',
     topik:         'https://www.topik.go.kr',
     jlpt:          'https://www.jlpt.or.kr',
+    /* JPT·SJPT·TSC 는 YBM 이 시행한다. 주소는 jpt.co.kr 공식 페이지의 링크에서
+       확인했다(추측하지 않았다 — ybmsjpt / ybmtsc 로 따로 있다). */
+    jpt:           'https://www.jpt.co.kr',
+    sjpt:          'https://www.ybmsjpt.co.kr',
+    opicJa:        'https://www.opic.or.kr',
+    tsc:           'https://www.ybmtsc.co.kr',
+    opicZh:        'https://www.opic.or.kr',
     hsk:           'https://www.hsk.or.kr',
     hskk:          'https://www.hsk.or.kr',
     /* DELF·DALF 는 확실한 공식 접수 주소를 못 찾았다(delfdalf.kr 는 응답 없음).
@@ -941,15 +948,20 @@ window.SpecUp = (() => {
       .filter(x => x && x.test).map(x => [x.test, x.level || '']));
 
     const foreignCards = (CAS.FOREIGN_TESTS || []).map(t => {
-      const lv = myForeign.get(t.id);
+      const v = myForeign.get(t.id);
+      /* JPT 처럼 점수제인 시험이 섞여 있다 — 등급 범위를 적을 수 없으므로 만점을 적는다. */
+      const scale = t.kind === 'score'
+        ? `${t.max}점 만점`
+        : `등급 ${t.levels[0]} ~ ${t.levels[t.levels.length - 1]}`;
+      const shown = v ? (t.kind === 'score' ? `${v}점` : v) : '';
       return card({
         emoji: '🌏',
         coverTag: '제2외국어',
         palKey: t.label,
-        badges: [lv ? { text: lv, cls: 'is-have' } : { text: '미응시', cls: 'is-lack' }],
+        badges: [shown ? { text: shown, cls: 'is-have' } : { text: '미응시', cls: 'is-lack' }],
         title: t.label,
-        org: `등급 ${t.levels[0]} ~ ${t.levels[t.levels.length - 1]}`,
-        foot: `<span class="sup-foot-txt">내 기록 <b>${lv ? esc(lv) : '없음'}</b></span>`,
+        org: scale,
+        foot: `<span class="sup-foot-txt">내 기록 <b>${shown ? esc(shown) : '없음'}</b></span>`,
         url: LANG_URLS[t.id],
         cta: LANG_URLS[t.id] ? '접수' : null,
       });

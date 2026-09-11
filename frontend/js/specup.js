@@ -253,6 +253,12 @@ window.SpecUp = (() => {
 
   function paintModal() {
     modalHost().innerHTML = certModalHtml();
+    /* ── 고른 탭을 보이는 자리로 끌어온다 (실측 2026-09-11) ────────────────────
+       상시시험 종목은 회차가 **41개**다(실측: 한식조리기능사·지게차운전기능사).
+       탭을 가로로 흘려 두면 기본 선택인 '다가오는 회차' 가 오른쪽 끝에 있어서,
+       열자마자 지난 회차만 보이고 스크롤해야 찾는다. 열 때 끌어와 둔다. */
+    const on = document.querySelector('#sup-rtabs .sup-rtab.on');
+    if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
     /* 모달이 떠 있는 동안 뒤 화면이 같이 스크롤되지 않게 잠근다. 안 그러면 모달 위에서
        휠을 굴렸을 때 뒤가 움직여서, 닫고 나면 엉뚱한 자리에 와 있다. */
     document.body.classList.toggle('sup-modal-open', !!certModal);
@@ -354,7 +360,7 @@ window.SpecUp = (() => {
 
     const d = r.doc, p = r.prac;
     return `
-      <div class="sup-rtabs">${tabs}</div>
+      <div class="sup-rtabs" id="sup-rtabs">${tabs}</div>
       <div class="sup-round${done ? ' is-done' : ''}">
         <div class="sup-round-head">${esc(r.label || '')}${done ? ' <span class="sup-sched-done">지난 회차</span>' : ''}</div>
         <table class="sup-schedtable">
@@ -370,11 +376,20 @@ window.SpecUp = (() => {
       </div>`;
   }
 
-  /* '국가기술자격 기사 (2026년도 제3회)' → '3회'. 탭에 회차 이름을 통째로 넣으면
-     한 줄에 하나도 못 들어간다. 못 읽으면 순번으로 둔다. */
+  /* 탭에 붙일 짧은 이름. 회차 이름을 통째로 넣으면 한 줄에 하나도 못 들어간다.
+
+     ── 자격 종류마다 '회차' 의 단위가 다르다 (실측 2026-09-11) ──
+     국가기술자격: '국가기술자격 기사 (2026년도 제3회)'      → 3회
+     국가전문자격: '전문자격 (2026년도 35회 1차)'            → 1차
+     전문자격은 **한 회차 안에서 1·2·3차**로 나뉜다. 회차 번호(35)로 이름을 지으면
+     탭 세 개가 전부 '35회' 가 되어 무엇을 고르는지 알 수 없다(실측: 공인노무사). */
   function roundShort(r) {
-    const m = /제\s*(\d+)\s*회/.exec(r.label || '');
-    return m ? `${m[1]}회` : (r.seq ? `${r.seq}회` : '회차');
+    const label = r.label || '';
+    const round = /제\s*(\d+)\s*회/.exec(label);
+    if (round) return `${round[1]}회`;
+    const step = /(\d+)\s*차/.exec(label);
+    if (step) return `${step[1]}차`;
+    return r.seq ? `${r.seq}회` : '회차';
   }
 
   /* 서버가 준 daysTo* 는 '지금 눈여겨볼 단계' 기준이라, 표의 각 줄에는 맞지 않는다.

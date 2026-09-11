@@ -297,7 +297,20 @@ function roundsOf(rounds, today, year) {
     if (!prev.prac && r.prac) prev.prac = r.prac;
   }
 
-  return [...byLabel.values()].map(r => {
+  /* ── 필기가 없는 회차는 뺀다 (실측 2026-09-11) ───────────────────────────
+     실측: 3D프린터운용기능사에 **'제0회'** 가 끼어 있었다. 필기가 없고 실기만 있는
+     회차인데(실기 접수 5/11~5/14), 화면 탭에는 '0회' 로 떠서 1·2회와 3·4회 사이에
+     앉았다 — 사용자가 "이건 왜 0회지" 라고 묻는 자리다.
+     이 표는 **필기 → 실기 흐름**으로 짜여 있고, 실기 원서접수는 필기 합격자만 할 수
+     있다(이 파일 위쪽 주석의 원칙). 그래서 필기가 없는 회차는 '지금 이 자격을 따려면
+     언제 신청하나' 에 답하지 못한다.
+     다만 **필기 회차가 하나도 없는 종목**(실기만 시행)이라면 그마저 지우면 화면이
+     "일정이 없다" 가 되므로, 그때는 그대로 둔다. */
+  const values = [...byLabel.values()];
+  const hasDoc = values.filter(r => r.doc);
+  const kept = hasDoc.length ? hasDoc : values;
+
+  return kept.map(r => {
     const doc = r.doc ? { ...r.doc, phase: phaseOf(r.doc, today) } : null;
     const prac = r.prac ? { ...r.prac, phase: phaseOf(r.prac, today) } : null;
     /* 지금 눈여겨볼 단계 — 접수중 > 접수예정 > 시험대기 순. 둘 다 끝났으면 closed. */
@@ -311,8 +324,20 @@ function roundsOf(rounds, today, year) {
       daysToRegEnd:   live ? daysUntil(live.regEnd, today) : null,
       daysToRegStart: live ? daysUntil(live.regStart, today) : null,
     };
-  }).sort((a, b) => String(a.doc?.regStart || a.doc?.examStart || a.prac?.regStart || '')
-    .localeCompare(String(b.doc?.regStart || b.doc?.examStart || b.prac?.regStart || '')));
+  }).sort((a, b) => {
+    /* ── 접수일만으로는 순서가 안 갈린다 (실측 2026-09-11) ────────────────────
+       공인노무사 35회는 **2차와 3차의 접수 기간이 같다**(둘 다 7/13~7/20). 그래서
+       접수일로만 세우면 원본 순서가 그대로 남아 탭이 '1차 · 3차 · 2차' 로 떴다.
+       시험일을 보조 기준으로 둔다(2차 8/29 < 3차 11/27). 그것도 같으면 마지막으로
+       회차·차수 번호로 가른다 — 셋 다 같은 일은 없다고 보지만, 있어도 뒤집히지 않게. */
+    const reg = x => String(x.doc?.regStart || x.prac?.regStart || '');
+    const exam = x => String(x.doc?.examStart || x.prac?.examStart || '');
+    const num = x => {
+      const m = /제\s*(\d+)\s*회|(\d+)\s*차/.exec(x.label || '');
+      return Number(m && (m[1] || m[2])) || 0;
+    };
+    return reg(a).localeCompare(reg(b)) || exam(a).localeCompare(exam(b)) || (num(a) - num(b));
+  });
 }
 
 /* 자격증 이름 목록 → 각 자격의 **지금 할 수 있는 단계 하나**.

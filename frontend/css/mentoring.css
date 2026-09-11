@@ -1259,7 +1259,15 @@ body.sup-modal-open { overflow: hidden; }
 
 /* ── 회차 탭 + 단계 표 (2026-09-11) ──────────────────────────────────────────
    네이버 자격증 일정과 같은 모양. 회차를 탭으로 고르고 고른 회차만 표로 본다. */
-.sup-rtabs { display: flex; gap: 4px; margin: 10px 0 4px; flex-wrap: wrap; }
+.sup-rtabs {
+  display: flex; gap: 4px; margin: 10px 0 4px;
+  /* 상시시험 종목은 회차가 41개다 — 줄바꿈하면 탭이 화면 절반을 먹는다.
+     한 줄로 두고 옆으로 흘린다(선택된 탭은 열 때 가운데로 끌어온다). */
+  overflow-x: auto; scrollbar-width: thin;
+}
+.sup-rtabs::-webkit-scrollbar { height: 6px; }
+.sup-rtabs::-webkit-scrollbar-thumb { background: var(--color-border-tertiary); border-radius: 99px; }
+.sup-rtab { flex: none; }
 .sup-rtab {
   padding: 7px 12px; border: 0; background: none; cursor: pointer;
   font: inherit; font-size: 13.5px; font-weight: 600; color: var(--color-text-tertiary);

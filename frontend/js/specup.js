@@ -48,6 +48,23 @@ window.SpecUp = (() => {
   const actState = {};                  // topic → { loading } | 서버 응답
   let lastCertKey = '';                 // 어떤 자격증 목록으로 일정을 받았는지
 
+  /* ── 자격증 둘러보기 (사용자 지시 2026-09-11) ────────────────────────────────
+     이 탭은 '선배보다 부족한 자격증' 을 보여주는 자리였다. 그런데 **선배 스펙이 아직
+     없어서 화면이 통째로 비었다** — 들어와 봐야 "데이터가 쌓이면 보여드릴게요" 한 줄뿐이라
+     스펙업에 올 이유가 없었다.
+     그래서 추천이 안 될 때는 **카탈로그를 그냥 펼쳐 둔다.** 643종을 분야로 추려 보고,
+     하나 누르면 모달로 자세히 본다. 추천(어떤 자격이 이 직무에 필요한가)은 선배 데이터가
+     쌓인 뒤에 붙일 일이고, 그때까지 빈 화면으로 둘 이유가 없다. */
+  let catalog = null;                   // null=아직 안 받음 · { loading } · { ok, certs }
+  let certField = null;                 // 직무분야 칩 (null = 전체)
+  let certQuery = '';                   // 이름 검색
+  const CERT_PER_PAGE = 24;
+  let certPage = 1;
+  /* 모달에서 보고 있는 자격증. 일정은 그때 따로 받는다(목록 전체를 미리 받으면
+     개발계정 하루 1,000건이 한 화면에 날아간다). */
+  let certModal = null;                 // null | { cert, exam: null|{loading}|응답 }
+  let lastCtx = null;                   // 마지막으로 판정된 ctx (둘러보기 카드의 '보유' 배지용)
+
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -146,7 +163,9 @@ window.SpecUp = (() => {
       + (emoji ? `<span class="sup-cover-emoji">${emoji}</span>` : '');
   }
 
-  function card({ emoji, poster, logo, coverTag, palKey, badges = [], title, org, foot, url, cta }) {
+  /* openCert 를 주면 **링크가 아니라 버튼**이 된다 — 눌러서 밖으로 나가는 대신
+     모달을 연다(자격증 둘러보기, 2026-09-11). url 과 같이 주지 않는다. */
+  function card({ emoji, poster, logo, coverTag, palKey, badges = [], title, org, foot, url, cta, openCert }) {
     const badgeHtml = badges.filter(Boolean)
       .map(b => `<span class="sup-badge ${b.cls || ''}">${esc(b.text)}</span>`).join('');
     const inner = `
@@ -162,6 +181,10 @@ window.SpecUp = (() => {
       </div>
       ${cta ? `<span class="sup-card-cta">${esc(cta)} <i class="ti ti-external-link"></i></span>` : ''}`;
 
+    if (openCert) {
+      return `<button type="button" class="sup-card sup-card--btn"
+        onclick="SpecUp.openCert('${esc(openCert).replace(/'/g, '&#39;')}')">${inner}</button>`;
+    }
     return url
       ? `<a class="sup-card" href="${esc(url)}" target="_blank" rel="noopener">${inner}</a>`
       : `<article class="sup-card">${inner}</article>`;
@@ -196,9 +219,121 @@ window.SpecUp = (() => {
     Roadmap.mount('rm-bar-specup', 'me');
 
     const resolved = resolve();
+    /* 둘러보기 카드가 '보유' 배지를 붙이려면 내 스펙이 필요하다. 판정이 안 되는
+       상태에서는 ctx 가 없으므로 null 로 둔다 — 그때는 배지가 안 붙는다. */
+    lastCtx = resolved.ok ? resolved.ctx : null;
     el.innerHTML = head(resolved) + deadlineRail() + tabBar()
-      + `<div class="sup-body">${body(resolved)}</div>`;
+      + `<div class="sup-body">${body(resolved)}</div>`
+      + certModalHtml();
   }
+
+  /* ── 자격증 상세 모달 (사용자 지시 2026-09-11) ────────────────────────────
+     카드를 누르면 큐넷으로 나가 버리는 대신, 우리가 아는 것을 먼저 보여준다.
+
+     ── 없는 것은 적지 않는다 ──
+     요청받은 항목 중 **'자격증 내용 설명'과 '필요 주요 학과'는 우리 데이터에 없다.**
+     큐넷 종목목록 API 가 주는 것은 이름·코드·자격구분·계열·대/중직무분야뿐이고,
+     상세 설명 API 는 없다(실호출로 404 확인). 학과 매핑도 어디에도 없다.
+     그래서 그 자리를 지어내지 않고 **직무분야**로 대신하며, 설명은 큐넷 원문으로 보낸다.
+     빈 줄을 만들어 두고 "정보 없음" 을 적지도 않는다 — 알아볼 곳을 주는 편이 낫다. */
+  function certModalHtml() {
+    if (!certModal) return '';
+    const c = certModal.cert;
+    const ex = certModal.exam;
+
+    const rows = [
+      ['시행기관', c.issuer || null],
+      ['자격 구분', [c.kindLabel, c.grade].filter(Boolean).join(' · ') || null],
+      ['직무 분야', [c.field, c.midField].filter(Boolean).join(' › ') || null],
+    ].filter(([, v]) => v);
+
+    return `
+      <div class="modal-overlay on" id="sup-cert-modal">
+        <div class="modal modal--wide" role="dialog" aria-modal="true" aria-label="${esc(c.id)}">
+          <div class="modal-head">
+            <div class="modal-head-l">
+              <div class="modal-title">${esc(c.id)}</div>
+              <div class="modal-sub">${esc(c.kindLabel || '')}${c.code ? ` · 종목코드 ${esc(c.code)}` : ''}</div>
+            </div>
+            <button type="button" class="modal-close" onclick="SpecUp.closeCert()" aria-label="닫기"><i class="ti ti-x"></i></button>
+          </div>
+          <div class="modal-body">
+            <dl class="sup-deflist">
+              ${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}
+            </dl>
+
+            <div class="sup-modal-sec">
+              <div class="modal-label">올해 시험 일정</div>
+              ${examBlock(ex)}
+            </div>
+
+            <p class="jd-hint" style="margin:14px 0 0">
+              시험 과목·응시 자격·수수료 같은 자세한 내용은 큐넷 원문에서 확인하세요.
+              우리가 가진 자료에는 그 설명이 없어서 옮겨 적지 않았습니다.
+            </p>
+
+            <div class="sup-modal-actions">
+              <a class="btn-brand" href="https://www.q-net.or.kr/rcv001.do" target="_blank" rel="noopener">
+                <i class="ti ti-external-link"></i> 신청하러 가기
+              </a>
+              <a class="wf-btn" href="https://www.q-net.or.kr" target="_blank" rel="noopener">큐넷에서 상세 보기</a>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  /* 시험 일정 칸. 접수·시험·발표를 한 줄씩 보여준다.
+     못 받은 이유마다 할 일이 다르므로 문구를 나눈다(specup.js 라우트와 같은 원칙). */
+  function examBlock(ex) {
+    if (!ex || ex.loading) return `<div class="sup-foot-muted">시험일정 확인 중…</div>`;
+    if (!ex.ok) {
+      return `<div class="sup-foot-muted">${esc(ex.error || '일정을 불러오지 못했어요.')}</div>`;
+    }
+    const item = (ex.items || [])[0];
+    if (!item) return `<div class="sup-foot-muted">일정을 찾지 못했어요.</div>`;
+    if (!item.matched) return `<div class="sup-foot-muted">${esc(item.note || '국가자격 일정표에 없는 종목이에요.')}</div>`;
+    const r = item.round;
+    if (!r) return `<div class="sup-foot-muted">올해 남은 회차가 없어요. 다음 해 일정이 나오면 여기에 표시됩니다.</div>`;
+
+    const line = (label, value, extra) => value
+      ? `<div class="sup-sched-row"><span>${esc(label)}</span><b>${esc(value)}</b>${extra || ''}</div>`
+      : '';
+    const reg = r.regStart && r.regEnd ? `${r.regStart} ~ ${r.regEnd}` : (r.regStart || r.regEnd || '');
+    const exam = r.examStart && r.examEnd && r.examStart !== r.examEnd
+      ? `${r.examStart} ~ ${r.examEnd}` : (r.examStart || '');
+
+    return `
+      <div class="sup-sched">
+        <div class="sup-sched-head">${esc(roundLabel(r))}</div>
+        ${line('원서 접수', reg,
+          r.phase === 'open' ? `<span class="sup-dday">${dday(r.daysToRegEnd, { verb: '마감' })}</span>` :
+          r.phase === 'upcoming' ? `<span class="sup-dday is-wait">${r.daysToRegStart}일 뒤</span>` : '')}
+        ${line('시험', exam)}
+        ${line('합격 발표', r.passDt)}
+      </div>`;
+  }
+
+  function openCertModal(name) {
+    const all = (catalog && catalog.ok) ? catalog.certs : [];
+    const cert = all.find(c => c.id === name);
+    if (!cert) return;
+    certModal = { cert, exam: { loading: true } };
+    render();
+
+    const seq = ++examSeq;                       // 목록 쪽 요청과 같은 번호를 쓴다(늦은 답 버리기)
+    DB.specupExams([name]).then(res => {
+      if (seq !== examSeq || !certModal || certModal.cert.id !== name) return;
+      certModal.exam = res;
+      render();
+    }).catch(e => {
+      if (!certModal || certModal.cert.id !== name) return;
+      certModal.exam = { ok: false, error: e.message };
+      render();
+    });
+  }
+
+  function closeCertModal() { certModal = null; render(); }
 
   /* ── 🔥 마감임박 ─────────────────────────────────────────────
      탭과 무관하게 맨 위에 둔다. 이 화면에서 **되돌릴 수 없는 것은 마감뿐**이라,
@@ -321,9 +456,19 @@ window.SpecUp = (() => {
 
   function body(resolved) {
     if (tab === 'contest' || tab === 'activity') return activityTab(resolved, tab);
-    if (!resolved.ok) return blocked(resolved);
-    if (tab === 'lang') return langTab(resolved.ctx);
-    return certTab(resolved.ctx);
+    /* ── 자격증은 로그인 전에도 둘러볼 수 있다 (2026-09-11) ──────────────────
+       예전에는 판정이 안 되면(로그인 전·스펙 없음) 자물쇠 화면으로 막았다. 그런데
+       **국가자격 목록은 누구에게나 공개된 자료**고, 처음 온 사람이 "여기 뭐가 있나"
+       를 보는 자리이기도 하다. 추천(내게 부족한 것)만 로그인이 필요하다. */
+    if (tab === 'cert') return certTab(resolved);
+    /* 어학도 같다 — TOEIC·OPIc 네 칸은 고정 목록이고 공식 접수 페이지로 보내는 게
+       전부라, 로그인 전에도 볼 수 있어야 한다. 내 점수·선배 평균만 로그인이 필요하다. */
+    if (tab === 'lang') {
+      return (resolved.ok ? '' : notice('🔒', '내 점수와 선배 평균을 보려면 스펙이 필요해요',
+        '로그인하고 어학 점수를 입력하면 선배 평균과 비교해 드려요.'))
+        + langTab(resolved.ok ? resolved.ctx : { spec: {}, agg: {} });
+    }
+    return blocked(resolved);
   }
 
   /* 로그인·스펙이 없어 판정을 못 하는 상태. 공모전 탭은 이 상태에서도 볼 수 있으므로
@@ -346,7 +491,16 @@ window.SpecUp = (() => {
   }
 
   // ── ① 자격증 ────────────────────────────────────────────────
-  function certTab(ctx) {
+  function certTab(resolved) {
+    /* 판정이 안 되는 상태(로그인 전·스펙 없음)에서는 둘러보기만 준다.
+       추천을 보려면 스펙이 필요하다는 안내는 한 줄로 붙인다 — 자물쇠로 막지 않는다. */
+    if (!resolved || !resolved.ok) {
+      requestCatalog();
+      return notice('🔒', '내게 부족한 자격증을 보려면 스펙이 필요해요',
+        '로그인하고 스펙을 입력하면 선배와 비교해 알려드려요. 그전에도 아래에서 자격증을 둘러볼 수 있어요.')
+        + certBrowse();
+    }
+    const ctx = resolved.ctx;
     const G = window.Gap;
     const state = G ? G.gapContext(ctx) : { ok: false };
     const gaps = state.ok ? G.computeGaps('cert', state.ctx) : [];
@@ -366,9 +520,13 @@ window.SpecUp = (() => {
           .slice(0, 6)
       : gaps.map(g => ({ name: g.name, pct: g.pct, mine: false }));
 
+    /* ── 빈 화면 대신 둘러보기 (사용자 지시 2026-09-11) ──────────────────────
+       예전에는 여기서 "데이터가 쌓이면 보여드릴게요" 한 줄로 끝났다. 선배 스펙이
+       아직 없어서 **모든 직무군이 이 경로로 떨어졌고**, 스펙업에 올 이유가 없었다.
+       추천이 없다고 자격증까지 감출 이유는 없다 — 카탈로그를 펼쳐 둔다. */
     if (!rows.length) {
-      return notice('📭', '이 직무군은 자격증 데이터가 아직 없어요',
-        '선배 스펙이 쌓이면 어떤 자격증을 많이 갖고 있는지 보여드릴게요.');
+      requestCatalog();
+      return certBrowse();
     }
 
     requestExams(rows.map(r => r.name));
@@ -520,6 +678,104 @@ window.SpecUp = (() => {
     });
   }
 
+  /* ── 자격증 카탈로그 ──────────────────────────────────────────
+     643종을 한 번만 받아 들고 있는다. 이름·구분·분야·시행기관만 담긴 목록이라
+     가볍고, 탭을 옮길 때마다 다시 부를 이유가 없다. */
+  function requestCatalog() {
+    if (catalog) return;
+    catalog = { loading: true };
+    DB.certCatalog()
+      .then(res => { catalog = { ok: true, certs: res.certs || [] }; if (tab === 'cert') render(); })
+      .catch(e => { catalog = { ok: false, error: e.message }; if (tab === 'cert') render(); });
+  }
+
+  /* 지금 조건(분야·검색)에 맞는 자격증. 정렬은 이름순 그대로 둔다 —
+     '인기순' 같은 것을 만들려면 근거가 있어야 하는데, 그 근거(선배 보유율)가
+     없어서 이 화면이 생긴 것이다. 없는 기준을 지어내지 않는다. */
+  function certsNow() {
+    const all = (catalog && catalog.ok) ? catalog.certs : [];
+    const q = certQuery.trim().toLowerCase();
+    return all.filter(c =>
+      (!certField || c.field === certField) &&
+      (!q || String(c.id).toLowerCase().includes(q)));
+  }
+
+  function certFields() {
+    const all = (catalog && catalog.ok) ? catalog.certs : [];
+    const n = {};
+    for (const c of all) if (c.field) n[c.field] = (n[c.field] || 0) + 1;
+    return Object.entries(n).sort((a, b) => b[1] - a[1]);
+  }
+
+  /* 둘러보기 화면. 추천이 안 될 때 이 자리를 채운다. */
+  function certBrowse() {
+    if (!catalog || catalog.loading) {
+      return notice('⏳', '자격증 목록을 불러오는 중…', '잠시만 기다려 주세요.');
+    }
+    if (!catalog.ok) {
+      return notice('⚠️', '자격증 목록을 불러오지 못했어요', esc(catalog.error || ''));
+    }
+
+    const rows = certsNow();
+    const pages = Math.max(1, Math.ceil(rows.length / CERT_PER_PAGE));
+    const page = Math.min(certPage, pages);
+    const shown = rows.slice((page - 1) * CERT_PER_PAGE, page * CERT_PER_PAGE);
+
+    const chips = certFields().map(([f, n]) =>
+      `<button type="button" class="sup-fchip${certField === f ? ' on' : ''}"
+        onclick="SpecUp.setCertField('${esc(f).replace(/'/g, '&#39;')}')">${esc(f)} <b>${n}</b></button>`).join('');
+
+    return `
+      ${notice('🔎', '국가자격 ' + (catalog.certs.length).toLocaleString() + '종을 둘러보세요',
+        '선배 스펙이 쌓이면 여기에 "내게 부족한 자격증"이 먼저 뜹니다. 그때까지는 전체 목록을 분야로 추려 보세요.', true)}
+      <div class="sup-certbar">
+        <label class="sup-certsearch">
+          <i class="ti ti-search"></i>
+          <input type="search" id="sup-cert-q" value="${esc(certQuery)}" placeholder="자격증 이름으로 찾기"
+            oninput="SpecUp.setCertQuery(this.value)" />
+        </label>
+        <div class="sup-chipbar">
+          <button type="button" class="sup-fchip${certField ? '' : ' on'}" onclick="SpecUp.setCertField('')">전체 <b>${catalog.certs.length}</b></button>
+          ${chips}
+        </div>
+      </div>
+      ${rows.length
+        ? listHead(rows.length) + grid(shown.map(browseCard)) + pager(page, pages)
+        : notice('🔍', '조건에 맞는 자격증이 없어요', '검색어나 분야를 바꿔 보세요.')}`;
+  }
+
+  function pager(page, pages) {
+    if (pages <= 1) return '';
+    return `<div class="sup-pager">
+      <button type="button" class="pg-arrow" onclick="SpecUp.setCertPage(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+        <i class="ti ti-chevron-left"></i> 이전</button>
+      <span class="sup-pager-now">${page} / ${pages}</span>
+      <button type="button" class="pg-arrow" onclick="SpecUp.setCertPage(${page + 1})" ${page === pages ? 'disabled' : ''}>
+        다음 <i class="ti ti-chevron-right"></i></button>
+    </div>`;
+  }
+
+  /* 둘러보기 카드. 추천 카드(certCard)와 달리 **선배 보유율 배지가 없다** —
+     그 값이 없어서 이 화면이 생겼으므로, 없는 숫자를 자리만 채우려고 적지 않는다.
+     누르면 링크로 나가지 않고 모달을 연다(자세한 값은 그 안에 있다). */
+  function browseCard(c) {
+    const mine = (lastCtx?.spec?.certs || []).includes(c.id);
+    return card({
+      emoji: '📜',
+      coverTag: c.kindLabel || '',
+      palKey: c.id,
+      badges: [
+        c.grade ? { text: c.grade, cls: '' } : null,
+        mine ? { text: '보유', cls: 'is-have' } : null,
+      ],
+      title: c.id,
+      org: c.issuer || '',
+      foot: `<span class="sup-foot-txt">${esc(c.midField || c.field || '')}</span>`,
+      openCert: c.id,
+      cta: '자세히',
+    });
+  }
+
   // ── ② 어학 ──────────────────────────────────────────────────
   /* 어학은 '있다/없다' 가 아니라 **점수 차이**라 GAP 판정 대상이 아니다(성적은
      보유율로 세면 뜻이 흐려진다). 그래서 선배 평균과 내 점수를 나란히 놓고
@@ -544,7 +800,12 @@ window.SpecUp = (() => {
     const cards = LANG_ROWS.map(l => {
       const p = peer[l.key];
       const m = mine[l.key];
-      if (!p && m == null) return '';                 // 선배도 나도 없는 시험은 굳이 카드를 만들지 않는다
+      /* ── 선배도 나도 없어도 카드를 그린다 (사용자 지시 2026-09-11) ──────────
+         예전에는 여기서 건너뛰었다. 그래서 **선배 스펙이 아직 없는 지금은 네 칸이
+         전부 사라져** 어학 탭이 통째로 비었다. 그런데 TOEIC·OPIc 은 직무군과 상관없이
+         누구에게나 해당하는 고정 목록이라, 비교할 값이 없다고 항목까지 감출 이유가 없다.
+         비교값이 없으면 '미응시' 로 두고 접수 페이지로 보낸다 — 그게 이 화면이 할 수
+         있는 일의 전부이고, 빈 화면보다는 낫다. */
 
       const gap = (typeof p?.avg === 'number' && typeof m === 'number') ? p.avg - m : null;
       const status = m == null
@@ -567,12 +828,21 @@ window.SpecUp = (() => {
       });
     }).filter(Boolean);
 
-    if (!cards.length) {
-      return notice('📭', '어학 데이터가 아직 없어요',
-        '이 직무군 선배 중 어학 성적을 입력한 사람이 없어서 목표치를 낼 수 없어요.');
+    /* 네 칸은 늘 그려지므로 여기 걸릴 일이 없다. 그래도 남겨 둔다 —
+       LANG_ROWS 를 비우는 실수를 하면 빈 화면 대신 이 문구가 뜬다. */
+    if (!cards.filter(Boolean).length) {
+      return notice('📭', '어학 항목이 없어요', '표시할 어학 시험 목록이 비어 있어요.');
     }
 
-    return listHead(cards.length) + grid(cards) + `
+    /* 선배 표본이 하나도 없으면 '목표치' 를 말할 수 없다. 그 사실을 먼저 밝힌다 —
+       '미응시' 만 넉 줄 떠 있으면 무엇과 비교된 것인지 알 수 없다. */
+    const noPeer = LANG_ROWS.every(l => !peer[l.key]);
+    const peerNote = noPeer
+      ? notice('📊', '아직 비교할 선배 성적이 없어요',
+          '선배들이 어학 점수를 입력하면 목표치가 여기에 함께 표시됩니다. 그전에는 시험 정보와 접수 페이지만 안내해요.')
+      : '';
+
+    return peerNote + listHead(cards.filter(Boolean).length) + grid(cards.filter(Boolean)) + `
       <div class="sup-src">
         목표치는 <b>${esc(ctx.scopeLabel)} 선배 평균</b>이에요. 어학시험은 시행기관이 공개 API 를
         열지 않아 접수 일정을 자동으로 가져오지 못합니다 — ‘접수’ 로 공식 페이지에서 확인하세요.
@@ -795,5 +1065,19 @@ window.SpecUp = (() => {
     </div>`;
   }
 
-  return { onEnter, switchTab, setFilter, setSort, setActPage, render };
+  /* 둘러보기 조작. 이 파일은 이벤트 위임 대신 onclick + 공개 메서드를 쓴다 —
+     render 가 innerHTML 을 통째로 갈아끼우므로 붙여 둔 핸들러가 매번 날아간다. */
+  function setCertField(v) { certField = v || null; certPage = 1; render(); }
+  function setCertPage(p)  { certPage = Math.max(1, p); render(); }
+  /* 검색은 다시 그린 뒤 **커서를 되돌려 놓는다.** 안 그러면 한 글자 칠 때마다
+     포커스가 빠져서 입력이 끊긴다. */
+  function setCertQuery(v) {
+    certQuery = v; certPage = 1; render();
+    const box = document.getElementById('sup-cert-q');
+    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+  }
+
+  return { onEnter, switchTab, setFilter, setSort, setActPage, render,
+           openCert: openCertModal, closeCert: closeCertModal,
+           setCertField, setCertPage, setCertQuery };
 })();

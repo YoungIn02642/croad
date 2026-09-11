@@ -1191,3 +1191,47 @@ a.sup-card:hover .sup-card-cta { color: var(--brand); background: var(--brand-so
 .sup-page.is-off { color: var(--wf-hairline); cursor: default; }
 .sup-page.is-gap { border: 0; background: none; color: var(--wf-mute); cursor: default; min-width: 18px; }
 .sup-pager-n { margin-left: 8px; font-size: 12px; color: var(--wf-mute); }
+
+/* ── 자격증 둘러보기 · 상세 모달 (사용자 지시 2026-09-11) ──────────────────
+   선배 스펙이 없어 추천이 안 될 때, 카탈로그를 펼쳐 두는 화면이다. */
+.sup-certbar { margin-bottom: 16px; }
+.sup-certsearch {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; margin-bottom: 12px;
+  border: 1px solid var(--color-border-tertiary); border-radius: 12px; background: #fff;
+}
+.sup-certsearch i { color: var(--color-text-tertiary); font-size: 17px; }
+.sup-certsearch input { flex: 1; border: 0; outline: 0; font: inherit; font-size: 14px; background: none; }
+
+/* 카드가 링크가 아니라 버튼일 때(모달을 연다). a.sup-card 와 같은 반응을 준다 —
+   생김새가 같은데 하나만 안 떠오르면 누를 수 있는지 없는지 알 수 없다. */
+button.sup-card--btn { text-align: left; padding: 0; cursor: pointer; font: inherit; width: 100%; }
+button.sup-card--btn:hover {
+  transform: translateY(-4px); border-color: transparent;
+  box-shadow: 0 16px 34px rgba(20,20,40,.12), 0 3px 10px rgba(20,20,40,.06);
+}
+
+.sup-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 22px; }
+.sup-pager-now { font-size: 13px; color: var(--color-text-secondary); font-weight: 600; }
+
+/* 모달 안의 '항목 — 값' 목록. 값이 없는 항목은 아예 안 그린다(specup.js) —
+   '정보 없음' 을 줄줄이 적으면 빈 표를 보여주는 셈이다. */
+.sup-deflist { display: flex; flex-direction: column; gap: 10px; margin: 0 0 20px; }
+.sup-deflist > div { display: flex; gap: 12px; align-items: baseline; }
+.sup-deflist dt { flex: none; width: 76px; font-size: 12.5px; color: var(--color-text-tertiary); font-weight: 600; }
+.sup-deflist dd { margin: 0; font-size: 14px; color: var(--color-text-primary); }
+
+.sup-modal-sec { border-top: 1px solid var(--color-border-tertiary); padding-top: 16px; }
+.sup-sched { margin-top: 10px; }
+.sup-sched-head { font-size: 12.5px; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 600; }
+.sup-sched-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--color-border-tertiary); font-size: 13.5px;
+}
+.sup-sched-row:last-child { border-bottom: 0; }
+.sup-sched-row > span:first-child { width: 76px; flex: none; color: var(--color-text-tertiary); font-size: 12.5px; }
+.sup-sched-row > b { font-weight: 700; }
+
+.sup-modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.sup-modal-actions .btn-brand,
+.sup-modal-actions .wf-btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }

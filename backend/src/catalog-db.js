@@ -60,6 +60,10 @@ async function certCatalog() {
     certs: rows.map(r => ({
       id: r.name, code: r.code, kind: r.kind, kindLabel: r.kind_label,
       grade: r.grade, field: r.field, midField: r.mid_field,
+      /* 시행기관. searchCerts 는 진작부터 붙여 주는데 이쪽만 빠져 있었다 —
+         자격증 상세(스펙업 모달)가 이 목록을 쓰므로 같이 내려보낸다.
+         **모르면 null 이다.** 기관명을 지어내지 않는다(cert-reco.issuerOf 주석). */
+      issuer: certReco.issuerOf({ id: r.name, kind: r.kind }),
     })),
   };
 }

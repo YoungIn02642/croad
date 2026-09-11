@@ -223,8 +223,8 @@ window.SpecUp = (() => {
        상태에서는 ctx 가 없으므로 null 로 둔다 — 그때는 배지가 안 붙는다. */
     lastCtx = resolved.ok ? resolved.ctx : null;
     el.innerHTML = head(resolved) + deadlineRail() + tabBar()
-      + `<div class="sup-body">${body(resolved)}</div>`
-      + certModalHtml();
+      + `<div class="sup-body">${body(resolved)}</div>`;
+    paintModal();
   }
 
   /* ── 자격증 상세 모달 (사용자 지시 2026-09-11) ────────────────────────────
@@ -236,10 +236,40 @@ window.SpecUp = (() => {
      상세 설명 API 는 없다(실호출로 404 확인). 학과 매핑도 어디에도 없다.
      그래서 그 자리를 지어내지 않고 **직무분야**로 대신하며, 설명은 큐넷 원문으로 보낸다.
      빈 줄을 만들어 두고 "정보 없음" 을 적지도 않는다 — 알아볼 곳을 주는 편이 낫다. */
+  /* ── 모달은 페이지 밖(body)에 그린다 (실측 2026-09-11) ──────────────────────
+     처음에는 스펙업 화면 안에 같이 그렸다. 그런데 **열면 화면에 안 보이고 스크롤을
+     내려야 나왔다.** 원인은 `.page` 에 걸린 등장 애니메이션이다 —
+     `transform: matrix(1,0,0,1,0,8)` 이 걸린 조상이 있으면 `position: fixed` 가
+     화면이 아니라 **그 조상 안에 갇힌다**(실측: 오버레이 높이가 뷰포트 900 이 아니라
+     페이지 전체 3228px 로 잡혔다). 그래서 모달이 페이지 한가운데에 서 있었다.
+     body 바로 아래에 따로 붙이면 transform 의 영향을 받지 않는다. */
+  function modalHost() {
+    let h = document.getElementById('sup-modal-host');
+    if (!h) { h = document.createElement('div'); h.id = 'sup-modal-host'; document.body.appendChild(h); }
+    return h;
+  }
+
+  function paintModal() {
+    modalHost().innerHTML = certModalHtml();
+    /* 모달이 떠 있는 동안 뒤 화면이 같이 스크롤되지 않게 잠근다. 안 그러면 모달 위에서
+       휠을 굴렸을 때 뒤가 움직여서, 닫고 나면 엉뚱한 자리에 와 있다. */
+    document.body.classList.toggle('sup-modal-open', !!certModal);
+  }
+
   function certModalHtml() {
     if (!certModal) return '';
     const c = certModal.cert;
     const ex = certModal.exam;
+
+    /* ── 민간·해외 자격은 시험일정 칸을 아예 안 그린다 (사용자 지시 2026-09-11) ──
+       종목코드가 없는 30종(ADsP·AWS SAA·CFA·AFPK …)은 **국가자격이 아니다.**
+       국가자격 시험일정 API 에 있을 수가 없고, 민간자격 시험일정을 모아 주는 공개
+       API 도 없다(직능원 민간자격 정보는 등록정보만 주고 일정은 없다. 해외자격은
+       국내 등록 자체가 없다). 그래서 "못 찾았어요" 를 띄우는 대신 칸을 안 만든다 —
+       찾다 실패한 것처럼 보이는 문구는 사용자가 할 수 있는 일이 없는 말이다.
+       같은 이유로 **큐넷 버튼도 안 붙인다.** 큐넷은 국가자격 창구라 민간자격
+       지원자를 보내면 헛걸음시킨다. */
+    const national = !!c.code;
 
     const rows = [
       ['시행기관', c.issuer || null],
@@ -262,22 +292,18 @@ window.SpecUp = (() => {
               ${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}
             </dl>
 
-            <div class="sup-modal-sec">
+            ${national ? `<div class="sup-modal-sec">
               <div class="modal-label">올해 시험 일정</div>
               ${examBlock(ex)}
-            </div>
+            </div>` : ''}
 
-            <p class="jd-hint" style="margin:14px 0 0">
-              시험 과목·응시 자격·수수료 같은 자세한 내용은 큐넷 원문에서 확인하세요.
-              우리가 가진 자료에는 그 설명이 없어서 옮겨 적지 않았습니다.
-            </p>
 
-            <div class="sup-modal-actions">
+            ${national ? `<div class="sup-modal-actions">
               <a class="btn-brand" href="https://www.q-net.or.kr/rcv001.do" target="_blank" rel="noopener">
                 <i class="ti ti-external-link"></i> 신청하러 가기
               </a>
               <a class="wf-btn" href="https://www.q-net.or.kr" target="_blank" rel="noopener">큐넷에서 상세 보기</a>
-            </div>
+            </div>` : ''}
           </div>
         </div>
       </div>`;
@@ -293,19 +319,31 @@ window.SpecUp = (() => {
     const item = (ex.items || [])[0];
     if (!item) return `<div class="sup-foot-muted">일정을 찾지 못했어요.</div>`;
     if (!item.matched) return `<div class="sup-foot-muted">${esc(item.note || '국가자격 일정표에 없는 종목이에요.')}</div>`;
-    const r = item.round;
-    if (!r) return `<div class="sup-foot-muted">올해 남은 회차가 없어요. 다음 해 일정이 나오면 여기에 표시됩니다.</div>`;
+    /* ── 지난 회차도 보여준다 (사용자 지시 2026-09-11) ──────────────────────
+       예전에는 '지금 신청할 수 있는 회차' 하나만 보여줬다. 그런데 이 자리는
+       **올해 시험이 어떻게 돌아가는지**를 보는 곳이라, 끝난 회차도 알아야
+       "다음은 언제쯤" 을 가늠할 수 있다. 서버가 all 로 올해 전체를 준다.
+       all 이 없는 옛 응답이면 round 하나만 쓴다(하위호환). */
+    const list = (item.all && item.all.length) ? item.all : (item.round ? [item.round] : []);
+    if (!list.length) return `<div class="sup-foot-muted">올해 일정이 아직 공개되지 않았어요.</div>`;
 
+    return list.map(r => roundBlock(r, r === item.round || (item.round && r.regStart === item.round.regStart))).join('');
+  }
+
+  /* 회차 하나. 끝난 회차는 흐리게 둔다 — 지워 버리면 흐름이 안 보이고, 똑같이 두면
+     지금 신청할 수 있는 것과 구분이 안 된다. */
+  function roundBlock(r, isNow) {
     const line = (label, value, extra) => value
       ? `<div class="sup-sched-row"><span>${esc(label)}</span><b>${esc(value)}</b>${extra || ''}</div>`
       : '';
     const reg = r.regStart && r.regEnd ? `${r.regStart} ~ ${r.regEnd}` : (r.regStart || r.regEnd || '');
     const exam = r.examStart && r.examEnd && r.examStart !== r.examEnd
       ? `${r.examStart} ~ ${r.examEnd}` : (r.examStart || '');
+    const done = r.phase === 'closed';
 
     return `
-      <div class="sup-sched">
-        <div class="sup-sched-head">${esc(roundLabel(r))}</div>
+      <div class="sup-sched${done ? ' is-done' : ''}">
+        <div class="sup-sched-head">${esc(roundLabel(r))}${done ? ' <span class="sup-sched-done">접수 마감</span>' : ''}</div>
         ${line('원서 접수', reg,
           r.phase === 'open' ? `<span class="sup-dday">${dday(r.daysToRegEnd, { verb: '마감' })}</span>` :
           r.phase === 'upcoming' ? `<span class="sup-dday is-wait">${r.daysToRegStart}일 뒤</span>` : '')}
@@ -494,12 +532,7 @@ window.SpecUp = (() => {
   function certTab(resolved) {
     /* 판정이 안 되는 상태(로그인 전·스펙 없음)에서는 둘러보기만 준다.
        추천을 보려면 스펙이 필요하다는 안내는 한 줄로 붙인다 — 자물쇠로 막지 않는다. */
-    if (!resolved || !resolved.ok) {
-      requestCatalog();
-      return notice('🔒', '내게 부족한 자격증을 보려면 스펙이 필요해요',
-        '로그인하고 스펙을 입력하면 선배와 비교해 알려드려요. 그전에도 아래에서 자격증을 둘러볼 수 있어요.')
-        + certBrowse();
-    }
+    if (!resolved || !resolved.ok) { requestCatalog(); return certBrowse(); }
     const ctx = resolved.ctx;
     const G = window.Gap;
     const state = G ? G.gapContext(ctx) : { ok: false };
@@ -726,8 +759,6 @@ window.SpecUp = (() => {
         onclick="SpecUp.setCertField('${esc(f).replace(/'/g, '&#39;')}')">${esc(f)} <b>${n}</b></button>`).join('');
 
     return `
-      ${notice('🔎', '국가자격 ' + (catalog.certs.length).toLocaleString() + '종을 둘러보세요',
-        '선배 스펙이 쌓이면 여기에 "내게 부족한 자격증"이 먼저 뜹니다. 그때까지는 전체 목록을 분야로 추려 보세요.', true)}
       <div class="sup-certbar">
         <label class="sup-certsearch">
           <i class="ti ti-search"></i>

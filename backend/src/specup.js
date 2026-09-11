@@ -342,8 +342,23 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
        놓치므로 다음 해를 한 번 더 본다. 다음 해가 아직 미공개면(실측: 2027년
        0건) 그 사실을 그대로 적는다. */
     let picked = null, pickedYear = yr;
+    /* ── 올해 회차는 지난 것까지 전부 (사용자 지시 2026-09-11) ─────────────────
+       카드는 '지금 신청할 수 있는 회차' 하나만 필요하지만, 상세 모달은 **올해 시험이
+       어떻게 돌아가는지**를 보여주는 자리다. 이미 끝난 회차도 알아야 "다음은 언제쯤"
+       을 가늠할 수 있다. round(고른 하나)는 그대로 두고 all 을 따로 싣는다 —
+       카드 쪽 판단을 건드리지 않으려고 필드를 나눴다. */
+    let all = [];
     for (const y of [yr, yr + 1]) {
       const rounds = await fetchCert(meta.code, y);
+      if (y === yr) {
+        all = stagesOf(rounds, today)
+          .filter(s => s.stage === '필기')
+          .sort((a, b) => String(a.regStart || a.examStart || '')
+            .localeCompare(String(b.regStart || b.examStart || '')))
+          .map(s => ({ ...s, year: y,
+            daysToRegEnd: daysUntil(s.regEnd, today),
+            daysToRegStart: daysUntil(s.regStart, today) }));
+      }
       const live = stagesOf(rounds, today)
         /* ── 실기는 빼고 필기만 본다 ─────────────────────────────
            실기 원서접수는 **필기 합격자만** 할 수 있다. 이 화면은 '아직 없는
@@ -361,6 +376,7 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
 
     items.push({
       name, code: meta.code, matched: true,
+      all,                      // 올해 필기 회차 전부(지난 것 포함) — 상세 모달이 쓴다
       round: picked && {
         ...picked,
         year: pickedYear,

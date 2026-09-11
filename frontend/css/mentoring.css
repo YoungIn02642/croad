@@ -1235,3 +1235,24 @@ button.sup-card--btn:hover {
 .sup-modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 .sup-modal-actions .btn-brand,
 .sup-modal-actions .wf-btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+
+/* ── 모달을 body 에 붙인 뒤 (2026-09-11) ────────────────────────────────────
+   `.page` 의 등장 애니메이션(transform)이 position:fixed 를 가둬서, 모달이 화면이
+   아니라 페이지 한가운데에 섰다. 이제 #sup-modal-host 가 body 바로 아래에 있다. */
+#sup-modal-host .modal-overlay { z-index: 1200; }
+/* 내용이 길면 모달 안에서만 스크롤한다 — 모달이 화면 밖으로 넘치면 버튼이 안 보인다. */
+#sup-modal-host .modal { max-height: 88vh; display: flex; flex-direction: column; }
+#sup-modal-host .modal-body { overflow-y: auto; }
+/* 모달이 떠 있는 동안 뒤 화면은 멈춘다. 안 그러면 휠을 굴렸을 때 뒤가 움직여서
+   닫고 나면 엉뚱한 자리에 와 있다. */
+body.sup-modal-open { overflow: hidden; }
+
+/* 회차가 여럿이면 사이를 벌린다. 끝난 회차는 흐리게 — 지워 버리면 흐름이 안 보이고,
+   똑같이 두면 지금 신청할 수 있는 것과 구분이 안 된다. */
+.sup-sched + .sup-sched { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--color-border-tertiary); }
+.sup-sched.is-done { opacity: .55; }
+.sup-sched-done {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px;
+  background: var(--color-background-secondary); color: var(--color-text-tertiary);
+  font-size: 11px; font-weight: 700;
+}

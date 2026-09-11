@@ -626,19 +626,26 @@ window.SpecForm = (() => {
       .map(x => `<option value="${x.id}" ${r.test === x.id ? 'selected' : ''}>${escapeHtml(x.label)}</option>`)
       .join('');
 
-    const levelField = t
-      ? `<select data-foreign-i="${i}" data-foreign-field="level">
+    /* ── 점수제 시험이 섞여 있다 (사용자 지적 2026-09-11) ──────────────────────
+       JPT 는 990점 만점이라 등급 목록을 만들 수 없다. 시험마다 kind 를 보고 칸을 바꾼다.
+       kind 가 없으면 예전처럼 등급으로 본다(기존 7종은 전부 등급제다). */
+    const levelField = !t
+      ? `<select disabled><option>시험을 먼저 고르세요</option></select>`
+      : t.kind === 'score'
+        ? `<input type="number" min="0" max="${t.max}" inputmode="numeric"
+             data-foreign-i="${i}" data-foreign-field="level"
+             value="${escapeHtml(r.level ?? '')}" placeholder="${escapeHtml(t.placeholder || '')}" />`
+        : `<select data-foreign-i="${i}" data-foreign-field="level">
            <option value="">등급 선택</option>
            ${t.levels.map(l => `<option value="${escapeHtml(l)}" ${r.level === l ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
-         </select>`
-      : `<select disabled><option>시험을 먼저 고르세요</option></select>`;
+         </select>`;
 
     return `<div class="sf-lang-row">
         <select data-foreign-i="${i}" data-foreign-field="test">
           <option value="">시험 선택</option>${opts}
         </select>
         ${levelField}
-        <span class="sf-lang-unit">${t ? '등급' : ''}</span>
+        <span class="sf-lang-unit">${t ? (t.kind === 'score' ? '점' : '등급') : ''}</span>
         <button type="button" class="sf-act-remove" data-foreign-remove data-foreign-i="${i}" title="삭제"><i class="ti ti-x"></i></button>
       </div>`;
   }

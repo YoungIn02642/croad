@@ -279,6 +279,67 @@ function stagesOf(rounds, today) {
   return out;
 }
 
+/* ── 회차 그대로 (상세 모달용) ────────────────────────────────
+   같은 회차가 **두 줄로 오는 경우가 있다** — 정기접수와 빈자리접수(실측: 기사 제3회).
+   회차 이름(label)이 같으므로 그걸로 묶고, 비어 있는 쪽(doc/prac)을 서로 채운다.
+   안 묶으면 탭이 '2회' 두 개가 된다.
+
+   회차 전체의 상태는 **아직 남은 단계가 있으면 그 단계를 따른다.** 필기가 끝났어도
+   실기가 남았으면 그 회차는 진행 중이다 — 통째로 '지난 회차' 로 접어 버리면
+   실기 접수를 놓친다. */
+function roundsOf(rounds, today, year) {
+  const byLabel = new Map();
+  for (const r of rounds) {
+    const key = r.label || `seq:${r.seq}`;
+    const prev = byLabel.get(key);
+    if (!prev) { byLabel.set(key, { ...r }); continue; }
+    if (!prev.doc && r.doc) prev.doc = r.doc;
+    if (!prev.prac && r.prac) prev.prac = r.prac;
+  }
+
+  /* ── 필기가 없는 회차는 뺀다 (실측 2026-09-11) ───────────────────────────
+     실측: 3D프린터운용기능사에 **'제0회'** 가 끼어 있었다. 필기가 없고 실기만 있는
+     회차인데(실기 접수 5/11~5/14), 화면 탭에는 '0회' 로 떠서 1·2회와 3·4회 사이에
+     앉았다 — 사용자가 "이건 왜 0회지" 라고 묻는 자리다.
+     이 표는 **필기 → 실기 흐름**으로 짜여 있고, 실기 원서접수는 필기 합격자만 할 수
+     있다(이 파일 위쪽 주석의 원칙). 그래서 필기가 없는 회차는 '지금 이 자격을 따려면
+     언제 신청하나' 에 답하지 못한다.
+     다만 **필기 회차가 하나도 없는 종목**(실기만 시행)이라면 그마저 지우면 화면이
+     "일정이 없다" 가 되므로, 그때는 그대로 둔다. */
+  const values = [...byLabel.values()];
+  const hasDoc = values.filter(r => r.doc);
+  const kept = hasDoc.length ? hasDoc : values;
+
+  return kept.map(r => {
+    const doc = r.doc ? { ...r.doc, phase: phaseOf(r.doc, today) } : null;
+    const prac = r.prac ? { ...r.prac, phase: phaseOf(r.prac, today) } : null;
+    /* 지금 눈여겨볼 단계 — 접수중 > 접수예정 > 시험대기 순. 둘 다 끝났으면 closed. */
+    const live = [doc, prac].filter(Boolean)
+      .filter(s => s.phase !== 'closed')
+      .sort((a, b) => PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase])[0] || null;
+    return {
+      seq: r.seq, label: r.label, year,
+      doc, prac,
+      phase: live ? live.phase : 'closed',
+      daysToRegEnd:   live ? daysUntil(live.regEnd, today) : null,
+      daysToRegStart: live ? daysUntil(live.regStart, today) : null,
+    };
+  }).sort((a, b) => {
+    /* ── 접수일만으로는 순서가 안 갈린다 (실측 2026-09-11) ────────────────────
+       공인노무사 35회는 **2차와 3차의 접수 기간이 같다**(둘 다 7/13~7/20). 그래서
+       접수일로만 세우면 원본 순서가 그대로 남아 탭이 '1차 · 3차 · 2차' 로 떴다.
+       시험일을 보조 기준으로 둔다(2차 8/29 < 3차 11/27). 그것도 같으면 마지막으로
+       회차·차수 번호로 가른다 — 셋 다 같은 일은 없다고 보지만, 있어도 뒤집히지 않게. */
+    const reg = x => String(x.doc?.regStart || x.prac?.regStart || '');
+    const exam = x => String(x.doc?.examStart || x.prac?.examStart || '');
+    const num = x => {
+      const m = /제\s*(\d+)\s*회|(\d+)\s*차/.exec(x.label || '');
+      return Number(m && (m[1] || m[2])) || 0;
+    };
+    return reg(a).localeCompare(reg(b)) || exam(a).localeCompare(exam(b)) || (num(a) - num(b));
+  });
+}
+
 /* 자격증 이름 목록 → 각 자격의 **지금 할 수 있는 단계 하나**.
    접수중 > 접수예정 > 시험대기 순으로 하나만 고른다. 회차를 다 늘어놓으면 화면이
    표가 되고, 학생이 지금 눌러야 할 것이 무엇인지 흐려진다.
@@ -342,8 +403,16 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
        놓치므로 다음 해를 한 번 더 본다. 다음 해가 아직 미공개면(실측: 2027년
        0건) 그 사실을 그대로 적는다. */
     let picked = null, pickedYear = yr;
+    /* ── 올해 회차를 통째로 (사용자 지시 2026-09-11) ──────────────────────────
+       카드는 '지금 신청할 수 있는 단계' 하나만 필요하지만, 상세 모달은 **한 회차가
+       필기 접수부터 최종 발표까지 어떻게 흘러가는지**를 보여주는 자리다(네이버 자격증
+       일정과 같은 모양). 그래서 stagesOf 로 납작하게 펴지 않고 회차 그대로 싣는다 —
+       펴 버리면 '이 필기와 저 실기가 같은 회차' 라는 관계가 사라진다.
+       round(고른 하나)는 그대로 둔다. 카드 쪽 판단을 건드리지 않으려고 필드를 나눴다. */
+    let allRounds = [];
     for (const y of [yr, yr + 1]) {
       const rounds = await fetchCert(meta.code, y);
+      if (y === yr) allRounds = roundsOf(rounds, today, y);
       const live = stagesOf(rounds, today)
         /* ── 실기는 빼고 필기만 본다 ─────────────────────────────
            실기 원서접수는 **필기 합격자만** 할 수 있다. 이 화면은 '아직 없는
@@ -361,6 +430,7 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
 
     items.push({
       name, code: meta.code, matched: true,
+      rounds: allRounds,        // 올해 회차 전부(지난 것 포함) — 상세 모달이 쓴다
       round: picked && {
         ...picked,
         year: pickedYear,
@@ -682,7 +752,7 @@ function toActivity(p) {
 module.exports = {
   certSchedules, youthActivities,
   // 테스트·점검 스크립트가 쓰는 조각들
-  phaseOf, daysUntil, ymd, toRound, stagesOf, toActivity, codeOf, parseItems, gatewayError, disqOf,
+  phaseOf, daysUntil, ymd, toRound, stagesOf, roundsOf, toActivity, codeOf, parseItems, gatewayError, disqOf,
   regionOf, SIDO_BY_ZIP,
   ACTIVITY_TOPICS, EXAM_API, EXAM_APPLY_URL, YOUTH_APPLY_URL, EXAM_PER_PAGE,
 };

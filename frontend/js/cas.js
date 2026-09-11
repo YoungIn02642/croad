@@ -96,10 +96,26 @@
   /* 제2외국어 — 점수가 아니라 등급으로만 받는다.
      CAS 어학 점수는 영어 기준(langIndex)이라 여기 값은 **점수에 반영되지 않는다**.
      프로필·비교 화면에 보여주기 위한 기록용이며, 반영하려면 별도 배점 설계가 필요하다. */
+  /* ── 시험마다 받는 모양이 다르다 (사용자 지적 2026-09-11) ────────────────────
+     처음에는 전부 등급제로 두고 `levels` 만 받았다. 그런데 **JPT 는 990점 만점 점수제**라
+     등급 목록을 만들 수가 없다. 그래서 LANG_TESTS 와 같은 `kind` 를 둔다 —
+       kind:'level'  → levels 중에서 고른다 (없으면 기본값이 'level' 이다)
+       kind:'score'  → max 까지의 점수를 적는다
+     회화시험(SJPT·TSC·OPIc)은 영어 OPIc 과 같은 NH~AL 등급 체계를 쓴다. */
+  const OPIC_LEVELS = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
+
   const FOREIGN_TESTS = [
+    // 일본어
     { id: 'jlpt',    label: 'JLPT (일본어)',        levels: ['N5', 'N4', 'N3', 'N2', 'N1'] },
+    { id: 'jpt',     label: 'JPT (일본어)',         kind: 'score', max: 990, placeholder: '예: 800' },
+    { id: 'sjpt',    label: 'SJPT (일본어 말하기)', levels: OPIC_LEVELS },
+    { id: 'opicJa',  label: 'OPIc 일본어',          levels: OPIC_LEVELS },
+    // 중국어
     { id: 'hsk',     label: 'HSK (중국어)',         levels: ['1급', '2급', '3급', '4급', '5급', '6급'] },
     { id: 'hskk',    label: 'HSKK (중국어 회화)',   levels: ['초급', '중급', '고급'] },
+    { id: 'tsc',     label: 'TSC (중국어 말하기)',  levels: ['1급', '2급', '3급', '4급', '5급', '6급', '7급', '8급', '9급', '10급'] },
+    { id: 'opicZh',  label: 'OPIc 중국어',          levels: OPIC_LEVELS },
+    // 그 밖
     { id: 'delf',    label: 'DELF·DALF (프랑스어)', levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
     { id: 'dele',    label: 'DELE (스페인어)',      levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
     { id: 'goethe',  label: 'Goethe-Zertifikat (독일어)', levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },

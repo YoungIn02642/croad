@@ -1191,3 +1191,113 @@ a.sup-card:hover .sup-card-cta { color: var(--brand); background: var(--brand-so
 .sup-page.is-off { color: var(--wf-hairline); cursor: default; }
 .sup-page.is-gap { border: 0; background: none; color: var(--wf-mute); cursor: default; min-width: 18px; }
 .sup-pager-n { margin-left: 8px; font-size: 12px; color: var(--wf-mute); }
+
+/* ── 자격증 둘러보기 · 상세 모달 (사용자 지시 2026-09-11) ──────────────────
+   선배 스펙이 없어 추천이 안 될 때, 카탈로그를 펼쳐 두는 화면이다. */
+.sup-certbar { margin-bottom: 16px; }
+.sup-certsearch {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; margin-bottom: 12px;
+  border: 1px solid var(--color-border-tertiary); border-radius: 12px; background: #fff;
+}
+.sup-certsearch i { color: var(--color-text-tertiary); font-size: 17px; }
+.sup-certsearch input { flex: 1; border: 0; outline: 0; font: inherit; font-size: 14px; background: none; }
+
+/* 카드가 링크가 아니라 버튼일 때(모달을 연다). a.sup-card 와 같은 반응을 준다 —
+   생김새가 같은데 하나만 안 떠오르면 누를 수 있는지 없는지 알 수 없다. */
+button.sup-card--btn { text-align: left; padding: 0; cursor: pointer; font: inherit; width: 100%; }
+button.sup-card--btn:hover {
+  transform: translateY(-4px); border-color: transparent;
+  box-shadow: 0 16px 34px rgba(20,20,40,.12), 0 3px 10px rgba(20,20,40,.06);
+}
+
+.sup-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 22px; }
+.sup-pager-now { font-size: 13px; color: var(--color-text-secondary); font-weight: 600; }
+
+/* 모달 안의 '항목 — 값' 목록. 값이 없는 항목은 아예 안 그린다(specup.js) —
+   '정보 없음' 을 줄줄이 적으면 빈 표를 보여주는 셈이다. */
+.sup-deflist { display: flex; flex-direction: column; gap: 10px; margin: 0 0 20px; }
+.sup-deflist > div { display: flex; gap: 12px; align-items: baseline; }
+.sup-deflist dt { flex: none; width: 76px; font-size: 12.5px; color: var(--color-text-tertiary); font-weight: 600; }
+.sup-deflist dd { margin: 0; font-size: 14px; color: var(--color-text-primary); }
+
+.sup-modal-sec { border-top: 1px solid var(--color-border-tertiary); padding-top: 16px; }
+.sup-sched { margin-top: 10px; }
+.sup-sched-head { font-size: 12.5px; color: var(--color-text-secondary); margin-bottom: 8px; font-weight: 600; }
+.sup-sched-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--color-border-tertiary); font-size: 13.5px;
+}
+.sup-sched-row:last-child { border-bottom: 0; }
+.sup-sched-row > span:first-child { width: 76px; flex: none; color: var(--color-text-tertiary); font-size: 12.5px; }
+.sup-sched-row > b { font-weight: 700; }
+
+.sup-modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.sup-modal-actions .btn-brand,
+.sup-modal-actions .wf-btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+
+/* ── 모달을 body 에 붙인 뒤 (2026-09-11) ────────────────────────────────────
+   `.page` 의 등장 애니메이션(transform)이 position:fixed 를 가둬서, 모달이 화면이
+   아니라 페이지 한가운데에 섰다. 이제 #sup-modal-host 가 body 바로 아래에 있다. */
+#sup-modal-host .modal-overlay { z-index: 1200; }
+/* 내용이 길면 모달 안에서만 스크롤한다 — 모달이 화면 밖으로 넘치면 버튼이 안 보인다. */
+#sup-modal-host .modal { max-height: 88vh; display: flex; flex-direction: column; }
+#sup-modal-host .modal-body { overflow-y: auto; }
+/* 모달이 떠 있는 동안 뒤 화면은 멈춘다. 안 그러면 휠을 굴렸을 때 뒤가 움직여서
+   닫고 나면 엉뚱한 자리에 와 있다. */
+body.sup-modal-open { overflow: hidden; }
+
+/* 회차가 여럿이면 사이를 벌린다. 끝난 회차는 흐리게 — 지워 버리면 흐름이 안 보이고,
+   똑같이 두면 지금 신청할 수 있는 것과 구분이 안 된다. */
+.sup-sched + .sup-sched { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--color-border-tertiary); }
+.sup-sched.is-done { opacity: .55; }
+.sup-sched-done {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px;
+  background: var(--color-background-secondary); color: var(--color-text-tertiary);
+  font-size: 11px; font-weight: 700;
+}
+
+/* ── 회차 탭 + 단계 표 (2026-09-11) ──────────────────────────────────────────
+   네이버 자격증 일정과 같은 모양. 회차를 탭으로 고르고 고른 회차만 표로 본다. */
+.sup-rtabs {
+  display: flex; gap: 4px; margin: 10px 0 4px;
+  /* 상시시험 종목은 회차가 41개다 — 줄바꿈하면 탭이 화면 절반을 먹는다.
+     한 줄로 두고 옆으로 흘린다(선택된 탭은 열 때 가운데로 끌어온다). */
+  overflow-x: auto; scrollbar-width: thin;
+}
+.sup-rtabs::-webkit-scrollbar { height: 6px; }
+.sup-rtabs::-webkit-scrollbar-thumb { background: var(--color-border-tertiary); border-radius: 99px; }
+.sup-rtab { flex: none; }
+.sup-rtab {
+  padding: 7px 12px; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--color-text-tertiary);
+  border-bottom: 2px solid transparent;
+}
+.sup-rtab:hover { color: var(--color-text-secondary); }
+.sup-rtab.on { color: var(--color-text-primary); font-weight: 800; border-bottom-color: var(--color-text-primary); }
+/* 지난 회차는 탭에서도 흐리다 — 고르기 전에 '끝난 것' 임을 알 수 있어야 한다. */
+.sup-rtab.is-done { opacity: .5; }
+.sup-rtab.is-done.on { opacity: .8; }
+
+.sup-round { padding-top: 10px; }
+.sup-round.is-done { opacity: .62; }
+.sup-round-head { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+
+.sup-schedtable { width: 100%; border-collapse: collapse; }
+.sup-schedtable th,
+.sup-schedtable td {
+  padding: 10px 0; border-bottom: 1px solid var(--color-border-tertiary);
+  text-align: left; vertical-align: middle;
+}
+.sup-schedtable tr:last-child th,
+.sup-schedtable tr:last-child td { border-bottom: 0; }
+.sup-schedtable th {
+  width: 150px; font-size: 12.5px; font-weight: 600; color: var(--color-text-tertiary);
+}
+.sup-schedtable td { font-size: 13.5px; font-weight: 600; }
+.sup-schedtable td:last-child { width: 88px; text-align: right; font-weight: 400; }
+
+/* 어학 탭 안의 구획 제목(제2외국어). 카드 격자 사이를 갈라 준다. */
+.sup-subhead {
+  margin: 26px 0 12px; font-size: 14px; font-weight: 800; color: var(--color-text-primary);
+}

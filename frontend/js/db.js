@@ -157,6 +157,13 @@ window.DB = (() => {
   const specupActivities = topic => specupFetch(
     `/api/specup/activities?topic=${encodeURIComponent(topic || 'contest')}`);
 
+  /* 자격증 전체 목록(643종). 스펙업 '둘러보기' 가 한 번 받아 들고 쓴다 —
+     이름·구분·분야·시행기관만 담긴 가벼운 목록이라 통째로 받아도 된다.
+     specupFetch 와 달리 실패를 던진다: 호출부가 오류 문구를 화면에 적는다. */
+  async function certCatalog() {
+    return api('GET', '/api/certs');
+  }
+
   /* 학과 검색. 회사명(suggestCompanies)·자격증(suggestCerts)과 같은 규약이다 —
      입력할 때마다 부르고(호출부가 debounce), { items } 를 받아 드롭다운에 그린다.
      실패는 빈 목록으로 삼켜서 자동완성만 안 뜨고 직접 입력은 계속되게 한다. */
@@ -605,7 +612,7 @@ window.DB = (() => {
     mentors,
     analyzeCas, casFit, specFingerprint, coachJd, draftJd, motiveJd, guideJd, jdPromptTemplate, companyAnalysis, companyBusiness, companyIndustryTree, jdPosting, jdPostingImage, jdGuideSearch, jdGuide,
     donationMeta, donate, donationStats, donationsMine,
-    specupExams, specupActivities,
+    specupExams, specupActivities, certCatalog,
     insightCategories, insightFeatured, listInsights, getInsight, createInsight, updateInsight, deleteInsight,
     copyInsightPrompt, bookmarkInsight, rateInsight,
     addInsightComment, deleteInsightComment,

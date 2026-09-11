@@ -63,6 +63,8 @@ window.SpecUp = (() => {
   /* 모달에서 보고 있는 자격증. 일정은 그때 따로 받는다(목록 전체를 미리 받으면
      개발계정 하루 1,000건이 한 화면에 날아간다). */
   let certModal = null;                 // null | { cert, exam: null|{loading}|응답 }
+  /* 모달에서 고른 회차 탭. null 이면 '다가오는 회차' 를 자동으로 연다. */
+  let certRound = null;
   let lastCtx = null;                   // 마지막으로 판정된 ctx (둘러보기 카드의 '보유' 배지용)
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
@@ -319,37 +321,69 @@ window.SpecUp = (() => {
     const item = (ex.items || [])[0];
     if (!item) return `<div class="sup-foot-muted">일정을 찾지 못했어요.</div>`;
     if (!item.matched) return `<div class="sup-foot-muted">${esc(item.note || '국가자격 일정표에 없는 종목이에요.')}</div>`;
-    /* ── 지난 회차도 보여준다 (사용자 지시 2026-09-11) ──────────────────────
-       예전에는 '지금 신청할 수 있는 회차' 하나만 보여줬다. 그런데 이 자리는
-       **올해 시험이 어떻게 돌아가는지**를 보는 곳이라, 끝난 회차도 알아야
-       "다음은 언제쯤" 을 가늠할 수 있다. 서버가 all 로 올해 전체를 준다.
-       all 이 없는 옛 응답이면 round 하나만 쓴다(하위호환). */
-    const list = (item.all && item.all.length) ? item.all : (item.round ? [item.round] : []);
-    if (!list.length) return `<div class="sup-foot-muted">올해 일정이 아직 공개되지 않았어요.</div>`;
+    /* ── 회차 탭 + 단계 표 (사용자 지시 2026-09-11) ─────────────────────────
+       네이버 자격증 일정과 같은 모양이다. 회차를 탭으로 고르고, 고른 회차의
+       필기 접수 → 필기 → 필기 발표 → 실기 접수 → 실기 → 최종 발표를 한 표로 본다.
+       예전에는 회차를 세로로 다 늘어놔서, 지난 회차가 위에 쌓이고 정작 다가오는
+       회차가 한참 아래에 있었다.
 
-    return list.map(r => roundBlock(r, r === item.round || (item.round && r.regStart === item.round.regStart))).join('');
-  }
+       ── 기본으로 여는 탭은 '다가오는 회차' 다 ──
+       1회가 끝났고 2회가 다가오면 2회가 열려 있어야 한다. 지난 회차를 먼저 보여주면
+       "이미 끝난 시험" 을 화면 첫 줄에서 읽게 된다. 지난 회차는 탭으로 골라서
+       볼 수 있고, 고르면 흐리게 + '지난 회차' 로 표시된다. */
+    const rounds = item.rounds || [];
+    if (!rounds.length) return `<div class="sup-foot-muted">올해 일정이 아직 공개되지 않았어요.</div>`;
 
-  /* 회차 하나. 끝난 회차는 흐리게 둔다 — 지워 버리면 흐름이 안 보이고, 똑같이 두면
-     지금 신청할 수 있는 것과 구분이 안 된다. */
-  function roundBlock(r, isNow) {
-    const line = (label, value, extra) => value
-      ? `<div class="sup-sched-row"><span>${esc(label)}</span><b>${esc(value)}</b>${extra || ''}</div>`
-      : '';
-    const reg = r.regStart && r.regEnd ? `${r.regStart} ~ ${r.regEnd}` : (r.regStart || r.regEnd || '');
-    const exam = r.examStart && r.examEnd && r.examStart !== r.examEnd
-      ? `${r.examStart} ~ ${r.examEnd}` : (r.examStart || '');
+    const liveIdx = rounds.findIndex(r => r.phase !== 'closed');
+    const idx = Math.min(certRound ?? (liveIdx >= 0 ? liveIdx : rounds.length - 1), rounds.length - 1);
+    const r = rounds[idx];
     const done = r.phase === 'closed';
 
+    const tabs = rounds.map((x, i) => `<button type="button"
+      class="sup-rtab${i === idx ? ' on' : ''}${x.phase === 'closed' ? ' is-done' : ''}"
+      onclick="SpecUp.setCertRound(${i})">${esc(roundShort(x))}</button>`).join('');
+
+    /* 값이 없는 줄은 그리지 않는다 — 한쪽만 오는 회차가 흔하다(필기만 · 실기만). */
+    const row = (label, a, b, extra) => {
+      const v = a && b && a !== b ? `${a} ~ ${b}` : (a || b || '');
+      return v ? `<tr><th>${esc(label)}</th><td>${esc(v)}</td><td>${extra || ''}</td></tr>` : '';
+    };
+    const tag = st => st && st.phase === 'open'
+      ? `<span class="sup-dday">${dday(daysTo(st.regEnd), { verb: '마감' })}</span>`
+      : (st && st.phase === 'upcoming' ? `<span class="sup-dday is-wait">접수 예정</span>` : '');
+
+    const d = r.doc, p = r.prac;
     return `
-      <div class="sup-sched${done ? ' is-done' : ''}">
-        <div class="sup-sched-head">${esc(roundLabel(r))}${done ? ' <span class="sup-sched-done">접수 마감</span>' : ''}</div>
-        ${line('원서 접수', reg,
-          r.phase === 'open' ? `<span class="sup-dday">${dday(r.daysToRegEnd, { verb: '마감' })}</span>` :
-          r.phase === 'upcoming' ? `<span class="sup-dday is-wait">${r.daysToRegStart}일 뒤</span>` : '')}
-        ${line('시험', exam)}
-        ${line('합격 발표', r.passDt)}
+      <div class="sup-rtabs">${tabs}</div>
+      <div class="sup-round${done ? ' is-done' : ''}">
+        <div class="sup-round-head">${esc(r.label || '')}${done ? ' <span class="sup-sched-done">지난 회차</span>' : ''}</div>
+        <table class="sup-schedtable">
+          <tbody>
+            ${row('필기시험 원서접수', d?.regStart, d?.regEnd, tag(d))}
+            ${row('필기시험', d?.examStart, d?.examEnd)}
+            ${row('필기시험 합격자발표', d?.passDt, null)}
+            ${row('실기시험 원서접수', p?.regStart, p?.regEnd, tag(p))}
+            ${row('실기시험', p?.examStart, p?.examEnd)}
+            ${row('합격자발표', p?.passDt, null)}
+          </tbody>
+        </table>
       </div>`;
+  }
+
+  /* '국가기술자격 기사 (2026년도 제3회)' → '3회'. 탭에 회차 이름을 통째로 넣으면
+     한 줄에 하나도 못 들어간다. 못 읽으면 순번으로 둔다. */
+  function roundShort(r) {
+    const m = /제\s*(\d+)\s*회/.exec(r.label || '');
+    return m ? `${m[1]}회` : (r.seq ? `${r.seq}회` : '회차');
+  }
+
+  /* 서버가 준 daysTo* 는 '지금 눈여겨볼 단계' 기준이라, 표의 각 줄에는 맞지 않는다.
+     줄마다 그 날짜로 다시 센다. */
+  function daysTo(dateStr) {
+    if (!dateStr) return null;
+    const a = Date.parse(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+    const b = Date.parse(dateStr + 'T00:00:00Z');
+    return Number.isNaN(b) ? null : Math.round((b - a) / 86400000);
   }
 
   function openCertModal(name) {
@@ -357,6 +391,7 @@ window.SpecUp = (() => {
     const cert = all.find(c => c.id === name);
     if (!cert) return;
     certModal = { cert, exam: { loading: true } };
+    certRound = null;                            // 종목이 바뀌면 탭 선택도 처음으로
     render();
 
     const seq = ++examSeq;                       // 목록 쪽 요청과 같은 번호를 쓴다(늦은 답 버리기)
@@ -725,8 +760,18 @@ window.SpecUp = (() => {
   /* 지금 조건(분야·검색)에 맞는 자격증. 정렬은 이름순 그대로 둔다 —
      '인기순' 같은 것을 만들려면 근거가 있어야 하는데, 그 근거(선배 보유율)가
      없어서 이 화면이 생긴 것이다. 없는 기준을 지어내지 않는다. */
+  /* ── 시험일정을 붙일 수 없는 자격은 목록에서 뺀다 (사용자 지시 2026-09-11) ──
+     종목코드가 없는 30종(ADsP·AWS SAA·CFA·AFPK …)은 민간·해외 자격이라 국가자격
+     시험일정 API 에 없고, 민간자격 시험일정을 모아 주는 공개 API 도 없다(직능원
+     민간자격 정보는 등록정보만 주고 일정이 없다. 해외자격은 국내 등록 자체가 없다).
+     그래서 눌러도 이름과 시행기관만 나온다 — 이 화면이 약속하는 '언제 신청하나' 에
+     답하지 못한다. 카드가 섞여 있으면 눌러 보고 나서야 알게 되므로 아예 빼 둔다.
+     (스펙 입력의 자격증 검색에는 그대로 남아 있다. 거기는 '내가 가진 것' 을 적는
+      자리라 민간자격도 필요하다.) */
+  const schedulable = c => !!c.code;
+
   function certsNow() {
-    const all = (catalog && catalog.ok) ? catalog.certs : [];
+    const all = (catalog && catalog.ok) ? catalog.certs.filter(schedulable) : [];
     const q = certQuery.trim().toLowerCase();
     return all.filter(c =>
       (!certField || c.field === certField) &&
@@ -734,7 +779,7 @@ window.SpecUp = (() => {
   }
 
   function certFields() {
-    const all = (catalog && catalog.ok) ? catalog.certs : [];
+    const all = (catalog && catalog.ok) ? catalog.certs.filter(schedulable) : [];
     const n = {};
     for (const c of all) if (c.field) n[c.field] = (n[c.field] || 0) + 1;
     return Object.entries(n).sort((a, b) => b[1] - a[1]);
@@ -766,7 +811,7 @@ window.SpecUp = (() => {
             oninput="SpecUp.setCertQuery(this.value)" />
         </label>
         <div class="sup-chipbar">
-          <button type="button" class="sup-fchip${certField ? '' : ' on'}" onclick="SpecUp.setCertField('')">전체 <b>${catalog.certs.length}</b></button>
+          <button type="button" class="sup-fchip${certField ? '' : ' on'}" onclick="SpecUp.setCertField('')">전체 <b>${catalog.certs.filter(schedulable).length}</b></button>
           ${chips}
         </div>
       </div>
@@ -1100,6 +1145,7 @@ window.SpecUp = (() => {
      render 가 innerHTML 을 통째로 갈아끼우므로 붙여 둔 핸들러가 매번 날아간다. */
   function setCertField(v) { certField = v || null; certPage = 1; render(); }
   function setCertPage(p)  { certPage = Math.max(1, p); render(); }
+  function setCertRound(i) { certRound = Math.max(0, i); render(); }
   /* 검색은 다시 그린 뒤 **커서를 되돌려 놓는다.** 안 그러면 한 글자 칠 때마다
      포커스가 빠져서 입력이 끊긴다. */
   function setCertQuery(v) {
@@ -1110,5 +1156,5 @@ window.SpecUp = (() => {
 
   return { onEnter, switchTab, setFilter, setSort, setActPage, render,
            openCert: openCertModal, closeCert: closeCertModal,
-           setCertField, setCertPage, setCertQuery };
+           setCertField, setCertPage, setCertQuery, setCertRound };
 })();

@@ -279,6 +279,42 @@ function stagesOf(rounds, today) {
   return out;
 }
 
+/* ── 회차 그대로 (상세 모달용) ────────────────────────────────
+   같은 회차가 **두 줄로 오는 경우가 있다** — 정기접수와 빈자리접수(실측: 기사 제3회).
+   회차 이름(label)이 같으므로 그걸로 묶고, 비어 있는 쪽(doc/prac)을 서로 채운다.
+   안 묶으면 탭이 '2회' 두 개가 된다.
+
+   회차 전체의 상태는 **아직 남은 단계가 있으면 그 단계를 따른다.** 필기가 끝났어도
+   실기가 남았으면 그 회차는 진행 중이다 — 통째로 '지난 회차' 로 접어 버리면
+   실기 접수를 놓친다. */
+function roundsOf(rounds, today, year) {
+  const byLabel = new Map();
+  for (const r of rounds) {
+    const key = r.label || `seq:${r.seq}`;
+    const prev = byLabel.get(key);
+    if (!prev) { byLabel.set(key, { ...r }); continue; }
+    if (!prev.doc && r.doc) prev.doc = r.doc;
+    if (!prev.prac && r.prac) prev.prac = r.prac;
+  }
+
+  return [...byLabel.values()].map(r => {
+    const doc = r.doc ? { ...r.doc, phase: phaseOf(r.doc, today) } : null;
+    const prac = r.prac ? { ...r.prac, phase: phaseOf(r.prac, today) } : null;
+    /* 지금 눈여겨볼 단계 — 접수중 > 접수예정 > 시험대기 순. 둘 다 끝났으면 closed. */
+    const live = [doc, prac].filter(Boolean)
+      .filter(s => s.phase !== 'closed')
+      .sort((a, b) => PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase])[0] || null;
+    return {
+      seq: r.seq, label: r.label, year,
+      doc, prac,
+      phase: live ? live.phase : 'closed',
+      daysToRegEnd:   live ? daysUntil(live.regEnd, today) : null,
+      daysToRegStart: live ? daysUntil(live.regStart, today) : null,
+    };
+  }).sort((a, b) => String(a.doc?.regStart || a.doc?.examStart || a.prac?.regStart || '')
+    .localeCompare(String(b.doc?.regStart || b.doc?.examStart || b.prac?.regStart || '')));
+}
+
 /* 자격증 이름 목록 → 각 자격의 **지금 할 수 있는 단계 하나**.
    접수중 > 접수예정 > 시험대기 순으로 하나만 고른다. 회차를 다 늘어놓으면 화면이
    표가 되고, 학생이 지금 눌러야 할 것이 무엇인지 흐려진다.
@@ -342,23 +378,16 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
        놓치므로 다음 해를 한 번 더 본다. 다음 해가 아직 미공개면(실측: 2027년
        0건) 그 사실을 그대로 적는다. */
     let picked = null, pickedYear = yr;
-    /* ── 올해 회차는 지난 것까지 전부 (사용자 지시 2026-09-11) ─────────────────
-       카드는 '지금 신청할 수 있는 회차' 하나만 필요하지만, 상세 모달은 **올해 시험이
-       어떻게 돌아가는지**를 보여주는 자리다. 이미 끝난 회차도 알아야 "다음은 언제쯤"
-       을 가늠할 수 있다. round(고른 하나)는 그대로 두고 all 을 따로 싣는다 —
-       카드 쪽 판단을 건드리지 않으려고 필드를 나눴다. */
-    let all = [];
+    /* ── 올해 회차를 통째로 (사용자 지시 2026-09-11) ──────────────────────────
+       카드는 '지금 신청할 수 있는 단계' 하나만 필요하지만, 상세 모달은 **한 회차가
+       필기 접수부터 최종 발표까지 어떻게 흘러가는지**를 보여주는 자리다(네이버 자격증
+       일정과 같은 모양). 그래서 stagesOf 로 납작하게 펴지 않고 회차 그대로 싣는다 —
+       펴 버리면 '이 필기와 저 실기가 같은 회차' 라는 관계가 사라진다.
+       round(고른 하나)는 그대로 둔다. 카드 쪽 판단을 건드리지 않으려고 필드를 나눴다. */
+    let allRounds = [];
     for (const y of [yr, yr + 1]) {
       const rounds = await fetchCert(meta.code, y);
-      if (y === yr) {
-        all = stagesOf(rounds, today)
-          .filter(s => s.stage === '필기')
-          .sort((a, b) => String(a.regStart || a.examStart || '')
-            .localeCompare(String(b.regStart || b.examStart || '')))
-          .map(s => ({ ...s, year: y,
-            daysToRegEnd: daysUntil(s.regEnd, today),
-            daysToRegStart: daysUntil(s.regStart, today) }));
-      }
+      if (y === yr) allRounds = roundsOf(rounds, today, y);
       const live = stagesOf(rounds, today)
         /* ── 실기는 빼고 필기만 본다 ─────────────────────────────
            실기 원서접수는 **필기 합격자만** 할 수 있다. 이 화면은 '아직 없는
@@ -376,7 +405,7 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
 
     items.push({
       name, code: meta.code, matched: true,
-      all,                      // 올해 필기 회차 전부(지난 것 포함) — 상세 모달이 쓴다
+      rounds: allRounds,        // 올해 회차 전부(지난 것 포함) — 상세 모달이 쓴다
       round: picked && {
         ...picked,
         year: pickedYear,
@@ -698,7 +727,7 @@ function toActivity(p) {
 module.exports = {
   certSchedules, youthActivities,
   // 테스트·점검 스크립트가 쓰는 조각들
-  phaseOf, daysUntil, ymd, toRound, stagesOf, toActivity, codeOf, parseItems, gatewayError, disqOf,
+  phaseOf, daysUntil, ymd, toRound, stagesOf, roundsOf, toActivity, codeOf, parseItems, gatewayError, disqOf,
   regionOf, SIDO_BY_ZIP,
   ACTIVITY_TOPICS, EXAM_API, EXAM_APPLY_URL, YOUTH_APPLY_URL, EXAM_PER_PAGE,
 };

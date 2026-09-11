@@ -1256,3 +1256,35 @@ body.sup-modal-open { overflow: hidden; }
   background: var(--color-background-secondary); color: var(--color-text-tertiary);
   font-size: 11px; font-weight: 700;
 }
+
+/* ── 회차 탭 + 단계 표 (2026-09-11) ──────────────────────────────────────────
+   네이버 자격증 일정과 같은 모양. 회차를 탭으로 고르고 고른 회차만 표로 본다. */
+.sup-rtabs { display: flex; gap: 4px; margin: 10px 0 4px; flex-wrap: wrap; }
+.sup-rtab {
+  padding: 7px 12px; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--color-text-tertiary);
+  border-bottom: 2px solid transparent;
+}
+.sup-rtab:hover { color: var(--color-text-secondary); }
+.sup-rtab.on { color: var(--color-text-primary); font-weight: 800; border-bottom-color: var(--color-text-primary); }
+/* 지난 회차는 탭에서도 흐리다 — 고르기 전에 '끝난 것' 임을 알 수 있어야 한다. */
+.sup-rtab.is-done { opacity: .5; }
+.sup-rtab.is-done.on { opacity: .8; }
+
+.sup-round { padding-top: 10px; }
+.sup-round.is-done { opacity: .62; }
+.sup-round-head { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; }
+
+.sup-schedtable { width: 100%; border-collapse: collapse; }
+.sup-schedtable th,
+.sup-schedtable td {
+  padding: 10px 0; border-bottom: 1px solid var(--color-border-tertiary);
+  text-align: left; vertical-align: middle;
+}
+.sup-schedtable tr:last-child th,
+.sup-schedtable tr:last-child td { border-bottom: 0; }
+.sup-schedtable th {
+  width: 150px; font-size: 12.5px; font-weight: 600; color: var(--color-text-tertiary);
+}
+.sup-schedtable td { font-size: 13.5px; font-weight: 600; }
+.sup-schedtable td:last-child { width: 88px; text-align: right; font-weight: 400; }

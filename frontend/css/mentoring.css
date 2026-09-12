@@ -1301,3 +1301,7 @@ body.sup-modal-open { overflow: hidden; }
 .sup-subhead {
   margin: 26px 0 12px; font-size: 14px; font-weight: 800; color: var(--color-text-primary);
 }
+
+/* 언어별 소제목 — 제2외국어 안에서 한 단계 더 들어간 구획이라 본 소제목보다 작다. */
+.sup-subhead--sm { margin: 18px 0 10px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); }
+.sup-subhead b, .sup-subhead--sm b { color: var(--color-text-tertiary); font-weight: 600; }

@@ -199,8 +199,6 @@ window.Insight = (() => {
             <i class="ti ti-x"></i> 검색 해제</button>
         </div>` : ''}
 
-      ${category === PROMPT_CAT ? promptIntroHtml() : ''}
-
       ${sortBarHtml()}
 
       <div class="insight-list">
@@ -236,38 +234,69 @@ window.Insight = (() => {
     </div>`;
   }
 
-  /* 공지는 카테고리 자리에 '공지' 배지를 놓고 줄 전체를 다르게 칠한다.
-     같은 모양에 글자만 다르면 목록을 훑을 때 그냥 지나친다. */
+  /* ── 목록 한 칸 = 카드 (사용자 지시 2026-09-13) ─────────────────────────
+     한 줄짜리 목록이었다. 제목·미리보기·글쓴이·조회수가 한 줄에 눌려 들어가서
+     좁은 화면에서는 메타가 통째로 숨고(구 .insight-row-meta 의 media query),
+     담기·북마크는 720px 아래에서 아예 사라졌다 — **프롬프트 게시판에서 제일
+     많이 누르는 두 개가 모바일에 없었다.**
+
+     카드로 바꾸면 세로로 쌓을 자리가 생긴다. 배치는 위에서 아래로
+     배지 · 제목 · 미리보기 · 글쓴이 / 바닥에 조회·댓글·담긴 수와 담기·북마크다.
+     바닥 줄을 따로 두는 이유: 숫자(읽는 것)와 버튼(누르는 것)이 섞이면 카드마다
+     어디를 눌러야 할지 다시 찾게 된다.
+
+     카드 전체가 `<button>` 이고 그 안의 담기·북마크는 `<span role="button">` 이다
+     — 버튼 안에 버튼을 넣으면 브라우저가 마크업을 고쳐서 카드 밖으로 튕겨낸다. */
   function postRowHtml(p) {
+    const stats = promptStatsHtml(p);
     return `
-      <button class="insight-row ${p.isNotice ? 'is-notice' : ''}" data-open="${esc(p.id)}">
-        <span class="insight-row-cat">${p.isNotice
-          ? '<i class="ti ti-speakerphone"></i> 공지'
-          : esc(catLabel(p.category))}</span>
-        <span class="insight-row-body">
-          <span class="insight-row-title">${esc(p.title)}
-            ${p.commentCount ? `<span class="insight-row-cc">${p.commentCount}</span>` : ''}
+      <button class="ins-card ${p.isNotice ? 'is-notice' : ''}" data-open="${esc(p.id)}">
+        <span class="ins-card-head">
+          <span class="ins-card-cat">${p.isNotice
+            ? '<i class="ti ti-speakerphone"></i> 공지'
+            : esc(catLabel(p.category))}</span>
+          <span class="ins-card-time">${esc(relTime(p.createdAt))}</span>
+        </span>
+        <span class="ins-card-title">${esc(p.title)}</span>
+        <span class="ins-card-preview">${esc(p.preview)}</span>
+        <span class="ins-card-author">${esc(p.authorName)}</span>
+        <span class="ins-card-foot">
+          <span class="ins-card-stats">
+            <span title="조회"><i class="ti ti-eye"></i> ${p.viewCount}</span>
+            <span title="댓글"><i class="ti ti-message-circle"></i> ${p.commentCount || 0}</span>
+            ${stats}
           </span>
-          <span class="insight-row-preview">${esc(p.preview)}</span>
+          ${cardActionsHtml(p)}
         </span>
-        <span class="insight-row-meta">
-          <span>${esc(p.authorName)}</span>
-          <span>${fmtDate(p.createdAt)}</span>
-          <span><i class="ti ti-eye"></i> ${p.viewCount}</span>
-          ${p.hasPrompt ? promptStatsHtml(p) : ''}
-        </span>
-        ${p.hasPrompt ? promptRowActionsHtml(p) : ''}
       </button>`;
   }
 
-  /* ── 프롬프트 글의 숫자 세 개 (2026-09-07, 사용자 지시) ────────
-     담기 · 북마크 · 평점. **0은 안 그린다** — 새 글마다 '0 0 0' 이 붙어 있으면
-     목록이 실패한 것들의 나열처럼 보인다.
+  /* 목록의 시각은 **얼마나 지났는지**로 적는다. 카드가 되면서 날짜가 배지 옆
+     좁은 자리로 갔는데, 거기에 '2026-09-13 05:00' 은 길기도 하고 훑어볼 때
+     읽히지도 않는다. 일주일이 넘으면 상대 시각이 오히려 흐릿해지므로 날짜로 돌아간다.
+     (서버는 dateStrings 로 'YYYY-MM-DD HH:MM:SS' 를 주고 둘 다 같은 시간대다.) */
+  function relTime(at) {
+    const t = Date.parse(String(at || '').replace(' ', 'T'));
+    if (!at) return '';
+    if (Number.isNaN(t)) return fmtDate(at);
+    const m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return '방금';
+    if (m < 60) return `${m}분 전`;
+    if (m < 60 * 24) return `${Math.floor(m / 60)}시간 전`;
+    const d = Math.floor(m / (60 * 24));
+    return d < 7 ? `${d}일 전` : fmtDate(at).slice(0, 10);
+  }
+
+  /* ── 프롬프트 글의 숫자 (2026-09-07, 사용자 지시) ────────────
+     담긴 수 · 북마크 수 · 평점. **0은 안 그린다** — 새 글마다 '0 0 0' 이 붙어 있으면
+     목록이 실패한 것들의 나열처럼 보인다. 조회·댓글은 카드가 항상 그리므로
+     (그건 모든 글에 있는 값이다) 여기서는 프롬프트에만 있는 값만 맡는다.
 
      평점은 **평가가 모자라면 별을 안 그린다.** 1명이 별 5개를 준 글에 '5.0' 을
      달면 실제보다 훨씬 단단한 숫자로 읽힌다 — 서버가 그 판단을 해서 ratingAvg 를
      null 로 준다(insight.js RATING_MIN_VOTES). 그때는 '평가 N명' 만 적는다. */
   function promptStatsHtml(p) {
+    if (!p.hasPrompt) return '';
     const bits = [];
     if (p.copyCount) bits.push(
       `<span title="담아 간 사람"><i class="ti ti-download"></i> ${p.copyCount}</span>`);
@@ -280,36 +309,26 @@ window.Insight = (() => {
     return bits.join('');
   }
 
-  /* ── 목록에서 바로 담기 (사용자 지시) ────────────────────────
-     예전에는 상세로 들어가야만 담을 수 있었다. 프롬프트는 제목·담긴 수만 보고
-     고르는 일이 많아서, 한 단계를 없앤다.
+  /* ── 카드 바닥의 조작 ────────────────────────────────────────
+     담기는 프롬프트 글에만 있다 — 담아 갈 규칙이 없는 글에 '담기' 를 두면 눌러 보고
+     아무 일도 안 일어난다. **북마크는 모든 글에 붙인다**: 서버는 처음부터 글 종류를
+     가리지 않았는데(routes/insight.js /bookmark) 화면이 프롬프트에만 그려서,
+     나머지 게시판은 나중에 볼 글을 표시할 방법이 없었다.
 
-     줄 전체가 `<button>` 이라 안쪽 버튼의 클릭이 위로 새면 상세가 같이 열린다.
+     줄 전체가 `<button>` 이라 안쪽 클릭이 위로 새면 상세가 같이 열린다.
      그래서 `<span role="button">` 으로 두고 핸들러에서 `stopPropagation` 한다. */
-  function promptRowActionsHtml(p) {
-    const taken = p.taken;
-    return `<span class="insight-row-actions">
-      <span role="button" tabindex="0" class="insight-row-take ${taken ? 'is-on' : ''}"
-            data-take="${esc(p.id)}" title="${taken ? '이미 담았어요' : '내 프롬프트로 담기'}">
-        <i class="ti ${taken ? 'ti-check' : 'ti-download'}"></i>${taken ? ' 담김' : ' 담기'}
-      </span>
-      <span role="button" tabindex="0" class="insight-row-bm ${p.bookmarked ? 'is-on' : ''}"
+  function cardActionsHtml(p) {
+    const take = p.hasPrompt ? `
+      <span role="button" tabindex="0" class="ins-card-take ${p.taken ? 'is-on' : ''}"
+            data-take="${esc(p.id)}" title="${p.taken ? '이미 담았어요' : '내 프롬프트로 담기'}">
+        <i class="ti ${p.taken ? 'ti-check' : 'ti-download'}"></i>${p.taken ? ' 담김' : ' 담기'}
+      </span>` : '';
+    return `<span class="ins-card-acts">${take}
+      <span role="button" tabindex="0" class="ins-card-bm ${p.bookmarked ? 'is-on' : ''}"
             data-bookmark="${esc(p.id)}" title="${p.bookmarked ? '북마크 해제' : '북마크'}">
         <i class="ti ${p.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
       </span>
     </span>`;
-  }
-
-  /* 프롬프트 게시판이 무엇을 하는 곳인지 한 번 말해 준다. 다른 카테고리와 달리
-     '글을 읽는 곳'이 아니라 **가져다 쓰는 곳**이라, 모르면 그냥 글로만 읽고 나간다. */
-  function promptIntroHtml() {
-    return `<div class="insight-prompt-intro">
-      <b><i class="ti ti-sparkles"></i> AI 프롬프트 공유</b>
-      <p>자소서 초안을 쓸 때 AI 에게 주는 <b>규칙</b>을 서로 나누는 칸이에요.
-        마음에 드는 글에서 <b>내 프롬프트로 담기</b>를 누르면
-        <b>회사·자소서 → 자소서 코치</b>의 ‘내 AI 프롬프트’ 목록에 그대로 들어가고,
-        AI 초안이 그 규칙으로 나옵니다.</p>
-    </div>`;
   }
 
   function emptyListHtml() {
@@ -377,6 +396,13 @@ window.Insight = (() => {
           <span>${esc(post.authorName)}</span>
           <span>${fmtDate(post.createdAt)}</span>
           <span><i class="ti ti-eye"></i> ${post.viewCount}</span>
+          <!-- 프롬프트 글의 북마크는 아래 원문 상자 안에 있다(담기·평점과 한 자리).
+               여기 버튼은 **그 상자가 없는 글**의 몫이다 — 목록 카드에서는 북마크를
+               걸 수 있는데 글을 열면 풀 곳이 없는 것을 막는다. 둘은 같이 안 나온다. -->
+          ${user && !post.promptText ? `<button class="insight-post-bm ${post.bookmarked ? 'is-on' : ''}"
+              id="insight-bm" title="${post.bookmarked ? '북마크 해제' : '북마크'}">
+            <i class="ti ${post.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+            ${post.bookmarked ? '북마크됨' : '북마크'}</button>` : ''}
         </div>
         <!-- 본문은 마크다운이다(사용자 지시). Markdown.render 가 **escape 를 먼저 하고**
              아는 문법만 태그로 바꾼다 — 여기서 esc() 를 한 번 더 씌우면 태그가 글자로 보인다.
@@ -436,7 +462,7 @@ window.Insight = (() => {
             : `<span class="insight-login-hint">로그인하면 내 프롬프트로 담을 수 있어요</span>`}
           <button class="topbar-link" id="insight-prompt-copy"><i class="ti ti-copy"></i> 복사</button>
           ${user
-            ? `<button class="topbar-link ${post.bookmarked ? 'is-on' : ''}" id="insight-prompt-bm">
+            ? `<button class="topbar-link ${post.bookmarked ? 'is-on' : ''}" id="insight-bm">
                  <i class="ti ${post.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
                  ${post.bookmarked ? '북마크됨' : '북마크'}${
                    post.bookmarkCount ? ` ${post.bookmarkCount}` : ''}</button>`
@@ -831,7 +857,7 @@ window.Insight = (() => {
 
     box.querySelector('#insight-prompt-take')?.addEventListener('click', takePrompt);
 
-    box.querySelector('#insight-prompt-bm')?.addEventListener('click', async () => {
+    box.querySelector('#insight-bm')?.addEventListener('click', async () => {
       if (needLogin()) return;
       try {
         const r = await DB.bookmarkInsight(detailData.post.id);

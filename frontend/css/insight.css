@@ -93,33 +93,103 @@
   .insight-scope-select { width: 100%; }
 }
 
-/* ── 목록 ─────────────────────────────────────────────────── */
-.insight-list { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
-.insight-row {
-  display: flex; align-items: center; gap: 16px; width: 100%;
-  padding: 16px 4px; border: 0; border-bottom: 1px solid var(--border);
+/* ── 목록 — 카드 (사용자 지시 2026-09-13) ──────────────────────
+   한 줄짜리 목록을 네모 카드 두 칸으로 바꾼다. 줄일 때는 메타를 숨겨야 했지만
+   (구 .insight-row-meta), 카드는 세로로 쌓을 자리가 있어 조회·댓글·담기·북마크가
+   **모든 화면 폭에서 그대로 보인다.**
+
+   칸 사이는 여백이 아니라 선으로 가른다 — 카드마다 테두리를 두르면 목록 전체가
+   상자 스무 개가 되어 정작 읽어야 할 제목이 묻힌다. */
+.insight-list {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border);
+}
+.ins-card {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: 18px 20px 14px; border: 0;
+  border-bottom: 1px solid var(--border);
   background: none; text-align: left; cursor: pointer; font: inherit;
 }
-.insight-row:hover { background: var(--bg); }
-.insight-row-cat {
+/* 세로 칸막이 — 왼쪽 칸에만 준다(오른쪽 끝에 선이 서면 목록이 표처럼 닫힌다). */
+.ins-card:nth-child(odd) { border-right: 1px solid var(--border); }
+.ins-card:hover { background: var(--bg); }
+
+.ins-card-head { display: flex; align-items: center; gap: 8px; }
+.ins-card-cat {
   flex: none; padding: 4px 10px; border-radius: 999px; background: var(--brand-soft);
   color: var(--brand-dark); font-size: 11.5px; font-weight: 700;
 }
+.ins-card-time { margin-left: auto; font-size: 11.5px; color: var(--text-m); }
+
+.ins-card-title {
+  font-size: 15.5px; font-weight: 700; line-height: 1.45; color: var(--text-p);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 미리보기는 **두 줄로 고정한다.** 한 줄이면 무슨 글인지 안 잡히고, 줄 수를 내용에
+   맡기면 카드 높이가 제각각이라 옆 칸과 바닥이 어긋난다(-webkit-line-clamp 는
+   크롬·사파리·파이어폭스가 모두 받는다). */
+.ins-card-preview {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: 2.9em;
+  font-size: 13px; line-height: 1.45; color: var(--text-s);
+}
+.ins-card-author { font-size: 12px; color: var(--text-m); }
+
+/* 바닥 — 왼쪽은 읽는 숫자, 오른쪽은 누르는 것. 섞으면 카드마다 어디를 눌러야
+   하는지 다시 찾게 된다. 위에 선을 그어 본문과 떼어 놓는다. */
+.ins-card-foot {
+  display: flex; align-items: center; gap: 10px; margin-top: 6px; padding-top: 10px;
+  border-top: 1px solid var(--wf-hairline);
+  flex-wrap: wrap; row-gap: 8px;
+}
+.ins-card-stats {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0;
+  font-size: 12px; color: var(--text-m);
+}
+.ins-card-stats i { margin-right: 2px; }
+.ins-card-acts { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+.ins-card-take, .ins-card-bm {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 9px; border-radius: var(--wf-r-sm, 8px);
+  border: 1px solid var(--wf-hairline); background: #fff;
+  font-size: 12px; color: var(--wf-body); cursor: pointer; white-space: nowrap;
+}
+.ins-card-take:hover, .ins-card-bm:hover { border-color: var(--brand); color: var(--brand); }
+/* 이미 담았거나 북마크한 것은 **눌린 상태**로 보여야 한다 — 안 그러면 눌렀는지
+   모르고 또 누른다. */
+.ins-card-take.is-on { border-color: var(--wf-ok, #2e7d32); color: var(--wf-ok, #2e7d32); }
+.ins-card-bm.is-on { border-color: var(--brand); color: var(--brand); }
+
 /* ── 공지 ──────────────────────────────────────────────────
-   목록을 훑을 때 그냥 지나치지 않게, 배지 색·줄 배경·왼쪽 띠를 한꺼번에 바꾼다.
+   목록을 훑을 때 그냥 지나치지 않게, 배지 색·카드 배경·왼쪽 띠를 한꺼번에 바꾼다.
    글자만 '공지'로 바꾸면 같은 모양이라 눈에 안 걸린다.
    색은 브랜드 보라가 아니라 주황 계열로 —— 보라는 카테고리 배지가 이미 쓰고 있어
    같은 색을 쓰면 '카테고리 하나'로 읽힌다. */
-.insight-row.is-notice {
+.ins-card.is-notice {
   background: #fff8f1;
   box-shadow: inset 3px 0 0 #ff6b00;
 }
-.insight-row.is-notice:hover { background: #fff2e4; }
-.insight-row.is-notice .insight-row-cat {
+.ins-card.is-notice:hover { background: #fff2e4; }
+.ins-card.is-notice .ins-card-cat {
   display: inline-flex; align-items: center; gap: 4px;
   background: #ff6b00; color: #fff;
 }
-.insight-row.is-notice .insight-row-title { color: #8a3b00; }
+.ins-card.is-notice .ins-card-title { color: #8a3b00; }
+
+/* 프롬프트 글은 바닥에 숫자가 다섯(조회·댓글·담긴 수·북마크·평점)이라, 휴대폰 폭에서는
+   한 줄에 버튼까지 들어가지 않는다. 그대로 두면 숫자만 두 줄로 접히고 담기·북마크가
+   그 사이에 끼어 어정쩡하게 뜬다(실제 375px 화면). 숫자에 한 줄을 통째로 주고
+   버튼을 아랫줄 오른쪽으로 내린다 — 읽는 것과 누르는 것이 줄로 갈린다. */
+@media (max-width: 520px) {
+  .ins-card-stats { flex: 1 1 100%; }
+}
+
+/* 좁은 화면은 한 줄에 한 칸. 두 칸을 우겨 넣으면 제목이 두세 글자에서 잘린다. */
+@media (max-width: 860px) {
+  .insight-list { grid-template-columns: 1fr; }
+  .ins-card:nth-child(odd) { border-right: 0; }
+  .ins-card { padding: 16px 4px 12px; }
+}
 
 /* 글쓰기 — 관리자에게만 보이는 공지 체크 */
 .insight-notice-toggle {
@@ -130,24 +200,15 @@
 .insight-notice-toggle input { margin-top: 2px; flex: none; accent-color: #ff6b00; }
 .insight-notice-toggle b { color: #8a3b00; }
 
-.insight-row-body { flex: 1; min-width: 0; }
-.insight-row-title {
-  display: block; font-size: 14.5px; font-weight: 700; color: var(--text-p);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* 상세의 북마크 — 프롬프트 상자가 없는 글에만 나온다(insight.js 주석).
+   메타 줄에 있어 글자 크기는 옆 값들과 같게 두고, 테두리로만 '누르는 것'임을 알린다. */
+.insight-post-bm {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  padding: 4px 9px; border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-sm, 8px);
+  background: #fff; font: inherit; font-size: 12px; color: var(--wf-body); cursor: pointer;
 }
-.insight-row-cc { margin-left: 6px; color: var(--brand); font-size: 12px; font-weight: 700; }
-.insight-row-preview {
-  display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-s);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.insight-row-meta {
-  flex: none; display: flex; align-items: center; gap: 12px;
-  font-size: 11.5px; color: var(--text-m);
-}
-.insight-row-meta i { margin-right: 2px; }
-@media (max-width: 640px) {
-  .insight-row-meta { display: none; }
-}
+.insight-post-bm:hover { border-color: var(--brand); color: var(--brand); }
+.insight-post-bm.is-on { border-color: var(--brand); color: var(--brand); }
 
 /* ── 상세 ─────────────────────────────────────────────────── */
 .insight-back {
@@ -165,7 +226,8 @@
 }
 .insight-post-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.4; }
 .insight-post-meta {
-  display: flex; gap: 14px; margin-top: 10px; font-size: 12.5px; color: var(--text-s);
+  display: flex; align-items: center; gap: 14px; margin-top: 10px;
+  font-size: 12.5px; color: var(--text-s);
 }
 .insight-post-body {
   margin-top: 22px; font-size: 14.5px; line-height: 1.85; color: var(--text-p);
@@ -284,21 +346,11 @@
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* ── AI 프롬프트 공유 (사용자 지시 2026-09-05) ─────────────────
+/* ── AI 프롬프트 원문 상자 (사용자 지시 2026-09-05) ─────────────
    이 게시판은 '읽는 곳'이 아니라 **가져다 쓰는 곳**이라, 원문 상자를 본문과
    확실히 다르게 보이게 한다 — 어디까지가 설명이고 어디부터가 AI 에 들어갈
-   글자인지 눈으로 갈려야 담아 갈 때 헷갈리지 않는다. */
-.insight-prompt-intro {
-  margin: 18px 0 6px; padding: 14px 16px;
-  border: 1px solid var(--border); border-radius: 12px; background: var(--bg);
-}
-/* 제목만 블록이다. `b` 전체에 걸면 본문 안의 강조까지 줄바꿈돼 문장이 토막 난다
-   (좁은 화면에서 실제로 그렇게 보였다). */
-.insight-prompt-intro > b { display: block; margin-bottom: 6px; font-size: 13.5px; color: var(--ink); }
-.insight-prompt-intro > b i { color: var(--brand); }
-.insight-prompt-intro p { font-size: 13px; line-height: 1.75; color: var(--text-s); }
-.insight-prompt-intro p b { font-weight: 700; color: var(--ink); }
-
+   글자인지 눈으로 갈려야 담아 갈 때 헷갈리지 않는다.
+   (목록 위에 있던 안내 상자 .insight-prompt-intro 는 사용자 지시로 지웠다.) */
 .insight-prompt-box {
   margin-top: 26px; padding: 16px; border: 1px solid var(--border);
   border-radius: 12px; background: var(--bg);
@@ -338,25 +390,6 @@
   font-size: 12.5px; line-height: 1.8; resize: vertical;
 }
 .insight-prompt-field textarea:focus { outline: none; border-color: var(--brand); }
-
-/* ── 프롬프트 글의 담기·북마크·평점 (2026-09-07, 사용자 지시) ──────────────
-   목록 줄 오른쪽에 붙는 작은 조작. 줄 전체가 버튼이라 여기만 색이 달라야
-   '누를 수 있는 것'으로 읽힌다. */
-.insight-row-actions {
-  display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin-left: 10px;
-}
-.insight-row-take, .insight-row-bm {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 9px; border-radius: var(--wf-r-sm, 8px);
-  border: 1px solid var(--wf-hairline); background: #fff;
-  font-size: 12px; color: var(--wf-body); cursor: pointer; white-space: nowrap;
-}
-.insight-row-take:hover, .insight-row-bm:hover { border-color: var(--brand); color: var(--brand); }
-/* 이미 담았거나 북마크한 것은 **눌린 상태**로 보여야 한다 — 안 그러면 눌렀는지
-   모르고 또 누른다. */
-.insight-row-take.is-on { border-color: var(--wf-ok, #2e7d32); color: var(--wf-ok, #2e7d32); }
-.insight-row-bm.is-on { border-color: var(--brand); color: var(--brand); }
-@media (max-width: 720px) { .insight-row-actions { display: none; } }
 
 /* ── 평점 ──────────────────────────────────────────────────────────────
    평균은 왼쪽, 내가 매기는 별은 오른쪽. 둘을 섞으면 '표시'와 '입력'이 구분되지

@@ -205,6 +205,19 @@ router.get('/', ah(async (req, res) => {
   const conds = [];
   const params = [];
   if (category) { conds.push('p.category=?'); params.push(category); }
+  /* ── '전체'에는 AI 프롬프트 글을 섞지 않는다 (사용자 지시 2026-09-14) ──────
+     프롬프트 글은 읽는 글이 아니라 **가져다 쓰는 것**이라, 후기·질문 사이에 섞이면
+     제목만 보고는 뭘 하는 글인지 알 수 없다. 그 게시판은 고르는 화면도 따로다
+     (카드 목록 · 담긴 수 · 평점 · 담기 — insight.js useCards).
+
+     **내 북마크는 예외다.** 거기 담아 둔 것은 대개 프롬프트인데, 여기서 같이
+     빼면 북마크해 둔 글이 화면에서 사라진다 — 걸어 둔 사람이 다시 찾을 길이 없다.
+     검색도 뺀다 — 찾아 달라고 이름까지 친 글을 '전체'라는 이유로 숨기면
+     "왜 안 나오지"가 된다(SEARCH_SCOPES 가 제목·내용·글쓴이·댓글을 다 뒤진다). */
+  if (!category && !onlyBookmarked && !q) {
+    conds.push('p.category<>?');
+    params.push(PROMPT.PROMPT_CATEGORY);
+  }
   if (onlyBookmarked) {
     /* EXISTS 로 본다 — 댓글 검색(아래)과 같은 모양이라 조건이 늘어도 total 과
        목록이 어긋나지 않는다. */

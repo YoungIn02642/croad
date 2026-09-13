@@ -93,16 +93,90 @@
   .insight-scope-select { width: 100%; }
 }
 
-/* ── 목록 — 카드 (사용자 지시 2026-09-13) ──────────────────────
-   한 줄짜리 목록을 네모 카드 두 칸으로 바꾼다. 줄일 때는 메타를 숨겨야 했지만
-   (구 .insight-row-meta), 카드는 세로로 쌓을 자리가 있어 조회·댓글·담기·북마크가
-   **모든 화면 폭에서 그대로 보인다.**
+/* ── 목록 ─────────────────────────────────────────────────── */
+.insight-list { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.insight-row {
+  display: flex; align-items: center; gap: 16px; width: 100%;
+  padding: 16px 4px; border: 0; border-bottom: 1px solid var(--border);
+  background: none; text-align: left; cursor: pointer; font: inherit;
+}
+.insight-row:hover { background: var(--bg); }
+.insight-row-cat {
+  flex: none; padding: 4px 10px; border-radius: 999px; background: var(--brand-soft);
+  color: var(--brand-dark); font-size: 11.5px; font-weight: 700;
+}
+/* ── 공지 ──────────────────────────────────────────────────
+   목록을 훑을 때 그냥 지나치지 않게, 배지 색·줄 배경·왼쪽 띠를 한꺼번에 바꾼다.
+   글자만 '공지'로 바꾸면 같은 모양이라 눈에 안 걸린다.
+   색은 브랜드 보라가 아니라 주황 계열로 —— 보라는 카테고리 배지가 이미 쓰고 있어
+   같은 색을 쓰면 '카테고리 하나'로 읽힌다. */
+.insight-row.is-notice {
+  background: #fff8f1;
+  box-shadow: inset 3px 0 0 #ff6b00;
+}
+.insight-row.is-notice:hover { background: #fff2e4; }
+.insight-row.is-notice .insight-row-cat {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #ff6b00; color: #fff;
+}
+.insight-row.is-notice .insight-row-title { color: #8a3b00; }
+
+/* 글쓰기 — 관리자에게만 보이는 공지 체크 */
+.insight-notice-toggle {
+  display: flex; align-items: flex-start; gap: 9px; padding: 12px 14px;
+  border: 1px solid #ffd7b0; border-radius: 10px; background: #fff8f1;
+  font-size: 12.5px; line-height: 1.6; color: var(--text-s); cursor: pointer;
+}
+.insight-notice-toggle input { margin-top: 2px; flex: none; accent-color: #ff6b00; }
+.insight-notice-toggle b { color: #8a3b00; }
+
+.insight-row-body { flex: 1; min-width: 0; }
+.insight-row-title {
+  display: block; font-size: 14.5px; font-weight: 700; color: var(--text-p);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.insight-row-cc { margin-left: 6px; color: var(--brand); font-size: 12px; font-weight: 700; }
+.insight-row-preview {
+  display: block; margin-top: 3px; font-size: 12.5px; color: var(--text-s);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.insight-row-meta {
+  flex: none; display: flex; align-items: center; gap: 12px;
+  font-size: 11.5px; color: var(--text-m);
+}
+.insight-row-meta i { margin-right: 2px; }
+@media (max-width: 640px) {
+  .insight-row-meta { display: none; }
+}
+
+/* ── 프롬프트 글의 담기·북마크·평점 (2026-09-07, 사용자 지시) ──────────────
+   목록 줄 오른쪽에 붙는 작은 조작. 줄 전체가 버튼이라 여기만 색이 달라야
+   '누를 수 있는 것'으로 읽힌다. */
+.insight-row-actions {
+  display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin-left: 10px;
+}
+.insight-row-take, .insight-row-bm {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 9px; border-radius: var(--wf-r-sm, 8px);
+  border: 1px solid var(--wf-hairline); background: #fff;
+  font-size: 12px; color: var(--wf-body); cursor: pointer; white-space: nowrap;
+}
+.insight-row-take:hover, .insight-row-bm:hover { border-color: var(--brand); color: var(--brand); }
+/* 이미 담았거나 북마크한 것은 **눌린 상태**로 보여야 한다 — 안 그러면 눌렀는지
+   모르고 또 누른다. */
+.insight-row-take.is-on { border-color: var(--wf-ok, #2e7d32); color: var(--wf-ok, #2e7d32); }
+.insight-row-bm.is-on { border-color: var(--brand); color: var(--brand); }
+@media (max-width: 720px) { .insight-row-actions { display: none; } }
+
+/* ── AI 프롬프트 게시판만 카드다 (사용자 지시 2026-09-14) ────────
+   나머지 게시판은 위의 한 줄 목록 그대로다. 아래 규칙은 목록에 `--cards` 가
+   붙었을 때만 걸린다 — 클래스가 아니라 **게시판**이 모양을 정한다는 뜻이다
+   (insight.js 의 useCards). 그래서 카드 모양이 다른 게시판으로 새지 않는다.
 
    칸 사이는 여백이 아니라 선으로 가른다 — 카드마다 테두리를 두르면 목록 전체가
    상자 스무 개가 되어 정작 읽어야 할 제목이 묻힌다. */
-.insight-list {
+.insight-list--cards {
   display: grid; grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--border);
 }
 .ins-card {
   display: flex; flex-direction: column; gap: 6px; min-width: 0;
@@ -186,29 +260,10 @@
 
 /* 좁은 화면은 한 줄에 한 칸. 두 칸을 우겨 넣으면 제목이 두세 글자에서 잘린다. */
 @media (max-width: 860px) {
-  .insight-list { grid-template-columns: 1fr; }
+  .insight-list--cards { grid-template-columns: 1fr; }
   .ins-card:nth-child(odd) { border-right: 0; }
   .ins-card { padding: 16px 4px 12px; }
 }
-
-/* 글쓰기 — 관리자에게만 보이는 공지 체크 */
-.insight-notice-toggle {
-  display: flex; align-items: flex-start; gap: 9px; padding: 12px 14px;
-  border: 1px solid #ffd7b0; border-radius: 10px; background: #fff8f1;
-  font-size: 12.5px; line-height: 1.6; color: var(--text-s); cursor: pointer;
-}
-.insight-notice-toggle input { margin-top: 2px; flex: none; accent-color: #ff6b00; }
-.insight-notice-toggle b { color: #8a3b00; }
-
-/* 상세의 북마크 — 프롬프트 상자가 없는 글에만 나온다(insight.js 주석).
-   메타 줄에 있어 글자 크기는 옆 값들과 같게 두고, 테두리로만 '누르는 것'임을 알린다. */
-.insight-post-bm {
-  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
-  padding: 4px 9px; border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-sm, 8px);
-  background: #fff; font: inherit; font-size: 12px; color: var(--wf-body); cursor: pointer;
-}
-.insight-post-bm:hover { border-color: var(--brand); color: var(--brand); }
-.insight-post-bm.is-on { border-color: var(--brand); color: var(--brand); }
 
 /* ── 상세 ─────────────────────────────────────────────────── */
 .insight-back {

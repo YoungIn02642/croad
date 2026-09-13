@@ -38,14 +38,17 @@ function requireAuth(req, res, next) {
    같은 이유) — 여기서도 같은 문제가 생기지 않도록 똑같이 감싼다. */
 const ah = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+const { previewOf } = require('../insight-preview.js');
+
 const displayName = r => r.author_nickname || r.author_name || '탈퇴한 회원';
+
 
 function toPostSummary(r) {
   return {
     id: r.id,
     category: r.category,
     title: r.title,
-    preview: (r.body || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+    preview: previewOf(r.body),
     authorId: r.user_id,
     authorName: displayName(r),
     viewCount: r.view_count,

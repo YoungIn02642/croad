@@ -621,10 +621,22 @@ window.SpecForm = (() => {
   function foreignRowHtml(r, i) {
     const t = CAS.FOREIGN_TESTS.find(x => x.id === r.test);
     const taken = new Set(foreignState.filter((_, j) => j !== i).map(x => x.test).filter(Boolean));
-    const opts = CAS.FOREIGN_TESTS
+    /* ── 언어로 묶어서 고르게 한다 (사용자 지시 2026-09-13) ────────────────────
+       18종이 한 줄로 늘어서면 일본어 시험이 넷인지 하나인지 알 수 없다.
+       `<optgroup>` 으로 언어를 묶으면 브라우저가 제목을 붙여 주고, 모바일 기본
+       선택기에서도 그대로 갈린다. 순서는 CAS.FOREIGN_TESTS 를 따른다. */
+    const groups = [];
+    CAS.FOREIGN_TESTS
       .filter(x => !taken.has(x.id))
-      .map(x => `<option value="${x.id}" ${r.test === x.id ? 'selected' : ''}>${escapeHtml(x.label)}</option>`)
-      .join('');
+      .forEach(x => {
+        const lang = x.lang || '그 밖';
+        const g = groups.find(y => y.lang === lang) || (groups.push({ lang, items: [] }), groups[groups.length - 1]);
+        g.items.push(x);
+      });
+    const opts = groups.map(g =>
+      `<optgroup label="${escapeHtml(g.lang)}">`
+      + g.items.map(x => `<option value="${x.id}" ${r.test === x.id ? 'selected' : ''}>${escapeHtml(x.label)}</option>`).join('')
+      + `</optgroup>`).join('');
 
     /* ── 점수제 시험이 섞여 있다 (사용자 지적 2026-09-11) ──────────────────────
        JPT 는 990점 만점이라 등급 목록을 만들 수 없다. 시험마다 kind 를 보고 칸을 바꾼다.

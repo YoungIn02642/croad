@@ -893,6 +893,17 @@ window.SpecUp = (() => {
     gtelp:         'https://www.gtelp.co.kr',
     topik:         'https://www.topik.go.kr',
     jlpt:          'https://www.jlpt.or.kr',
+    /* 아래 셋은 공식 페이지에서 확인했다(2026-09-13):
+         OPIc 은 opic.or.kr 에 영어·일본어·중국어·스페인어·러시아어·베트남어·한국어 명시
+         TestDaF 는 testdaf.de · TCF·DELF 는 시행기관 France Éducation international
+         FLEX 는 한국외대 flex.hufs.ac.kr — 전부 200 응답까지 확인하고 넣었다. */
+    tcf:           'https://www.france-education-international.fr',
+    delf:          'https://www.france-education-international.fr',
+    testdaf:       'https://www.testdaf.de',
+    opicEs:        'https://www.opic.or.kr',
+    opicRu:        'https://www.opic.or.kr',
+    opicVi:        'https://www.opic.or.kr',
+    flex:          'https://flex.hufs.ac.kr',
     /* JPT·SJPT·TSC 는 YBM 이 시행한다. 주소는 jpt.co.kr 공식 페이지의 링크에서
        확인했다(추측하지 않았다 — ybmsjpt / ybmtsc 로 따로 있다). */
     jpt:           'https://www.jpt.co.kr',
@@ -902,8 +913,6 @@ window.SpecUp = (() => {
     opicZh:        'https://www.opic.or.kr',
     hsk:           'https://www.hsk.or.kr',
     hskk:          'https://www.hsk.or.kr',
-    /* DELF·DALF 는 확실한 공식 접수 주소를 못 찾았다(delfdalf.kr 는 응답 없음).
-       추측한 주소로 보내면 엉뚱한 데로 데려가므로 **링크를 안 건다.** */
     dele:          'https://seul.cervantes.es',
     goethe:        'https://www.goethe.de/ins/kr/ko/sta/seo.html',
     torfl:         'https://www.torfl.kr',
@@ -947,17 +956,30 @@ window.SpecUp = (() => {
     const myForeign = new Map((mine.foreign || [])
       .filter(x => x && x.test).map(x => [x.test, x.level || '']));
 
-    const foreignCards = (CAS.FOREIGN_TESTS || []).map(t => {
+    /* ── 언어끼리 묶는다 (사용자 지시 2026-09-13) ────────────────────────────
+       18종을 한 격자에 늘어놓으면 JLPT 다음에 HSK 가 오고 그다음이 SJPT 라,
+       **일본어를 보러 온 사람이 일본어가 몇 개인지 알 수 없다.** 언어로 갈라
+       소제목을 달고, 카드 꼬리표도 '제2외국어' 대신 **언어 이름**을 쓴다 —
+       카드 하나만 봐도 무슨 언어인지 읽혀야 한다.
+       순서는 FOREIGN_TESTS 에 적힌 순서를 따른다(cas.js 가 단일 출처다). */
+    const byLang = new Map();
+    for (const t of (CAS.FOREIGN_TESTS || [])) {
+      const k = t.lang || '그 밖';
+      if (!byLang.has(k)) byLang.set(k, []);
+      byLang.get(k).push(t);
+    }
+
+    const foreignCard = t => {
       const v = myForeign.get(t.id);
-      /* JPT 처럼 점수제인 시험이 섞여 있다 — 등급 범위를 적을 수 없으므로 만점을 적는다. */
+      /* JPT·FLEX 처럼 점수제인 시험이 섞여 있다 — 등급 범위를 적을 수 없으므로 만점을 적는다. */
       const scale = t.kind === 'score'
         ? `${t.max}점 만점`
         : `등급 ${t.levels[0]} ~ ${t.levels[t.levels.length - 1]}`;
       const shown = v ? (t.kind === 'score' ? `${v}점` : v) : '';
       return card({
         emoji: '🌏',
-        coverTag: '제2외국어',
-        palKey: t.label,
+        coverTag: t.lang || '제2외국어',
+        palKey: t.lang || t.label,          // 같은 언어면 같은 색 — 격자에서 묶여 보인다
         badges: [shown ? { text: shown, cls: 'is-have' } : { text: '미응시', cls: 'is-lack' }],
         title: t.label,
         org: scale,
@@ -965,11 +987,16 @@ window.SpecUp = (() => {
         url: LANG_URLS[t.id],
         cta: LANG_URLS[t.id] ? '접수' : null,
       });
-    });
+    };
 
+    const foreignBlocks = [...byLang.entries()].map(([lang, tests]) =>
+      `<div class="sup-subhead sup-subhead--sm">${esc(lang)} <b>${tests.length}</b></div>`
+      + grid(tests.map(foreignCard))).join('');
+
+    const foreignCount = (CAS.FOREIGN_TESTS || []).length;
     return listHead(langCards.length) + grid(langCards)
-      + `<div class="sup-subhead">제2외국어</div>`
-      + grid(foreignCards)
+      + `<div class="sup-subhead">제2외국어 <b>${foreignCount}</b></div>`
+      + foreignBlocks
       + `<div class="sup-src">
         어학시험은 시행기관이 공개 API 를 열지 않아 접수 일정을 자동으로 가져오지 못합니다 —
         ‘접수’ 로 공식 페이지에서 확인하세요.${ctx.scopeLabel ? ` 목표치는 <b>${esc(ctx.scopeLabel)} 선배 평균</b>이에요.` : ''}

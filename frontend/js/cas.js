@@ -105,21 +105,34 @@
   const OPIC_LEVELS = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
 
   const FOREIGN_TESTS = [
-    // 일본어
-    { id: 'jlpt',    label: 'JLPT (일본어)',        levels: ['N5', 'N4', 'N3', 'N2', 'N1'] },
-    { id: 'jpt',     label: 'JPT (일본어)',         kind: 'score', max: 990, placeholder: '예: 800' },
-    { id: 'sjpt',    label: 'SJPT (일본어 말하기)', levels: OPIC_LEVELS },
-    { id: 'opicJa',  label: 'OPIc 일본어',          levels: OPIC_LEVELS },
-    // 중국어
-    { id: 'hsk',     label: 'HSK (중국어)',         levels: ['1급', '2급', '3급', '4급', '5급', '6급'] },
-    { id: 'hskk',    label: 'HSKK (중국어 회화)',   levels: ['초급', '중급', '고급'] },
-    { id: 'tsc',     label: 'TSC (중국어 말하기)',  levels: ['1급', '2급', '3급', '4급', '5급', '6급', '7급', '8급', '9급', '10급'] },
-    { id: 'opicZh',  label: 'OPIc 중국어',          levels: OPIC_LEVELS },
-    // 그 밖
-    { id: 'delf',    label: 'DELF·DALF (프랑스어)', levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
-    { id: 'dele',    label: 'DELE (스페인어)',      levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
-    { id: 'goethe',  label: 'Goethe-Zertifikat (독일어)', levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
-    { id: 'torfl',   label: 'TORFL (러시아어)',     levels: ['기초', '1단계', '2단계', '3단계', '4단계'] },
+    // ── 일본어
+    { id: 'jlpt',    lang: '일본어',   label: 'JLPT (일본어능력시험)', levels: ['N5', 'N4', 'N3', 'N2', 'N1'] },
+    { id: 'jpt',     lang: '일본어',   label: 'JPT',            kind: 'score', max: 990, placeholder: '예: 800' },
+    { id: 'sjpt',    lang: '일본어',   label: 'SJPT (말하기)',   levels: OPIC_LEVELS },
+    { id: 'opicJa',  lang: '일본어',   label: 'OPIc 일본어',     levels: OPIC_LEVELS },
+    // ── 중국어
+    { id: 'hsk',     lang: '중국어',   label: 'HSK',            levels: ['1급', '2급', '3급', '4급', '5급', '6급'] },
+    { id: 'hskk',    lang: '중국어',   label: 'HSKK (회화)',     levels: ['초급', '중급', '고급'] },
+    { id: 'tsc',     lang: '중국어',   label: 'TSC (말하기)',    levels: ['1급', '2급', '3급', '4급', '5급', '6급', '7급', '8급', '9급', '10급'] },
+    { id: 'opicZh',  lang: '중국어',   label: 'OPIc 중국어',     levels: OPIC_LEVELS },
+    // ── 프랑스어
+    { id: 'delf',    lang: '프랑스어', label: 'DELF·DALF',      levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
+    { id: 'tcf',     lang: '프랑스어', label: 'TCF',            levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
+    // ── 독일어
+    { id: 'goethe',  lang: '독일어',   label: 'Goethe-Zertifikat', levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
+    { id: 'testdaf', lang: '독일어',   label: 'TestDaF',        levels: ['TDN 3', 'TDN 4', 'TDN 5'] },
+    // ── 스페인어
+    { id: 'dele',    lang: '스페인어', label: 'DELE',           levels: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] },
+    { id: 'opicEs',  lang: '스페인어', label: 'OPIc 스페인어',   levels: OPIC_LEVELS },
+    // ── 러시아어
+    { id: 'torfl',   lang: '러시아어', label: 'TORFL',          levels: ['기초', '1단계', '2단계', '3단계', '4단계'] },
+    { id: 'opicRu',  lang: '러시아어', label: 'OPIc 러시아어',   levels: OPIC_LEVELS },
+    // ── 베트남어
+    { id: 'opicVi',  lang: '베트남어', label: 'OPIc 베트남어',   levels: OPIC_LEVELS },
+    /* ── 여러 언어를 한 시험에서 본다 ──
+       FLEX 는 한국외대가 시행하고 응시 언어를 골라서 본다(공식 페이지에서 중국어·영어·
+       독일어·프랑스어·일본어 확인). 언어가 하나로 정해지지 않아 '다국어' 로 묶는다. */
+    { id: 'flex',    lang: '다국어',   label: 'FLEX (응시 언어 선택)', kind: 'score', max: 1000, placeholder: '예: 700' },
   ];
 
   // ── 상대 채점 ───────────────────────────────────────────────

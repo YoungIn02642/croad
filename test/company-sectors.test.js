@@ -300,5 +300,34 @@ ok('유형·소관부처를 같이 남긴다',
    pub.lanes.find(l => l.name === '공기업').companies.every(c => c.note),
    '레인 이름만으로는 시장형·준시장형이 뭉개진다');
 
+console.log('\n── 9. 직무 → 업종 추천(별)이 대분류를 넘지 않는다 ──');
+/* 2자리 코드 하나가 업종 두 칸으로 갈리는 자리에서, 계열이 뜻하지 않은 칸까지
+   별이 붙던 것을 막는다(FOCUS_MINORS_OF_CODE). 사용자가 짚은 자리부터 적는다. */
+const MAJOR_OF = new Map();
+for (const [M, ms] of require('../backend/src/job-industry.js').TAXONOMY) for (const m of ms) MAJOR_OF.set(m, M);
+const majorsOf = f => [...new Set(f.minors.map(m => MAJOR_OF.get(m)))];
+
+const it13 = S.industryFocus('13', '');           // 응용소프트웨어개발자가 여기 있다
+ok('SW 개발 직무에 의료기기가 안 붙는다', !it13.minors.includes('의료기기'),
+   '27 안의 271(의료기기)이 272·273(계측·광학기기)에 묻어 오던 자리');
+ok('SW 개발 직무에 의료·제약·바이오 대분류가 안 붙는다', !majorsOf(it13).includes('의료·제약·바이오'));
+ok('SW 개발 직무는 IT·웹·통신을 그대로 추천한다', majorsOf(it13).includes('IT·웹·통신'));
+ok('SW 개발 직무의 제조·화학은 남는다', it13.minors.includes('반도체·전자부품'),
+   '반도체·전자·배터리는 계열 표가 실제로 가리킨 칸이라 지우지 않는다');
+
+const acct = S.industryFocus('', 'K000007449');   // 회계사
+ok('회계사에 지주회사가 안 붙는다', !acct.minors.includes('지주회사'),
+   '지주회사는 업종이 아니라 회사 형태라 계열에서 빼낸 칸이다');
+ok('회계사는 회계·법률·컨설팅을 그대로 추천한다', acct.minors.includes('회계·법률·컨설팅'));
+
+const retail = S.industryFocus('62', '');         // 매장 판매·상품 대여직
+ok('유통 직무에 자동차 부품 제조가 안 붙는다', !retail.minors.includes('자동차·자동차부품'),
+   '45(자동차 판매)를 부품 제조 칸으로 읽던 자리');
+ok('유통 직무는 도소매·유통을 그대로 추천한다', retail.minors.includes('도소매·유통'));
+
+ok('같은 대분류 안의 갈림은 건드리지 않았다', it13.minors.includes('컴퓨터·통신장비'),
+   '26 이 반도체·전자부품/컴퓨터·통신장비로 갈리는 것은 별이 엉뚱한 곳에 안 붙는다');
+ok('universal 직무는 여전히 추천이 없다', S.industryFocus('02', '').minors.length === 0);
+
 console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
 process.exit(fail ? 1 : 0);

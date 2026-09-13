@@ -199,11 +199,9 @@ window.Insight = (() => {
             <i class="ti ti-x"></i> 검색 해제</button>
         </div>` : ''}
 
-      ${category === PROMPT_CAT ? promptIntroHtml() : ''}
-
       ${sortBarHtml()}
 
-      <div class="insight-list">
+      <div class="insight-list ${useCards() ? 'insight-list--cards' : ''}">
         ${listData.posts.length ? listData.posts.map(postRowHtml).join('') : emptyListHtml()}
       </div>
 
@@ -225,20 +223,39 @@ window.Insight = (() => {
       ['latest', '최신순'],
       ...(hasPromptStats ? [['copies', '많이 담아 간 순'], ['rating', '평점 높은 순']] : []),
     ];
-    if (opts.length === 1) return '';
 
+    /* 고를 것이 하나뿐이면 **선택기만** 뺀다. 건수는 남긴다 — 예전에는 줄 전체를
+       지워서, 프롬프트 글이 빠진 '전체' 에서 '10건' 까지 같이 사라졌다
+       (사용자 지시로 전체에서 프롬프트를 뺀 뒤에 드러난 자리다 2026-09-14). */
     return `<div class="insight-sortbar">
       <span class="insight-sort-n">${listData.total}건</span>
-      <select id="insight-sort" class="wf-select wf-select--sm" aria-label="정렬 기준">
+      ${opts.length > 1 ? `<select id="insight-sort" class="wf-select wf-select--sm" aria-label="정렬 기준">
         ${opts.map(([v, label]) =>
           `<option value="${v}"${sort === v ? ' selected' : ''}>${label}</option>`).join('')}
-      </select>
+      </select>` : ''}
     </div>`;
+  }
+
+  /* ── 목록 한 칸을 어떻게 그리나 (사용자 지시 2026-09-14) ────────────────
+     **AI 프롬프트 게시판만 카드다.** 나머지는 원래의 한 줄 목록으로 되돌렸다.
+
+     둘을 가르는 것은 글이 아니라 **지금 보고 있는 게시판**이다. 글마다 모양을
+     달리하면 한 목록 안에 카드와 줄이 섞여 고장으로 보인다(내 북마크처럼 여러
+     게시판의 글이 같이 오는 화면이 있다).
+
+     프롬프트만 카드인 이유: 그 게시판에서 하는 일이 '읽기'가 아니라 **고르고
+     담기**다. 담긴 수·평점을 보고 고르고 바로 담는데, 한 줄 목록에서는 그 숫자와
+     버튼이 오른쪽 끝에 눌려 들어가 좁은 화면에서 통째로 숨었다(720px 아래에서
+     담기·북마크가 사라졌다). 다른 게시판은 글 목록이라 한 줄이 더 많이 보인다. */
+  const useCards = () => category === PROMPT_CAT;
+
+  function postRowHtml(p) {
+    return useCards() ? promptCardHtml(p) : plainRowHtml(p);
   }
 
   /* 공지는 카테고리 자리에 '공지' 배지를 놓고 줄 전체를 다르게 칠한다.
      같은 모양에 글자만 다르면 목록을 훑을 때 그냥 지나친다. */
-  function postRowHtml(p) {
+  function plainRowHtml(p) {
     return `
       <button class="insight-row ${p.isNotice ? 'is-notice' : ''}" data-open="${esc(p.id)}">
         <span class="insight-row-cat">${p.isNotice
@@ -258,6 +275,52 @@ window.Insight = (() => {
         </span>
         ${p.hasPrompt ? promptRowActionsHtml(p) : ''}
       </button>`;
+  }
+
+  /* ── 프롬프트 카드 ──────────────────────────────────────────
+     위에서 아래로 배지 · 제목 · 미리보기 · 글쓴이, 바닥에 조회·댓글·담긴 수와
+     담기·북마크다. 바닥 줄을 따로 두는 이유: 숫자(읽는 것)와 버튼(누르는 것)이
+     섞이면 카드마다 어디를 눌러야 할지 다시 찾게 된다.
+
+     카드 전체가 `<button>` 이고 그 안의 담기·북마크는 `<span role="button">` 이다
+     — 버튼 안에 버튼을 넣으면 브라우저가 마크업을 고쳐서 카드 밖으로 튕겨낸다. */
+  function promptCardHtml(p) {
+    return `
+      <button class="ins-card ${p.isNotice ? 'is-notice' : ''}" data-open="${esc(p.id)}">
+        <span class="ins-card-head">
+          <span class="ins-card-cat">${p.isNotice
+            ? '<i class="ti ti-speakerphone"></i> 공지'
+            : esc(catLabel(p.category))}</span>
+          <span class="ins-card-time">${esc(relTime(p.createdAt))}</span>
+        </span>
+        <span class="ins-card-title">${esc(p.title)}</span>
+        <span class="ins-card-preview">${esc(p.preview)}</span>
+        <span class="ins-card-author">${esc(p.authorName)}</span>
+        <span class="ins-card-foot">
+          <span class="ins-card-stats">
+            <span title="조회"><i class="ti ti-eye"></i> ${p.viewCount}</span>
+            <span title="댓글"><i class="ti ti-message-circle"></i> ${p.commentCount || 0}</span>
+            ${p.hasPrompt ? promptStatsHtml(p) : ''}
+          </span>
+          ${cardActionsHtml(p)}
+        </span>
+      </button>`;
+  }
+
+  /* 카드의 시각은 **얼마나 지났는지**로 적는다. 배지 옆 좁은 자리라 '2026-09-13 05:00'
+     은 길고, 훑어볼 때 읽히지도 않는다. 일주일이 넘으면 상대 시각이 오히려 흐릿해지므로
+     날짜로 돌아간다. 한 줄 목록은 원래대로 날짜 그대로다 — 거기는 자리가 넉넉하다.
+     (서버는 dateStrings 로 'YYYY-MM-DD HH:MM:SS' 를 주고 둘 다 같은 시간대다.) */
+  function relTime(at) {
+    const t = Date.parse(String(at || '').replace(' ', 'T'));
+    if (!at) return '';
+    if (Number.isNaN(t)) return fmtDate(at);
+    const m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return '방금';
+    if (m < 60) return `${m}분 전`;
+    if (m < 60 * 24) return `${Math.floor(m / 60)}시간 전`;
+    const d = Math.floor(m / (60 * 24));
+    return d < 7 ? `${d}일 전` : fmtDate(at).slice(0, 10);
   }
 
   /* ── 프롬프트 글의 숫자 세 개 (2026-09-07, 사용자 지시) ────────
@@ -300,16 +363,20 @@ window.Insight = (() => {
     </span>`;
   }
 
-  /* 프롬프트 게시판이 무엇을 하는 곳인지 한 번 말해 준다. 다른 카테고리와 달리
-     '글을 읽는 곳'이 아니라 **가져다 쓰는 곳**이라, 모르면 그냥 글로만 읽고 나간다. */
-  function promptIntroHtml() {
-    return `<div class="insight-prompt-intro">
-      <b><i class="ti ti-sparkles"></i> AI 프롬프트 공유</b>
-      <p>자소서 초안을 쓸 때 AI 에게 주는 <b>규칙</b>을 서로 나누는 칸이에요.
-        마음에 드는 글에서 <b>내 프롬프트로 담기</b>를 누르면
-        <b>회사·자소서 → 자소서 코치</b>의 ‘내 AI 프롬프트’ 목록에 그대로 들어가고,
-        AI 초안이 그 규칙으로 나옵니다.</p>
-    </div>`;
+  /* 카드 바닥의 조작. 담기는 프롬프트 글에만 둔다 — 담아 갈 규칙이 없는 글에
+     '담기' 를 두면 눌러 보고 아무 일도 안 일어난다. 카드 목록에도 공지가 섞여 온다. */
+  function cardActionsHtml(p) {
+    const take = p.hasPrompt ? `
+      <span role="button" tabindex="0" class="ins-card-take ${p.taken ? 'is-on' : ''}"
+            data-take="${esc(p.id)}" title="${p.taken ? '이미 담았어요' : '내 프롬프트로 담기'}">
+        <i class="ti ${p.taken ? 'ti-check' : 'ti-download'}"></i>${p.taken ? ' 담김' : ' 담기'}
+      </span>` : '';
+    return `<span class="ins-card-acts">${take}
+      <span role="button" tabindex="0" class="ins-card-bm ${p.bookmarked ? 'is-on' : ''}"
+            data-bookmark="${esc(p.id)}" title="${p.bookmarked ? '북마크 해제' : '북마크'}">
+        <i class="ti ${p.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+      </span>
+    </span>`;
   }
 
   function emptyListHtml() {

@@ -1364,6 +1364,71 @@
     }
   }
 
+  /* ── 올린 사진 미리보기 + 크게 보기 (사용자 요청 2026-09-14) ──────────
+     이미지는 서버가 읽어 글로 바꿔 주지만 화면엔 무엇을 올렸는지 안 남는다.
+     그래서 "제대로 올라갔나" 를 확인할 길이 없었다. 올린 사진을 썸네일로 옆에 두고,
+     누르면 카톡처럼 크게 띄운다.
+
+     썸네일 src 는 base64 대신 **blob URL(createObjectURL)** 로 만든다 — 원본 그대로
+     보이고 DOM 이 무거워지지 않는다. 대신 다 쓰면 revoke 해야 새는 것을 막는다. */
+  let _imgThumbUrls = [];
+
+  function clearThumbUrls() {
+    _imgThumbUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
+    _imgThumbUrls = [];
+  }
+
+  function renderThumbs(files) {
+    const box = $('#jd-img-thumbs');
+    if (!box) return;
+    clearThumbUrls();
+    const imgs = [...(files || [])];
+    if (!imgs.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = imgs.map(f => {
+      const url = URL.createObjectURL(f);
+      _imgThumbUrls.push(url);
+      const name = esc(f.name || '공고 이미지');
+      return `<button type="button" class="jd-img-thumb" data-full-img="${url}" title="${name} — 눌러서 크게 보기">
+        <img src="${url}" alt="${name}">
+      </button>`;
+    }).join('');
+    /* 브라우저가 못 여는 형식(크롬의 HEIC 등)은 깨진 이미지 대신 파일명만 남긴다. */
+    box.querySelectorAll('img').forEach(img => {
+      img.addEventListener('error', () => {
+        const b = img.closest('.jd-img-thumb');
+        if (b) { b.style.cursor = 'default'; b.removeAttribute('data-full-img');
+          b.innerHTML = `<span class="jd-img-thumb-name">${esc(img.alt || '이미지')}</span>`; }
+      });
+    });
+  }
+
+  /* 크게 보기 오버레이는 처음 열 때 한 번만 만들어 body 에 붙인다. 배경·이미지·X 를
+     누르거나 Esc 를 누르면 닫는다(카톡과 같다). */
+  function openLightbox(src, alt) {
+    let ov = document.getElementById('jd-lightbox');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'jd-lightbox';
+      ov.className = 'jd-lightbox';
+      ov.innerHTML = `<img alt=""><button type="button" class="jd-lightbox-x" aria-label="닫기">✕</button>`;
+      document.body.appendChild(ov);
+      ov.addEventListener('click', closeLightbox);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    }
+    const img = ov.querySelector('img');
+    img.src = src;
+    img.alt = alt || '';
+    ov.classList.add('is-open');
+    document.body.style.overflow = 'hidden';   // 뒤 배경이 스크롤되지 않게 잠근다
+  }
+  function closeLightbox() {
+    const ov = document.getElementById('jd-lightbox');
+    if (!ov) return;
+    ov.classList.remove('is-open');
+    document.body.style.overflow = '';
+  }
+
   async function readPostingImages(files) {
     const ta = $('#jd-text');
     const btn = $('#jd-img-go');
@@ -1379,6 +1444,8 @@
     if (btn) { btn.disabled = true; btn.textContent = '읽는 중…'; }
     /* 여러 장을 올려도 앞의 두 장만 본다. 조용히 버리지 않고 몇 장을 봤는지 말해 준다. */
     const use = list.slice(0, IMG_MAX);
+    /* 올린 사진을 바로 옆에 띄운다 — 서버 응답을 기다리기 전에 무엇을 올렸는지 보이게. */
+    renderThumbs(use);
     urlMsg('', `이미지 ${use.length}장을 읽고 있어요 — 1분 남짓 걸립니다.`);
     try {
       const images = [];
@@ -1538,6 +1605,13 @@
     const imgBtn = $('#jd-img-go');
     if (imgBtn && imgInput) imgBtn.addEventListener('click', () => imgInput.click());
     if (imgInput) imgInput.addEventListener('change', () => readPostingImages(imgInput.files));
+
+    /* 올린 사진 썸네일을 누르면 크게 본다. 썸네일은 다시 그려지므로 컨테이너에 위임한다. */
+    const thumbs = $('#jd-img-thumbs');
+    if (thumbs) thumbs.addEventListener('click', e => {
+      const b = e.target.closest('[data-full-img]');
+      if (b) openLightbox(b.dataset.fullImg, b.querySelector('img')?.alt);
+    });
 
     const ta = $('#jd-text');
     if (ta) {

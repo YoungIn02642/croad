@@ -236,6 +236,65 @@ window.Insight = (() => {
     </div>`;
   }
 
+  /* ── 북마크 아이콘 (사용자 지시 2026-09-14) ───────────────────────────────────
+     예전에는 `ti-bookmark` 와 `ti-bookmark-filled` 를 **갈아끼웠다.** 눌리는 순간
+     글리프가 바뀌니 아무 변화도 안 보이고, 눌렀는지 확신이 안 서서 두 번 누르는
+     사람이 있었다(담기 버튼의 is-on 주석과 같은 문제다).
+
+     그래서 두 겹으로 둔다 — 빈 북마크는 늘 깔려 있고, 채운 북마크가 그 위에서
+     투명도로 나타난다. 채운 쪽만 노란색이다. 껍데기(.ins-bm-ic)가 있어야
+     터짐·알갱이를 그 안에 절대 배치할 수 있다(CSS 의 ins-bm-* 규칙).
+
+     aria-hidden 은 둘 다 붙인다. 눌린 상태는 바깥 버튼의 title 이 말한다 —
+     아이콘 두 개가 보조기기에 '북마크 북마크' 로 읽히면 안 된다. */
+  const bmIcon = on => `<span class="ins-bm-ic${on ? ' is-on' : ''}">
+      <i class="ti ti-bookmark ins-bm-base" aria-hidden="true"></i>
+      <i class="ti ti-bookmark-filled ins-bm-fill" aria-hidden="true"></i>
+    </span>`;
+
+  /* 방금 켜진 북마크에 터짐 한 번. **끄는 순간에는 부르지 않는다** — 뗀 것을
+     축하하면 무엇이 일어났는지 헷갈린다.
+     알갱이 방향은 JS 가 정한다(CSS 로는 각도를 못 구한다). 다 끝나면 스스로 지운다.
+     움직임을 줄여 달라고 설정한 사람에게는 아무것도 안 만든다 — 스펙업 포스터·
+     카드 애니메이션과 같은 규칙이다. */
+  const REDUCED = () => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+    catch { return false; }
+  };
+  function popBookmark(el) {
+    const ic = el?.querySelector('.ins-bm-ic');
+    if (!ic || REDUCED()) return;
+    /* 클래스를 뗐다 붙이는 사이에 레이아웃을 한 번 읽어야 애니메이션이 다시 시작한다
+       (안 읽으면 브라우저가 같은 상태로 보고 건너뛴다). */
+    ic.classList.remove('is-pop');
+    void ic.offsetWidth;
+    ic.classList.add('is-pop');
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * 2 * Math.PI;
+      const radius = 18 + Math.random() * 8;
+      const dot = document.createElement('span');
+      dot.className = 'ins-bm-dot';
+      dot.style.setProperty('--x', `${(Math.cos(angle) * radius).toFixed(1)}px`);
+      /* 세로를 0.75 로 눌러 타원으로 퍼지게 한다 — 정원으로 퍼지면 위아래 줄과 부딪힌다. */
+      dot.style.setProperty('--y', `${(Math.sin(angle) * radius * 0.75).toFixed(1)}px`);
+      dot.style.setProperty('--s', (0.8 + Math.random() * 0.4).toFixed(2));
+      const delay = i * 0.04;
+      const dur = 0.6 + Math.random() * 0.1;
+      dot.style.animationDelay = `${delay.toFixed(2)}s`;
+      dot.style.animationDuration = `${dur.toFixed(2)}s`;
+      dot.addEventListener('animationend', () => dot.remove());
+      /* ── animationend 를 기다리는 것만으로는 부족하다 (실측 2026-09-14) ──────────
+         창이 화면에 안 그려지는 동안 브라우저가 애니메이션을 멈춰 세운다. 그때
+         playState 는 'running' 인데 진행이 0 에서 멈춰 있어 **끝 이벤트가 안 온다** —
+         알갱이가 지워지지 않고 남는다. 탭을 오래 열어 두고 북마크를 여러 번 누르면
+         그만큼 쌓인다.
+         그래서 시간으로도 한 번 더 치운다. 이미 지워졌으면 remove() 는 아무 일도
+         하지 않으므로 두 경로가 겹쳐도 문제가 없다. */
+      setTimeout(() => dot.remove(), (delay + dur) * 1000 + 400);
+      ic.appendChild(dot);
+    }
+  }
+
   /* ── 목록 한 칸을 어떻게 그리나 (사용자 지시 2026-09-14) ────────────────
      **AI 프롬프트 게시판만 카드다.** 나머지는 원래의 한 줄 목록으로 되돌렸다.
 
@@ -358,7 +417,7 @@ window.Insight = (() => {
       </span>
       <span role="button" tabindex="0" class="insight-row-bm ${p.bookmarked ? 'is-on' : ''}"
             data-bookmark="${esc(p.id)}" title="${p.bookmarked ? '북마크 해제' : '북마크'}">
-        <i class="ti ${p.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+        ${bmIcon(p.bookmarked)}
       </span>
     </span>`;
   }
@@ -374,7 +433,7 @@ window.Insight = (() => {
     return `<span class="ins-card-acts">${take}
       <span role="button" tabindex="0" class="ins-card-bm ${p.bookmarked ? 'is-on' : ''}"
             data-bookmark="${esc(p.id)}" title="${p.bookmarked ? '북마크 해제' : '북마크'}">
-        <i class="ti ${p.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+        ${bmIcon(p.bookmarked)}
       </span>
     </span>`;
   }
@@ -504,7 +563,7 @@ window.Insight = (() => {
           <button class="topbar-link" id="insight-prompt-copy"><i class="ti ti-copy"></i> 복사</button>
           ${user
             ? `<button class="topbar-link ${post.bookmarked ? 'is-on' : ''}" id="insight-prompt-bm">
-                 <i class="ti ${post.bookmarked ? 'ti-bookmark-filled' : 'ti-bookmark'}"></i>
+                 ${bmIcon(post.bookmarked)}
                  ${post.bookmarked ? '북마크됨' : '북마크'}${
                    post.bookmarkCount ? ` ${post.bookmarkCount}` : ''}</button>`
             : ''}
@@ -867,6 +926,9 @@ window.Insight = (() => {
         const post = (listData.posts || []).find(x => x.id === id);
         if (post) { post.bookmarked = r.bookmarked; post.bookmarkCount = r.bookmarkCount; }
         render();
+        /* 다시 그린 뒤라 방금 누른 노드는 사라졌다 — 같은 id 로 새 노드를 찾아 터뜨린다.
+           끄는 경우에는 부르지 않는다(뗀 것을 축하하지 않는다). */
+        if (r.bookmarked) popBookmark(root()?.querySelector(`[data-bookmark="${CSS.escape(id)}"]`));
       } catch (e) { alert(e.message); }
     }));
 
@@ -905,6 +967,7 @@ window.Insight = (() => {
         detailData.post.bookmarked = r.bookmarked;
         detailData.post.bookmarkCount = r.bookmarkCount;
         render();
+        if (r.bookmarked) popBookmark(root()?.querySelector('#insight-prompt-bm'));
       } catch (e) { alert(e.message); }
     });
 

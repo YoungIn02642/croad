@@ -296,6 +296,43 @@ const PRIVATE_ISSUERS = {
   'GAIQ': 'Google',
 };
 
+/* ── 시행기관의 공식 홈페이지 ────────────────────────────────
+   스펙UP 카드에 **시행기관 로고**를 붙이려고 둔다(사용자 지시 2026-09-14).
+   로고 자체는 company-logo.js 가 이 주소에서 받아 온다.
+
+   ── 도메인을 추측하지 않는다 ──
+   company-logo.js 머리주석과 같은 규칙이다. 기관명에서 도메인을 지어내면 틀렸을 때
+   **남의 기관 로고**가 우리 카드에 붙는다. 아래는 전부 실제로 열어서 확인했고
+   (2026-09-14), 로고까지 받아지는지도 함께 돌려 봤다.
+
+   ── 확인했지만 로고를 못 찾은 곳도 남긴다 ──
+   삼일회계법인·법무부·금융투자협회는 주소는 맞는데 페이지에서 로고 후보를 못 찾았다.
+   빼지 않고 남기는 이유는, 사이트가 개편되면 그때부터 뜨기 때문이다. 못 찾는 동안은
+   204 가 나가고 카드가 이모지로 물러난다(routes/specup.js).
+
+   ── 한국FPSB 는 뺐다 ──
+   fpsbkorea.org·.net·.or.kr 이 모두 응답하지 않았다. 모르는 것은 안 적는다. */
+const ISSUER_SITES = {
+  '한국산업인력공단':      'https://www.hrdkorea.or.kr',
+  '한국데이터산업진흥원':  'https://www.kdata.or.kr',
+  'Amazon Web Services':   'https://aws.amazon.com',
+  'Linux Foundation (CNCF)': 'https://www.cncf.io',
+  'Microsoft':             'https://www.microsoft.com',
+  '대한상공회의소':        'https://www.korcham.net',
+  '한국세무사회':          'https://www.kacpta.or.kr',
+  '삼일회계법인':          'https://www.samil.com',
+  '한국공인회계사회':      'https://www.kicpa.or.kr',
+  '금융감독원':            'https://www.fss.or.kr',
+  '법무부':                'https://www.moj.go.kr',
+  '금융투자협회':          'https://www.kofia.or.kr',
+  'CFA Institute':         'https://www.cfainstitute.org',
+  'GARP':                  'https://www.garp.org',
+  'Google':                'https://www.google.com',
+};
+
+/* 기관명 → 공식 홈페이지. 모르면 null — 부르는 쪽이 로고를 접는다. */
+const issuerSite = name => ISSUER_SITES[String(name || '').trim()] || null;
+
 /* 자격 하나의 시행기관. 모르면 null 을 준다 — 화면은 null 이면 빈칸을 내주고
    학생이 직접 적는다. 추측해서 채우면 틀린 값이 조용히 저장된다. */
 function issuerOf(cert) {
@@ -491,7 +528,7 @@ function recommend({ certs, jobMajor, jobMiddles, dept, limit = 8 }) {
 }
 
 module.exports = {
-  recommend, issuerOf, qnetIssuer, ncs,
+  recommend, issuerOf, qnetIssuer, issuerSite, ISSUER_SITES, ncs,
   KECO_MIDDLE_TO_NCS, KECO_MAJOR_TO_NCS, DEPT_TO_NCS,
   ISSUER_EXCEPTIONS, PRIVATE_ISSUERS,
 };

@@ -234,18 +234,6 @@ window.SpecForm = (() => {
           <div class="sf-hint-inline">가고 싶은 기업을 담아두면, 그 기업에 간 선배들의 스펙을 모아서 보여드릴 예정이에요</div>
         </div>
         `}
-
-        ${!isMentor ? `
-        <!-- 멘티→멘토 전환 신청. 멘토→멘티는 없다(뒤로 돌아가는 방향은 만들지 않기로 했다).
-             가입 10일 후부터 신청 가능하고, 신청 뒤 7일 후 실제로 바뀐다
-             (server.js requestRoleChange 주석). 상태 문구는 initRoleChange() 가 채운다. -->
-        <div class="sf-role-change">
-          <div><b>회원 유형</b><p>현재 <strong>멘티</strong>로 이용 중입니다.</p></div>
-          <button type="button" id="sf-role-change-btn">멘토로 변경 신청</button>
-          <small>가입일로부터 10일이 지나야 신청할 수 있으며, 신청한 날로부터 7일 후 변경됩니다.</small>
-          <div class="sf-role-status" id="sf-role-status"></div>
-        </div>
-        ` : ''}
       </div>
 
       ${isMentor ? `
@@ -316,6 +304,25 @@ window.SpecForm = (() => {
       <button class="btn-save" id="sf-save">저장하기</button>
       <button class="btn-cancel" id="sf-cancel">취소</button>
 
+      ${!isMentor ? `
+      <!-- 멘티→멘토 전환 신청. 멘토→멘티는 없다(뒤로 돌아가는 방향은 만들지 않기로 했다).
+           가입 10일 후부터 신청 가능하고, 신청 뒤 7일 후 실제로 바뀐다
+           (server.js requestRoleChange 주석). 상태 문구는 initRoleChange() 가 채운다.
+
+           ── 맨 아래로 내렸다 (사용자 지시 2026-09-14) ──
+           예전에는 '기본 정보' 안에 있었다. 그런데 이건 스펙 항목이 아니라 **계정
+           설정**이라, 학과·기업 사이에 끼어 있으면 저장 버튼이 이것까지 저장하는
+           것처럼 읽힌다(실제로는 별도 신청이고 저장과 무관하다). 저장·취소 뒤로
+           내려 폼과 분리한다. 위치만 바뀌고 동작은 그대로다 —
+           initRoleChange() 는 id 로 찾으므로 순서와 무관하다. -->
+      <div class="sf-role-change">
+        <div><b>회원 유형</b><p>현재 <strong>멘티</strong>로 이용 중입니다.</p></div>
+        <button type="button" id="sf-role-change-btn">멘토로 변경 신청</button>
+        <small>가입일로부터 10일이 지나야 신청할 수 있으며, 신청한 날로부터 7일 후 변경됩니다.</small>
+        <div class="sf-role-status" id="sf-role-status"></div>
+      </div>
+      ` : ''}
+
       <!-- 자격증 직접 입력 모달이 들어갈 자리 -->
       <div class="sf-modal-host" id="sf-cert-manual" hidden></div>
     `;
@@ -351,6 +358,11 @@ window.SpecForm = (() => {
     // ── 어학 · 제2외국어 편집기
     langState    = langRowsFromScores(spec.scores);
     foreignState = foreignRowsFromScores(spec.scores);
+    /* 서버에서 받아 온 줄이 곧 '저장된 줄' 이다 — 이것만 잠근다(langLocked). */
+    langSaved      = langState.map(r => r.test);
+    foreignSaved   = foreignState.map(r => r.test);
+    langEditing    = new Set();
+    foreignEditing = new Set();
     if (!langState.length) langState.push({ test: '', value: '' });
     paintLang();
     paintForeign();
@@ -558,6 +570,57 @@ window.SpecForm = (() => {
   let langState    = [];   // [{ test, value }]  value: 점수 문자열 또는 등급
   let foreignState = [];   // [{ test, level }]
 
+  /* ── 저장된 줄은 잠근다 (사용자 지시 2026-09-14) ─────────────
+     자격증이 이미 그렇게 동작하고 있었는데(certLocked) 어학·제2외국어만 늘 입력칸
+     이었다. 그래서 **저장된 값인지 방금 고른 값인지 화면에서 구분이 안 됐고**,
+     목록을 훑다가 선택기를 잘못 건드리면 점수가 조용히 바뀌었다.
+     자격증과 같은 규칙으로 맞춘다 — 저장된 줄은 글자로 굳고 [수정]을 눌러야 열린다.
+     삭제(x)는 잠금과 무관하게 늘 된다(certLocked 주석과 같은 이유).
+
+     잠금 키는 **시험 id** 다. 자격증은 이름이 키라 이름을 고치면 옮겨 줘야 하지만
+     (certEditing 주석), 시험은 목록에서 고르는 값이라 그럴 일이 없다. */
+  let langSaved      = [];          // 저장돼 있던 어학 시험 id
+  let foreignSaved   = [];          // 저장돼 있던 제2외국어 시험 id
+  let langEditing    = new Set();   // [수정]으로 연 어학 줄
+  let foreignEditing = new Set();   // [수정]으로 연 제2외국어 줄
+
+  function langLocked(i) {
+    const id = (langState[i] || {}).test;
+    if (!id) return false;                      // 아직 시험을 안 고른 줄
+    if (langEditing.has(id)) return false;      // [수정]을 눌러 연 줄
+    return langSaved.includes(id);
+  }
+
+  function foreignLocked(i) {
+    const id = (foreignState[i] || {}).test;
+    if (!id) return false;
+    if (foreignEditing.has(id)) return false;
+    return foreignSaved.includes(id);
+  }
+
+  /* 잠긴 줄에 보여줄 값. 등급은 그대로, 점수는 단위를 붙인다 — 칸이 사라지면서
+     '/ 990점' 꼬리표도 같이 사라지므로 여기서 붙이지 않으면 숫자만 덩그러니 남는다. */
+  function langShown(t, v) {
+    if (v == null || v === '') return '';
+    return t && t.kind !== 'level' ? `${v}점` : String(v);
+  }
+
+  /* 잠긴 줄의 공통 모양. 어학과 제2외국어가 같은 격자(.sf-lang-row)를 쓰므로 칸 수를
+     맞춘다 — 안 맞추면 두 목록의 [수정]·[x] 가 세로로 어긋난다.
+     `kind` 는 'lang' 또는 'foreign' 이고 data 속성 이름이 거기서 갈린다. */
+  function lockedLangRow(kind, i, label, shown, unit) {
+    const value = shown
+      ? escapeHtml(shown)
+      : '<span class="sf-cert-empty">미입력</span>';
+    return `<div class="sf-lang-row sf-lang-row--locked">
+        <span class="sf-lang-name">${escapeHtml(label)}</span>
+        <span class="sf-lang-value">${value}</span>
+        <span class="sf-lang-unit">${escapeHtml(unit || '')}</span>
+        <button type="button" class="sf-cert-edit-issuer" data-${kind}-edit="${i}">수정</button>
+        <button type="button" class="sf-act-remove" data-${kind}-remove data-${kind}-i="${i}" title="삭제"><i class="ti ti-x"></i></button>
+      </div>`;
+  }
+
   /* 저장된 scores → 행 목록. LANG_TESTS 순서대로 넣어 화면 순서가 매번 같게 한다. */
   function langRowsFromScores(scores) {
     const rows = [];
@@ -582,6 +645,13 @@ window.SpecForm = (() => {
 
   function langRowHtml(r, i) {
     const t = CAS.LANG_TESTS.find(x => x.id === r.test);
+
+    /* 저장된 줄은 글자로 굳힌다. **입력칸을 disabled 로 두지 않고 아예 안 만든다** —
+       회색 선택기는 눌러도 아무 일이 없어서 고장으로 읽힌다(certRowHtml 과 같은 판단). */
+    if (langLocked(i)) {
+      return lockedLangRow('lang', i, t ? t.label : r.test, langShown(t, r.value),
+        t && t.kind === 'level' ? '등급' : '');
+    }
     // 이미 고른 시험은 다른 행에서 다시 못 고르게 막는다 — 같은 시험 두 줄은 저장할 때 하나로 뭉개진다
     const taken = new Set(langState.filter((_, j) => j !== i).map(x => x.test).filter(Boolean));
     const opts = CAS.LANG_TESTS
@@ -620,6 +690,16 @@ window.SpecForm = (() => {
 
   function foreignRowHtml(r, i) {
     const t = CAS.FOREIGN_TESTS.find(x => x.id === r.test);
+
+    /* 어학과 같은 규칙으로 잠근다. 제2외국어는 등급제가 기본이고 JPT·FLEX 만
+       점수제라(아래 levelField 주석) 단위도 거기 맞춰 갈린다. */
+    if (foreignLocked(i)) {
+      const shown = r.level == null || r.level === ''
+        ? ''
+        : (t && t.kind === 'score' ? `${r.level}점` : String(r.level));
+      return lockedLangRow('foreign', i, t ? t.label : r.test, shown,
+        t && t.kind === 'score' ? '' : '등급');
+    }
     const taken = new Set(foreignState.filter((_, j) => j !== i).map(x => x.test).filter(Boolean));
     /* ── 언어로 묶어서 고르게 한다 (사용자 지시 2026-09-13) ────────────────────
        18종이 한 줄로 늘어서면 일본어 시험이 넷인지 하나인지 알 수 없다.
@@ -676,6 +756,15 @@ window.SpecForm = (() => {
     langWrap.addEventListener('change', onLang);
     langWrap.addEventListener('input', onLang);
     langWrap.addEventListener('click', e => {
+      /* [수정] 을 삭제보다 **먼저** 본다. 두 버튼이 같은 줄에 있어서 선택자를
+         뒤집으면 엉뚱한 쪽이 걸린다(certRowWrap 에서 겪은 것과 같은 모양). */
+      const edit = e.target.closest('[data-lang-edit]');
+      if (edit) {
+        const id = (langState[+edit.dataset.langEdit] || {}).test;
+        if (id) langEditing.add(id);
+        paintLang();
+        return;
+      }
       const btn = e.target.closest('[data-lang-remove]');
       if (!btn) return;
       langState.splice(+btn.dataset.langI, 1);
@@ -692,6 +781,13 @@ window.SpecForm = (() => {
     };
     foreignWrap.addEventListener('change', onForeign);
     foreignWrap.addEventListener('click', e => {
+      const edit = e.target.closest('[data-foreign-edit]');
+      if (edit) {
+        const id = (foreignState[+edit.dataset.foreignEdit] || {}).test;
+        if (id) foreignEditing.add(id);
+        paintForeign();
+        return;
+      }
       const btn = e.target.closest('[data-foreign-remove]');
       if (!btn) return;
       foreignState.splice(+btn.dataset.foreignI, 1);
@@ -2065,6 +2161,17 @@ window.SpecForm = (() => {
     certSavedNames = [...certs];
     certEditing = new Set();
     paintCerts();
+
+    /* 어학·제2외국어도 같이 굳힌다(사용자 지시 2026-09-14). 자격증만 굳히고 여기를
+       빼면, 저장 직후 자격증은 잠기고 어학만 열려 있어 **같은 화면에서 규칙이 둘**이
+       된다. 값이 빈 줄은 애초에 저장되지 않으므로(collectScores) 여기서도 뺀다 —
+       안 빼면 저장 안 된 빈 줄이 잠겨서 고칠 수도 지울 수도 없는 줄이 된다. */
+    langSaved      = langState.filter(r => r.test && r.value !== '' && r.value != null).map(r => r.test);
+    foreignSaved   = foreignState.filter(r => r.test && r.level !== '' && r.level != null).map(r => r.test);
+    langEditing    = new Set();
+    foreignEditing = new Set();
+    paintLang();
+    paintForeign();
 
     /* 방금 보낸 활동이 곧 서버에 있는 활동이다. STAR 만 저장하는 버튼이 이 수를 보고
        '이 줄은 서버에 있나'를 판단한다(starBlock). */

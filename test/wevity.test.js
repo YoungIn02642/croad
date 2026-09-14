@@ -223,16 +223,36 @@ const ymd = d => {
     ok('홈페이지를 아는 기관은 로고 주소를 준다',
       a1?.logo === `/api/specup/logo?name=${encodeURIComponent('가기관')}`, `→ ${a1?.logo}`);
     ok('모르는 기관은 null (화면이 이모지로 물러난다)', a2?.logo === null);
-    /* ── 포스터는 기본이 꺼짐이다 (2026-09-07) ──────────────
-       주최사 저작물을 받아 우리 서버에서 다시 내보내는 일이라, 위비티에 인용
-       허락을 문의해 두고 답이 오기 전까지 끈다. 이 검사가 뒤집히면 허락 없이
-       다시 나가기 시작한다는 뜻이다. */
-    ok('기본값은 꺼짐 — 포스터 주소를 주지 않는다', W.POSTER_ON === false && a1?.poster === null,
+    /* ── 포스터는 기본이 켜짐이다 (2026-09-07 꺼 둠 → 2026-09-14 사용자 결정) ──────
+       주최사 저작물을 받아 우리 서버에서 다시 내보내는 일이라 처음에는 껐다.
+       사용자 결정으로 켜되 **끄는 길을 남기는 것이 조건**이었다(wevity.js 주석) —
+       문제 제기가 들어오면 `WEVITY_POSTER=off` 한 줄로 즉시 되돌려야 한다.
+       그래서 이 검사가 지키는 것은 '켜져 있다' 가 아니라 **'끌 수 있다'** 다. */
+    ok('기본값은 켜짐 — 포스터 주소를 준다', W.POSTER_ON === true && a1?.poster === '/api/specup/poster?id=wv-1',
       `→ POSTER_ON=${W.POSTER_ON} poster=${a1?.poster}`);
-    ok('  꺼져 있으면 원본 주소도 내주지 않는다 (받아 오는 경로가 닫힌다)',
-      W.posterUrlOf('wv-1') === null);
-    ok('  캐시에는 그대로 있다 (허락이 오면 켜기만 하면 된다)',
+    ok('  원본 주소도 내준다 (서버가 받아 올 수 있다)',
+      W.posterUrlOf('wv-1') === 'https://www.wevity.com/upload/contest/p1.jpg');
+    ok('  캐시에는 그대로 있다', 
       W.load().items.find(x => x.id === '1')?.detail?.poster === 'https://www.wevity.com/upload/contest/p1.jpg');
+
+    /* **끄는 스위치가 실제로 듣는가.** 모듈이 require 때 env 를 읽으므로 캐시를 비우고
+       다시 들여온다 — 이 검사가 없으면 '되돌릴 수 있다' 는 주석만 남고 확인은 아무도
+       안 한 것이 된다(되돌릴 일이 생겼을 때가 하필 급한 때다). */
+    {
+      const before = process.env.WEVITY_POSTER;
+      process.env.WEVITY_POSTER = 'off';
+      const path = require('path');
+      const key = require.resolve('../backend/src/wevity.js');
+      delete require.cache[key];
+      const Woff = require('../backend/src/wevity.js');
+      ok('  WEVITY_POSTER=off 로 끌 수 있다', Woff.POSTER_ON === false,
+        `→ POSTER_ON=${Woff.POSTER_ON}`);
+      ok('  껐을 때는 원본 주소도 안 내준다 (받아 오는 경로가 닫힌다)',
+        Woff.posterUrlOf('wv-1') === null);
+      delete require.cache[key];
+      if (before === undefined) delete process.env.WEVITY_POSTER; else process.env.WEVITY_POSTER = before;
+      require('../backend/src/wevity.js');
+    }
     ok('포스터가 없는 항목도 null', a2?.poster === null);
 
     /* 상세의 '홈페이지' 칸은 접수처 주소인 경우가 많다. 실측 190건 중

@@ -685,7 +685,21 @@ function recentPicks(clustered, now = Date.now(), company = '', days = RECENT_DA
     }));
 }
 
-function weeklyPicks(clustered, now = Date.now(), company = '') {
+/* ── 두 목록이 같은 기사를 물고 오지 않게 (사용자 지적 2026-09-14) ──────────
+   '최신 뉴스' 와 '주요 뉴스' 는 **같은 표본에서** 뽑는다. 그래서 이번 주에 큰 일이
+   있으면 그 기사가 최신 1번이면서 주요 1번이 된다 — 탭을 바꿔도 같은 줄이 보인다
+   (실측 삼성전자: 주요 1번 '25조 전기료 선납 거절' 이 최신 1번과 같은 기사였다).
+
+   같은 사건인지는 **dedupeStories 와 똑같은 잣대**로 본다. 판정을 여기서 새로 쓰면
+   두 곳이 서로 어긋나서, 목록 안에서는 같은 사건인데 목록끼리는 다른 사건이 된다.
+   후보를 하나 얹어 보고 걸러지면 같은 사건이다. */
+const isNewStory = (it, others, company) =>
+  dedupeStories([...others, it], company).length > others.length;
+
+/* avoid: 이미 다른 목록(최신 뉴스)에 나간 기사들. 구간 대표를 고를 때 **피한다**.
+   다만 그 구간에 다른 후보가 없으면 그대로 쓴다 — 줄을 비우는 것보다 낫다.
+   3개월 흐름을 보여주는 것이 이 목록의 일이라, 구간이 통째로 사라지면 흐름이 끊긴다. */
+function weeklyPicks(clustered, now = Date.now(), company = '', { avoid = [] } = {}) {
   const key = String(company).replace(/\s+/g, '');
   const inTitle = it => !!key && String(it.title).replace(/\s+/g, '').includes(key);
 
@@ -712,7 +726,10 @@ function weeklyPicks(clustered, now = Date.now(), company = '') {
       trendScore(b2) - trendScore(a) ||
       String(b2.date).localeCompare(String(a.date))
     );
-    const top = cands[0];
+    /* 이미 나간 기사(avoid)와 앞 구간에서 고른 기사(picks)를 둘 다 피한다.
+       같은 사건이 두 구간에 걸쳐 보도되는 일이 흔해서 앞 구간도 같이 본다. */
+    const taken = [...avoid, ...picks];
+    const top = cands.find(c => isNewStory(c, taken, company)) || cands[0];
     picks.push({
       ...top,
       week: b,
@@ -788,11 +805,15 @@ async function companyNews(companyName) {
      웹 폴백은 날짜를 못 주므로 빈 배열이 되고, 화면은 기존 목록만 보여준다. */
   const now = Date.now();
   const clustered = cluster(pool);
-  const weekly = weeklyPicks(clustered, now, company);
   /* 최신 뉴스 — 지금부터 1주일 안. 주간 대표와 같은 표본에서 뽑되 기준이 다르다
-     (저쪽은 '구간마다 한 건', 이쪽은 '최근 것부터'). 겹치는 기사가 있어도 그대로 둔다 —
-     같은 기사가 '이번 주 최신'이면서 '이번 구간 대표'인 것은 모순이 아니다. */
+     (저쪽은 '구간마다 한 건', 이쪽은 '최근 것부터').
+
+     ── 최신을 먼저 뽑는다 (사용자 지적 2026-09-14) ────────────────────────────
+     예전에는 겹쳐도 그대로 뒀다("최신이면서 이번 구간 대표인 것은 모순이 아니다").
+     맞는 말이지만 화면에서는 **탭을 바꿔도 같은 줄**이 보인다. 기준이 더 좁은 쪽
+     (7일)을 먼저 확정하고, 주요 쪽이 그 기사를 피해 고른다(weeklyPicks 의 avoid). */
   const latest = recentPicks(clustered, now, company);
+  const weekly = weeklyPicks(clustered, now, company, { avoid: latest });
   const keywords = newsKeywords(items, company);
   /* 실제로 어느 경로로 가져왔는지 — 시도 끝에 정해지므로 호출 뒤에 읽는다. */
   const finalProvider = used === 'web-fallback' ? 'web-fallback'

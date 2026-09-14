@@ -233,5 +233,45 @@ const differentEvent = [
 ok('공통 고유명사가 없으면 다른 사건으로 둔다',
    NEWS.dedupeStories(differentEvent, 'KT').length === 2);
 
+console.log('\n── 두 목록이 같은 기사를 물고 오지 않는다 (사용자 지적 2026-09-14) ──');
+/* '주요 뉴스'(구간 대표)와 '최신 뉴스'(7일)는 같은 표본에서 뽑는다. 이번 주에 큰 일이
+   있으면 그 기사가 양쪽 1번이 되어, 탭을 바꿔도 같은 줄이 보였다(실측 삼성전자). */
+{
+  const items = [
+    /* 이번 주(구간 0) — 화제성이 가장 큰 기사가 최신 목록의 머리를 차지한다 */
+    { title: '삼성전자 25조 전기료 선납 거절', summary: '', url: 'a1', date: ago(1) },
+    { title: '삼성전자, 25조 전기료 선납 거절했다', summary: '', url: 'a2', date: ago(1) },
+    { title: '삼성전자 25조원 전기요금 선납 거절', summary: '', url: 'a3', date: ago(1) },
+    /* 같은 구간(0~18일)의 **다른** 사건인데 최신 창(7일) 밖이다 — 주요 뉴스는
+       이쪽으로 비켜 갈 수 있어야 한다. 구간 0 이 최신 창보다 넓어서 생기는 자리다. */
+    { title: '삼성전자 하반기 공채 19개 관계사 참여', summary: '', url: 'b1', date: ago(10) },
+    { title: '삼성전자 하반기 공채 시작', summary: '', url: 'b2', date: ago(10) },
+    /* 뒤 구간 */
+    { title: '삼성전자 로봇 조직 신설', summary: '', url: 'c1', date: ago(40) },
+  ];
+  const clustered = NEWS.cluster(items);
+  const latest = NEWS.recentPicks(clustered, NOW, '삼성전자');
+  const weekly = NEWS.weeklyPicks(clustered, NOW, '삼성전자', { avoid: latest });
+
+  const same = (a, b) => NEWS.dedupeStories([a, b], '삼성전자').length === 1;
+  ok('최신 1번이 전기료 기사다', latest[0]?.title.includes('전기료'), `→ ${latest[0]?.title}`);
+  ok('주요 뉴스가 최신 목록의 기사를 피해 간다',
+    !weekly.some(w => latest.some(l => same(w, l))),
+    `→ 주요 ${weekly.map(w => w.title.slice(0, 12)).join(' / ')}`);
+  ok('  그 구간을 비우지 않고 다른 사건으로 채운다',
+    weekly.some(w => w.week === 0 && w.title.includes('공채')),
+    '구간 0(0~18일)이 최신 창(7일)보다 넓어서 비켜 갈 자리가 있다');
+
+  /* 피할 후보가 없으면 그대로 쓴다 — 줄을 비우면 3개월 흐름이 끊긴다. */
+  const onlyOne = NEWS.cluster([{ title: '삼성전자 단 하나뿐인 사건', summary: '', url: 'z', date: ago(2) }]);
+  const lone = NEWS.recentPicks(onlyOne, NOW, '삼성전자');
+  ok('대체할 기사가 없으면 겹쳐도 그대로 쓴다',
+    NEWS.weeklyPicks(onlyOne, NOW, '삼성전자', { avoid: lone }).length === 1);
+
+  /* avoid 를 안 넘기면 예전과 똑같이 동작해야 한다 — 다른 호출부가 있을 수 있다. */
+  ok('avoid 없이 부르면 예전 그대로', NEWS.weeklyPicks(clustered, NOW, '삼성전자').length
+     === NEWS.weeklyPicks(clustered, NOW, '삼성전자', {}).length);
+}
+
 console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
 process.exit(fail ? 1 : 0);

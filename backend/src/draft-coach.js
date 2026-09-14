@@ -655,6 +655,28 @@ function toCoach(v) {
    자른 사실은 응답의 trimmed 로 알려서 화면이 "분량에 맞춰 줄였다" 고 말할 수 있게 한다. */
 const lenOf = s => [...String(s || '')].length;
 
+/* ── 분량 하한 (사용자 지시 2026-09-14) ────────────────────────────────
+   상한만 지키고 하한은 일부러 안 걸었다 — 짧게 온 것을 다시 부르면 모델이 분량을
+   채우려고 지어낸다는 이유였다. 맞는 걱정이지만, 배포 서버를 재 보니 **유형이
+   안 잡히는 문항에서 59~76% 로 떨어졌다**(잡히는 문항은 80~99%). 600자 칸에
+   351자가 나오면 학생이 쓸 수 있는 초안이 아니다.
+
+   그래서 하한을 '다시 부르는 기준' 으로만 쓴다. 못 채우면 그대로 내보낸다 —
+   **모자란 초안은 학생이 채울 수 있지만 지어낸 문장은 되돌릴 수 없다.**
+   0.7 인 이유: 측정된 정상 범위(80~99%)의 아래이고, 실패 구간(59~76%)의 가운데다.
+   더 올리면 멀쩡한 초안까지 다시 부르고, 더 내리면 351자짜리를 놓친다. */
+const MIN_FILL = 0.7;
+
+/* 다시 부른 초안을 받아들일지. **세 조건을 다 넘어야 한다** — 더 길고, 상한을 안 넘고,
+   안내 예시를 안 베꼈다. 라우트 안에 조건을 늘어놓으면 검사가 못 닿는 자리가 된다
+   (이 파일의 다른 판정들과 같은 이유로 여기 둔다). */
+function fillsBetter(prev, next, limit, ownStar) {
+  if (!next) return false;
+  const a = lenOf(prev), b = lenOf(next);
+  if (b <= a || b > limit) return false;
+  return !copiedFromExample(next, ownStar);
+}
+
 function fitToLimit(draft, limit) {
   const max = Number(limit) > 0 ? Number(limit) : 0;
   const text = String(draft || '');
@@ -699,5 +721,5 @@ function hasForeign(out) {
 module.exports = {
   buildPrompt, buildMotivePrompt, parseDraft, activityLine, starLines, starRules,
   hasForeign, copiedFromExample, COPY_MIN, SYSTEM, KIND_LABEL,
-  fitToLimit, lenOf, defaultRules,
+  fitToLimit, lenOf, defaultRules, MIN_FILL, fillsBetter,
 };

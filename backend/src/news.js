@@ -180,7 +180,16 @@ async function fromNaver(company, mode) {
    DuckDuckGo HTML 결과를 긁는다. casAnalyze.js 가 활동 기간 추정에 쓰는 것과 같은
    경로다. 링크가 리다이렉트(/l/?uddg=…)로 감싸여 오므로 풀어서 원문 주소를 준다. */
 async function fromWeb(company) {
-  const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(`${company} 뉴스`);
+  return webSearch(`${company} 뉴스`);
+}
+
+/* ── 아무 말이나 웹에서 찾는다 (사용자 지시 2026-09-14) ─────────────────────────
+   회사 뉴스와 달리 **검색어를 그대로** 쓴다. '존경하는 인물' 문항처럼 회사도 뉴스도
+   아닌 것을 찾아 붙일 자리가 필요해서다(인물·책·개념). 뉴스 API 는 언론 기사만
+   돌려주므로 그쪽으로는 인물 소개나 위키 항목이 안 잡힌다.
+   fromWeb 은 이 함수에 '뉴스' 를 붙여 부르는 얇은 껍데기가 된다. */
+async function webSearch(query) {
+  const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(String(query || '').trim());
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; careerly/1.0)' },
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -744,6 +753,36 @@ function weeklyPicks(clustered, now = Date.now(), company = '', { avoid = [] } =
   return picks;
 }
 
+/* ── 아무 말이나 뉴스에서 찾는다 (사용자 지시 2026-09-14) ─────────────────────
+   companyNews 와 무엇이 다른가 — 저쪽은 **회사 리포트**용이라 회사명으로 걸러내고
+   (relevant), 주제 검색을 덧붙이고, 구간 대표까지 고른다. 이쪽은 '최근 이슈' 문항에
+   붙일 기사를 사용자가 **직접 골라 오는** 통로라 그 판단을 하지 않는다 — 검색어를
+   그대로 넘기고 나온 것을 그대로 보여준다. 무엇이 이 문항에 맞는지는 사용자가 안다.
+
+   다만 같은 사건이 여러 언론사로 열 번 나오는 것은 고르는 데 방해가 되므로
+   dedupeStories 는 걸친다(회사명을 모르니 빈 값으로 — 제목 전체로 비교한다). */
+async function searchNews(query, limit = 8) {
+  const q = String(query || '').trim();
+  if (!q) return [];
+  const p = provider();
+  const raw = p === 'web' ? await webSearch(`${q} 뉴스`) : await fromNaver(q, p);
+  return dedupeStories(raw, '').slice(0, limit).map(it => ({
+    title: stripTags(it.title), summary: stripTags(it.summary || ''),
+    url: it.url, date: it.date || null, kind: 'news',
+  }));
+}
+
+/* 인물·개념처럼 기사로는 안 잡히는 것. 날짜가 없는 결과가 많아 date 는 null 이다. */
+async function searchRef(query, limit = 8) {
+  const q = String(query || '').trim();
+  if (!q) return [];
+  const raw = await webSearch(q);
+  return dedupeStories(raw, '').slice(0, limit).map(it => ({
+    title: stripTags(it.title), summary: stripTags(it.summary || ''),
+    url: it.url, date: it.date || null, kind: 'ref',
+  }));
+}
+
 async function companyNews(companyName) {
   const company = String(companyName || '').trim();
   if (company.length < 2) {
@@ -885,6 +924,7 @@ const MOTIVE_GUIDE = {
 
 module.exports = {
   companyNews, provider, newsKeywords, tokenize, MOTIVE_GUIDE, MAX_ITEMS,
+  searchNews, searchRef, webSearch,
   // 테스트용 — 주간 묶기·목록 중복 제거는 외부 호출 없이 검증할 수 있어야 한다
   cluster, weeklyPicks, recentPicks, topPicks, RECENT_DAYS, bucketIndex, trendScore, PICKS, onTopic,
   dedupeStories, SAME_STORY_GRAM, SAME_STORY_WORD,

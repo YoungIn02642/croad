@@ -294,7 +294,7 @@ window.DB = (() => {
      한다 — 두 곳에서 따로 만들면 스트리밍일 때만 재료가 빠지는 식으로 갈린다. */
   function draftBody({ competency, competencies = null, company = '', jobTitle = '', question = '',
                        quotes = [], reads = '', frame = '', limit = 600, star = null, picks = null,
-                       customRules = '' } = {}) {
+                       refs = null, customRules = '' } = {}) {
     /* 활동 목록은 고른 경험이 있을 때만 함께 보낸다 — 안 골랐는데 보내면 서버 프롬프트가
        그 활동을 끌어다 성취담을 지어냈다(사용자 지적 2026-09-01). 서버도 hasStar 로 한 번
        더 거르지만, 안 보내면 프롬프트가 짧아지고 의도도 분명해진다. */
@@ -307,6 +307,11 @@ window.DB = (() => {
       /* 문항마다 고른 정성스펙(0~3개)의 {name, star}. 0개면 서버가 STAR 없이 쓴다.
          star(단일)는 옛 호환용으로 남긴다(picks 가 있으면 서버가 그쪽을 쓴다). */
       picks: Array.isArray(picks) ? picks : undefined,
+      /* 문항에 붙인 자료(뉴스·기타). url 은 안 보낸다 — 모델이 열어 볼 수 없어서
+         프롬프트 길이만 먹는다(서버도 제목·요약·날짜만 읽는다). */
+      refs: Array.isArray(refs) && refs.length
+        ? refs.map(x => ({ title: x.title, summary: x.summary || '', date: x.date || '', kind: x.kind || '' }))
+        : undefined,
       star,
       activities: hasExp ? (_mySpec?.activities || []) : [],
       /* 사용자가 켜 둔 '내 프롬프트'. 없으면 서버가 기본 규칙을 쓴다. */
@@ -321,6 +326,14 @@ window.DB = (() => {
 
   async function draftJd(args = {}) {
     return api('POST', '/api/jd/draft', draftBody(args));
+  }
+
+  /* ── 문항에 붙일 자료 검색 (사용자 지시 2026-09-14) ─────────────────────────
+     kind=news 는 뉴스, kind=ref 는 웹이다. 서버가 네이버·웹을 대신 부른다 —
+     화면이 외부를 직접 부르면 키가 브라우저로 나가고 CORS 에도 막힌다. */
+  async function jdRefs({ kind = 'news', q = '' } = {}) {
+    const qs = new URLSearchParams({ kind, q: String(q || '').trim() });
+    return api('GET', `/api/jd/refs?${qs}`);
   }
 
   /* 공고 없이 시작할 때의 작성 기준. 역량은 안 온다(공고에서 나오는 값이라
@@ -613,6 +626,7 @@ window.DB = (() => {
     analyzeCas, casFit, specFingerprint, coachJd, draftJd, motiveJd, guideJd, jdPromptTemplate, companyAnalysis, companyBusiness, companyIndustryTree, jdPosting, jdPostingImage, jdGuideSearch, jdGuide,
     donationMeta, donate, donationStats, donationsMine,
     specupExams, specupActivities, certCatalog,
+    jdRefs,
     insightCategories, insightFeatured, listInsights, getInsight, createInsight, updateInsight, deleteInsight,
     copyInsightPrompt, bookmarkInsight, rateInsight,
     addInsightComment, deleteInsightComment,

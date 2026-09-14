@@ -260,6 +260,17 @@ async function buildDraft(body) {
     }
   }
   const quotes = Array.isArray(req.body?.quotes) ? req.body.quotes.slice(0, 4).map(String).filter(Boolean) : [];
+  /* ── 문항에 붙여 온 자료 (사용자 지시 2026-09-14) ────────────────────────────
+     '최근 이슈'·'존경하는 인물' 문항의 재료다. 화면이 검색해서 고른 것이 그대로 온다.
+     **제목·요약·날짜만 받는다** — url 은 프롬프트에서 쓸모가 없고(모델이 열어 볼 수
+     없다) 길이만 먹는다. 칸마다 자르는 것은 자료 넷이 붙었을 때 프롬프트가 통째로
+     길어져 뒤쪽 규칙이 밀리는 것을 막기 위해서다(customRules 와 같은 이유). */
+  const refs = (Array.isArray(req.body?.refs) ? req.body.refs : []).slice(0, 4).map(r => ({
+    title: String(r?.title || '').trim().slice(0, 200),
+    summary: String(r?.summary || '').trim().slice(0, 400),
+    date: String(r?.date || '').trim().slice(0, 30),
+    kind: String(r?.kind || '').trim().slice(0, 10),
+  })).filter(r => r.title);
   const question = String(req.body?.question || '').trim();
 
   /* ── 400 이 막는 것은 '역량의 부재' 가 아니라 '재료의 부재' 다 (심사 지적 2026-09-01) ──
@@ -272,7 +283,9 @@ async function buildDraft(body) {
      문항 유형을 재료로 치는 것은, 유형이 걸리면 question-prompts.js 의 골격과 덩이별
      조건이 프롬프트에 들어와 '무엇을 쓸지' 가 정해지기 때문이다. */
   const typed = Boolean(QF.classify(question));
-  if (!comps.length && !quotes.length && !picks.length && !star && !typed) {
+  /* 붙여 온 자료도 **사실 출처**다(사용자 지시 2026-09-14). '최근 이슈' 문항에서
+     역량·경험 없이 기사만 붙이는 것이 정상 사용이라, 자료가 있으면 400 이 아니다. */
+  if (!comps.length && !quotes.length && !picks.length && !star && !typed && !refs.length) {
     throw Object.assign(
       new Error('무엇으로 쓸지 알려 주세요 — 역량을 고르거나, 자소서 문항을 넣어 주세요.'),
       { status: 400 });
@@ -287,6 +300,7 @@ async function buildDraft(body) {
 
   const prompt = DRAFT.buildPrompt({
     customRules,
+    refs,
     company: String(req.body?.company || '').trim(),
     jobTitle: String(req.body?.jobTitle || '').trim(),
     competencies: comps,
@@ -520,6 +534,9 @@ router.post('/motive', async (req, res) => {
    공채는 시즌마다 바뀌고, 한 사람이 같은 가이드를 두 번 열 일이 드물다. 쌓아 두면
    '고용24 사본' 이 되는데 그건 25-2 에서 안 하기로 한 것이다. */
 const W24 = require('../work24-guide');
+/* 문항에 붙일 자료 검색(/refs)이 쓴다. 회사 리포트의 뉴스와 **같은 모듈**이라
+   검색 통로가 한 곳이다 — 키·엔드포인트 판정이 두 곳으로 갈리지 않는다. */
+const NEWS = require('../news');
 
 const w24Hits = new Map();                     // ip → { count, resetAt }
 const W24_WINDOW_MS = 5 * 60 * 1000;
@@ -542,6 +559,36 @@ function w24RateLimited(key) {
 const w24Limit = (req, res, next) => (w24RateLimited(req.ip)
   ? res.status(429).json({ error: '검색이 너무 잦아요. 잠시 후 다시 시도해 주세요.' })
   : next());
+
+/* ── GET /api/jd/refs — 문항에 붙일 자료를 찾는다 (사용자 지시 2026-09-14) ────────
+   ── 왜 필요한가 ──
+   '최근 이슈', '존경하는 인물' 같은 문항은 **내 정성스펙보다 바깥 사실이 재료**다.
+   역량·경험만 붙일 수 있으면 그 문항에서는 붙일 것이 없고, 모델은 재료 없이 쓰다가
+   사전지식에서 지어낸다(이 저장소가 계속 막아 온 실패). 그래서 사용자가 기사·인물
+   자료를 **직접 찾아 붙이는** 통로를 둔다.
+
+   kind=news 는 뉴스 검색(네이버), kind=ref 는 웹 검색이다. 인물·개념은 기사로 안
+   잡혀서(실측: '이순신' → 뉴스 0건, 웹 3건) 두 통로가 따로 있어야 한다.
+
+   검색어는 **그대로 넘긴다.** 회사 리포트의 뉴스는 회사명으로 걸러내지만(relevant),
+   여기서 무엇이 이 문항에 맞는지는 사용자가 안다 — 우리가 고르지 않는다.
+
+   w24Limit 을 같이 쓴다. 같은 성격(외부 검색을 대신 부르는 통로)이고, 창·상한을
+   따로 두면 둘 중 어느 쪽에 걸린 것인지 화면이 말할 수 없다. */
+router.get('/refs', w24Limit, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const kind = String(req.query.kind || 'news').toLowerCase() === 'ref' ? 'ref' : 'news';
+  if (!q) return res.status(400).json({ error: '무엇을 찾을지 적어 주세요.' });
+  if (q.length > 100) return res.status(400).json({ error: '검색어가 너무 길어요.' });
+  try {
+    const items = kind === 'ref' ? await NEWS.searchRef(q) : await NEWS.searchNews(q);
+    res.json({ kind, query: q, items });
+  } catch (e) {
+    /* 외부 검색이 막히면 그 사실을 그대로 말한다 — 빈 목록을 주면 '결과 없음' 으로
+       읽혀서 사용자가 검색어를 계속 바꿔 본다. */
+    res.status(e.status || 502).json({ error: e.message || '검색에 실패했어요.' });
+  }
+});
 
 router.get('/work24/guides', w24Limit, async (req, res) => {
   const q = String(req.query.q || '').trim();

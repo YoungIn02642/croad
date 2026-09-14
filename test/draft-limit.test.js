@@ -119,5 +119,36 @@ const RSRC = require('fs').readFileSync(
 ok('넘치면 다시 부른다', /lenOf\(out\.draft\) > limit/.test(RSRC));
 ok('마지막에 잘라낸다', RSRC.includes('DRAFT.fitToLimit(out.draft, limit)'));
 
+console.log('\n── 11. 분량 하한 (사용자 지시 2026-09-14) ──');
+/* 상한과 달리 하한은 **다시 부르는 기준일 뿐**이다. 못 채우면 그대로 내보낸다 —
+   모자란 초안은 학생이 채울 수 있지만 지어낸 문장은 되돌릴 수 없다.
+   여기서는 '다시 부른 것을 받아들일지' 판정을 본다(라우트가 이 함수를 쓴다). */
+{
+  const GUIDE = require('../backend/src/cover-guide.js');
+  const ownStar = { S: '학생회 홍보팀에서 설명회 참여율이 40%대였다', T: '', A: '', R: '' };
+  const short = '가'.repeat(300), longer = '가'.repeat(500);
+
+  ok('더 길면 받아들인다', DRAFT.fillsBetter(short, longer, 600, ownStar));
+  ok('더 짧으면 안 받는다', !DRAFT.fillsBetter(longer, short, 600, ownStar));
+  ok('같은 길이면 안 받는다', !DRAFT.fillsBetter(short, short, 600, ownStar));
+  /* 하한을 채우려다 상한을 넘기면 제출이 막힌다 — 고치려던 것보다 큰 사고다. */
+  ok('상한을 넘기면 안 받는다', !DRAFT.fillsBetter(short, '가'.repeat(700), 600, ownStar));
+  ok('없으면 안 받는다', !DRAFT.fillsBetter(short, null, 600, ownStar));
+
+  /* 길이를 늘리는 가장 쉬운 길이 '안내 예시 베끼기' 다. 길다고 그걸 받으면
+     지어내기를 막으려고 만든 검사를 하한이 우회하게 된다. */
+  const stolen = short + ' ' + GUIDE.STAR_WRITE[0].good;
+  ok('예시를 베꼈으면 길어도 안 받는다',
+    !DRAFT.fillsBetter(short, stolen, 3000, ownStar),
+    '하한이 베낌 검사를 우회하면 안 된다');
+
+  /* 하한 값 자체 — 배포 실측(정상 80~99% · 실패 59~76%) 사이에 있어야 한다. */
+  ok('하한은 0.5~0.8 사이', DRAFT.MIN_FILL >= 0.5 && DRAFT.MIN_FILL <= 0.8, `→ ${DRAFT.MIN_FILL}`);
+  ok('라우트가 하한으로 다시 부른다', /lenOf\(out\.draft\) < floor/.test(RSRC));
+  ok('하한 재요청이 상한 처리보다 뒤에 온다',
+    RSRC.indexOf('lenOf(out.draft) > limit') < RSRC.indexOf('lenOf(out.draft) < floor'),
+    '상한을 줄인 결과가 하한에 걸려야 한다');
+}
+
 console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
 if (fail) process.exit(1);

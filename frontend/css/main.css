@@ -159,6 +159,27 @@ code { font-family: var(--font-code); background: var(--c-bg); padding: 1px 6px;
 .nav-link:hover { color: var(--brand); }
 .nav-link.on { color: var(--brand); }
 .nav-right { display: flex; gap: 10px; align-items: center; margin-left: auto; }
+
+/* ── 묶음에 안 든 단독 메뉴 (사용자 지시 2026-09-14) ─────────────────────────
+   '커리어 인사이트' 는 왼쪽 묶음(커리어 로드맵)의 흐름에 끼지 않아 오른쪽에 따로 선다.
+   하위 메뉴가 없어 `.nav-link` 지만, 묶음 이름들과 **한 줄로 읽혀야** 하므로
+   글자 크기·굵기는 `.nav-group-label` 과 같게 맞춘다. 14px 600 으로 두면 옆의
+   묶음 이름보다 작아서 하위 항목이 빠져나온 것처럼 보인다.
+
+   알림·로그인 쪽과는 세로선으로 가른다 — 메뉴와 계정 조작은 성격이 다르다. */
+.nav-right .nav-link--solo {
+  font-size: 15px; font-weight: 700; padding: 0 16px 0 0; margin-right: 6px;
+  border-right: 1px solid var(--border); line-height: 1.2;
+}
+@media (max-width: 900px) {
+  /* 좁은 화면에서는 묶음 메뉴가 서랍으로 들어간다(.nav-links display:none).
+     이것만 남으면 로고 옆에 메뉴 하나가 떠 있는 꼴이라 같이 숨긴다 —
+     서랍 안에 같은 항목이 있다. */
+  .nav-right .nav-link--solo { display: none; }
+}
+/* 서랍(세로)에서는 묶음 밖에 놓인 것이라 이름 자리만큼 위로 띄운다. */
+.nav-drawer-links .nav-group--solo { margin-top: 4px; }
+.nav-drawer-links .nav-link--solo { font-size: 15px; font-weight: 700; }
 .nav-search {
   width: 38px; height: 38px; border-radius: 8px;
   border: none; background: transparent;

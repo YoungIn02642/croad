@@ -2098,6 +2098,60 @@ a.wf-btn { text-decoration: none; }
    누를 수 있어 보이면 눌러 보고 아무 일도 안 일어나는 것이 더 나쁘다. */
 .jd-dspec-chip.is-static { cursor: default; }
 
+/* ── 문항에 붙이는 자료 — 뉴스·기타 (사용자 지시 2026-09-14) ─────────────────
+   네 줄(역량·경험·뉴스·기타)이 한 묶음으로 읽혀야 하므로 줄 모양은 위와 같이 두고,
+   검색 칸만 그 줄 아래로 펼친다(flex-basis 100% 로 다음 줄을 통째로 차지한다). */
+.jd-dspec--ref { align-items: flex-start; }
+.jd-dspec-none { font-size: 12px; color: var(--wf-mute-soft, #ababab); }
+
+.jd-refchip { padding-left: 4px; padding-right: 4px; gap: 3px; }
+.jd-refchip-x, .jd-refchip-go {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border: 0; border-radius: 999px;
+  background: transparent; color: inherit; cursor: pointer; text-decoration: none;
+}
+.jd-refchip-x:hover { background: #ffe3e3; color: #c92a2a; }
+.jd-refchip-go:hover { background: #e6ddff; }
+.jd-refchip-t { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jd-refopen { border-style: solid; }
+
+.jd-refpanel {
+  flex: 1 1 100%; margin-top: 8px; padding: 12px;
+  border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-md, 8px); background: var(--wf-fill, #f6f6f4);
+}
+.jd-refsearch { display: flex; gap: 8px; align-items: center; }
+.jd-refq {
+  flex: 1 1 auto; min-width: 0; height: 34px; padding: 0 12px;
+  border: 1px solid var(--wf-hairline); border-radius: var(--wf-r-sm, 4px);
+  background: #fff; font: inherit; font-size: 13px; color: var(--wf-body);
+}
+.jd-refq:focus { outline: none; border-color: #6d3aff; box-shadow: none; }
+.jd-refhint { margin: 8px 0 0; font-size: 11.5px; color: var(--wf-mute); }
+.jd-refhint--err { color: #c92a2a; }
+
+/* 검색 결과 — 왼쪽에 [+], 가운데 제목·요약, 오른쪽에 원문 열기.
+   제목만 보고 붙이면 안 읽은 기사로 자소서를 쓰게 되므로 요약과 원문을 같이 준다. */
+.jd-reflist { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.jd-reflist li {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px; border-radius: var(--wf-r-sm, 4px);
+}
+.jd-reflist li:hover { background: #fff; }
+.jd-refadd {
+  flex: none; width: 24px; height: 24px; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--wf-hairline); border-radius: 999px; background: #fff;
+  color: var(--wf-body); cursor: pointer;
+}
+.jd-refadd:hover { border-color: #6d3aff; color: #6d3aff; }
+.jd-refadd[disabled] { opacity: .4; cursor: default; }
+.jd-refitem { flex: 1 1 auto; min-width: 0; }
+.jd-refitem-t { font-size: 13px; font-weight: 700; color: var(--wf-body); line-height: 1.45; }
+.jd-refitem-m { margin-top: 2px; font-size: 11.5px; color: var(--wf-mute); line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jd-refitem-go { flex: none; color: var(--wf-mute); text-decoration: none; padding: 2px; }
+.jd-refitem-go:hover { color: #6d3aff; }
+
 /* 맥락 줄(AI 초안 기준 역량) */
 .jd-qctx { margin-top: 12px; font-size: 12.5px; color: var(--wf-body-mid); }
 .jd-qctx b { color: var(--wf-ink); font-weight: 800; }

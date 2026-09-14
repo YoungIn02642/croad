@@ -276,6 +276,61 @@
     localStorage.setItem(LS_QPICK, JSON.stringify(all));
     return true;
   }
+  /* ── 문항에 붙이는 자료 — 뉴스·기타 (사용자 지시 2026-09-14) ──────────────────
+     ── 왜 있는가 ──
+     '최근 이슈', '존경하는 인물' 같은 문항은 **내 정성스펙보다 바깥 사실이 재료**다.
+     역량·경험만 붙일 수 있으면 그 문항에서는 붙일 것이 없고, AI 는 재료 없이 쓰다가
+     기사·인물 이력을 지어낸다(draft-coach.js 가 계속 막아 온 실패).
+     그래서 줄을 넷으로 둔다 — 역량 · 경험 · 뉴스 · 기타.
+
+     ── 저장은 정성스펙과 같은 규칙 ──
+     문항(qKey)마다 따로, 회사(draftScope)마다 따로다. 같은 문항이라도 회사가 다르면
+     붙일 기사가 다르므로 scope 를 같이 쓴다(LS_QPICK 과 같은 모양).
+     url 도 저장한다 — 화면에서 원문을 열어 확인할 수 있어야 한다(프롬프트로는 안 간다). */
+  const LS_QREF = 'careerly_jd_qref_v1';
+  const Q_REF_MAX = 3;                    // 갈래마다 3건. 넷 다 붙으면 프롬프트가 길어진다
+  const REF_KINDS = [
+    { id: 'news', label: '뉴스', ph: '예: 삼성전자 반도체 감산', hint: '기사를 찾아 붙이면 그 사실로만 씁니다' },
+    { id: 'ref',  label: '기타', ph: '예: 이순신 / 정주영 / ESG', hint: '인물·개념처럼 기사로 안 잡히는 것' },
+  ];
+  function loadQRefs() {
+    try { return JSON.parse(localStorage.getItem(LS_QREF)) || {}; } catch { return {}; }
+  }
+  function qRefs(qKey, kind) {
+    const v = loadQRefs()[draftScope()]?.[qKey]?.[kind];
+    return Array.isArray(v) ? v.filter(x => x && x.title).slice(0, Q_REF_MAX) : [];
+  }
+  /* 이 문항에 붙은 것 전부 — 초안 API 로 넘길 값이다. 갈래 순서(뉴스 → 기타)를 지킨다. */
+  function qRefList(qKey) {
+    return REF_KINDS.flatMap(k => qRefs(qKey, k.id).map(r => ({ ...r, kind: k.id })));
+  }
+  /* 같은 자료를 두 번 붙이지 않는다 — 판정은 url, 없으면 제목이다. */
+  const refKeyOf = r => String(r?.url || r?.title || '');
+  function addQRef(qKey, kind, item) {
+    const all = loadQRefs();
+    const scope = draftScope();
+    const byQ = all[scope] || (all[scope] = {});
+    const slot = byQ[qKey] || (byQ[qKey] = {});
+    const cur = Array.isArray(slot[kind]) ? slot[kind] : [];
+    if (cur.some(r => refKeyOf(r) === refKeyOf(item))) return 'dup';
+    if (cur.length >= Q_REF_MAX) return 'full';
+    cur.push({ title: item.title, summary: item.summary || '', date: item.date || '', url: item.url || '' });
+    slot[kind] = cur;
+    try { localStorage.setItem(LS_QREF, JSON.stringify(all)); } catch { /* 프라이빗 모드 */ }
+    return 'ok';
+  }
+  function removeQRef(qKey, kind, key) {
+    const all = loadQRefs();
+    const cur = all[draftScope()]?.[qKey]?.[kind];
+    if (!Array.isArray(cur)) return;
+    const at = cur.findIndex(r => refKeyOf(r) === key);
+    if (at >= 0) cur.splice(at, 1);
+    try { localStorage.setItem(LS_QREF, JSON.stringify(all)); } catch { /* 프라이빗 모드 */ }
+  }
+  /* 검색 결과는 화면에만 둔다(저장하지 않는다) — 붙인 것만 저장이다.
+     문항·갈래마다 따로 담아 둬야 탭을 옮겨도 남의 결과가 안 보인다. */
+  const _refFound = {};                   // `${qKey}|${kind}` → { q, items, error, loading }
+
   /* ── 문항마다 쓸 역량을 사용자가 고른다 (사용자 지시 2026-09-01) ──────────────
      ── 무엇이 문제였나 ──
      역량은 `competenciesFor` 가 자동으로 붙였다. 공고 요구 강도 순으로 앞에서 3개인데
@@ -2322,10 +2377,14 @@
   function qCompChipsHtml(tab) {
     if (tab?.kind !== 'question') return '';
     const comps = (tab.comps || []).filter(Boolean);
-    if (!comps.length) return '';
+    /* ── 비어도 줄은 남긴다 (사용자 지시 2026-09-14) ────────────────────────────
+       네 줄(역량·경험·뉴스·기타)이 한 묶음으로 읽혀야 한다. 비면 줄을 지우던 예전
+       방식으로는 문항마다 줄 수가 달라져서, 무엇을 더 붙일 수 있는지 보이지 않는다. */
     return `<div class="jd-dspec">
       <span class="jd-dspec-lab">이 문항 역량</span>
-      ${comps.map(c => `<span class="jd-dspec-chip is-on is-static">${esc(c.label)}</span>`).join('')}
+      ${comps.length
+        ? comps.map(c => `<span class="jd-dspec-chip is-on is-static">${esc(c.label)}</span>`).join('')
+        : '<span class="jd-dspec-none">오른쪽 요구 역량 목록에서 이 문항에 쓸 역량을 고르세요</span>'}
     </div>`;
   }
 
@@ -2333,8 +2392,13 @@
      STAR 편집은 위 문항 칸에서(레퍼런스 A: 초안 옆엔 칩만). */
   function qSpecChipsHtml(qKey) {
     const acts = myActs();
-    if (!acts.length) return '';
     const picked = qPicks(qKey);
+    if (!acts.length) {
+      return `<div class="jd-dspec">
+        <span class="jd-dspec-lab">이 문항 경험</span>
+        <span class="jd-dspec-none">스펙 입력에서 정성스펙(활동)을 넣으면 여기서 고를 수 있어요</span>
+      </div>`;
+    }
     return `<div class="jd-dspec">
       <span class="jd-dspec-lab">이 문항 경험</span>
       ${acts.map(a => {
@@ -2345,6 +2409,65 @@
           data-dqpick="${esc(k)}" data-dqkey="${esc(qKey)}" ${full ? 'disabled' : ''}>
           <i class="ti ti-${on ? 'check' : 'plus'}"></i>${esc(actTitle(a))}</button>`;
       }).join('')}
+    </div>`;
+  }
+
+  /* ── 뉴스·기타 줄 (사용자 지시 2026-09-14) ────────────────────────────────────
+     붙인 자료를 칩으로 보여주고, [찾기]를 누르면 그 줄 아래에 검색 칸이 열린다.
+     모달로 띄우지 않는다 — 문항 글과 같은 화면에 있어야 "이 문항에 무엇을 붙이는가"
+     가 읽히고, 모달을 닫는 동작이 하나 줄어든다.
+
+     칩을 누르면 **뗀다.** 원문은 칩 안의 화살표로 새 창에 연다 — 붙인 기사가 무슨
+     내용이었는지 확인하지 못하면, 자기가 안 읽은 기사로 자소서를 쓰게 된다. */
+  function qRefRowHtml(qKey, kind) {
+    const k = REF_KINDS.find(x => x.id === kind);
+    const list = qRefs(qKey, kind);
+    const found = _refFound[`${qKey}|${kind}`];
+    const full = list.length >= Q_REF_MAX;
+
+    const chips = list.map(r => `
+      <span class="jd-dspec-chip is-on jd-refchip" title="${esc(r.title)}">
+        <button type="button" class="jd-refchip-x" data-refdel="${esc(refKeyOf(r))}"
+          data-refkind="${esc(kind)}" data-refq="${esc(qKey)}" aria-label="떼기"><i class="ti ti-x"></i></button>
+        <span class="jd-refchip-t">${esc(r.title.slice(0, 28))}${r.title.length > 28 ? '…' : ''}</span>
+        ${r.url ? `<a class="jd-refchip-go" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"
+          title="원문 보기" aria-label="원문 보기"><i class="ti ti-external-link"></i></a>` : ''}
+      </span>`).join('');
+
+    const panel = found ? `
+      <div class="jd-refpanel">
+        <div class="jd-refsearch">
+          <input type="search" class="jd-refq" data-refinput="${esc(kind)}" data-refq="${esc(qKey)}"
+            value="${esc(found.q || '')}" placeholder="${esc(k.ph)}" maxlength="100" aria-label="${esc(k.label)} 검색어">
+          <button type="button" class="wf-btn wf-btn--sm" data-refgo="${esc(kind)}"
+            data-refq="${esc(qKey)}" ${found.loading ? 'disabled' : ''}>${found.loading ? '찾는 중…' : '찾기'}</button>
+        </div>
+        <p class="jd-refhint">${esc(k.hint)}</p>
+        ${found.error ? `<p class="jd-refhint jd-refhint--err"><i class="ti ti-alert-triangle"></i> ${esc(found.error)}</p>` : ''}
+        ${Array.isArray(found.items) ? (found.items.length
+          ? `<ul class="jd-reflist">${found.items.map((it, i) => `
+              <li>
+                <button type="button" class="jd-refadd" data-refadd="${i}" data-refkind="${esc(kind)}"
+                  data-refq="${esc(qKey)}" ${full ? 'disabled title="3건까지 붙일 수 있어요"' : ''}>
+                  <i class="ti ti-plus"></i></button>
+                <div class="jd-refitem">
+                  <div class="jd-refitem-t">${esc(it.title)}</div>
+                  <div class="jd-refitem-m">${it.date ? esc(String(it.date).slice(0, 10)) + ' · ' : ''}${esc((it.summary || '').slice(0, 90))}</div>
+                </div>
+                ${it.url ? `<a class="jd-refitem-go" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer"
+                  aria-label="원문 보기"><i class="ti ti-external-link"></i></a>` : ''}
+              </li>`).join('')}</ul>`
+          : `<p class="jd-refhint">찾은 것이 없어요. 낱말을 바꿔 보세요.</p>`) : ''}
+      </div>` : '';
+
+    return `<div class="jd-dspec jd-dspec--ref">
+      <span class="jd-dspec-lab">이 문항 ${esc(k.label)}</span>
+      ${chips || '<span class="jd-dspec-none">' + (kind === 'news'
+        ? '최근 이슈를 묻는 문항이면 기사를 붙이세요'
+        : '인물·개념을 묻는 문항이면 자료를 붙이세요') + '</span>'}
+      <button type="button" class="jd-dspec-chip jd-refopen" data-refopen="${esc(kind)}" data-refq="${esc(qKey)}">
+        <i class="ti ti-${found ? 'chevron-up' : 'search'}"></i>${found ? '접기' : '찾기'}</button>
+      ${panel}
     </div>`;
   }
 
@@ -2720,6 +2843,7 @@
           : '문항 유형을 알아보지 못했어요. 왼쪽 역량 중 이 문항과 가까운 것을 직접 고르세요.'}</p>` : ''}
         ${qCompChipsHtml(tab)}
         ${qSpecChipsHtml(tab.key)}
+        ${tab.kind === 'question' ? REF_KINDS.map(k => qRefRowHtml(tab.key, k.id)).join('') : ''}
         ${isMotive ? '<div data-motive-notes></div>' : ''}
         ${ctx}
       </div>
@@ -2916,6 +3040,29 @@
   /* 탭 전환·정성스펙 토글 뒤 다시 그리기 — 지금 보이는 화면 쪽만 다시 그린다.
      bind() 은 분석·작성 두 화면이 공유하므로, 여기서 화면을 갈라 준다(안 그러면
      작성 화면에서 탭을 눌러도 숨은 #jd-result 만 다시 그려진다). */
+  /* 자료 검색 — 서버가 네이버 뉴스(news) 또는 웹(ref)을 대신 부른다.
+     결과는 저장하지 않는다. 붙인 것만 저장이다(qRefs). */
+  async function runRefSearch(r, qKey, kind, query) {
+    const key = `${qKey}|${kind}`;
+    const q = String(query || '').trim();
+    if (!q) {
+      _refFound[key] = { q, items: null, error: '무엇을 찾을지 적어 주세요.' };
+      rerender(r);
+      return;
+    }
+    _refFound[key] = { q, items: _refFound[key]?.items || null, loading: true };
+    rerender(r);
+    try {
+      const out = await DB.jdRefs({ kind, q });
+      _refFound[key] = { q, items: out.items || [] };
+    } catch (e) {
+      /* 서버가 이유를 준다(키 없음·검색 실패·429). 그대로 보여준다 —
+         빈 목록으로 바꿔치면 '결과 없음' 으로 읽혀서 낱말만 계속 바꿔 보게 된다. */
+      _refFound[key] = { q, items: null, error: e.message || '검색에 실패했어요.' };
+    }
+    rerender(r);
+  }
+
   function rerender(r) {
     if (_wsHost && _wsHost.id === 'write-root') renderWrite();
     else render(r);
@@ -3162,6 +3309,53 @@
       rerender(r);
     }));
 
+    /* ── 뉴스·기타 자료 (사용자 지시 2026-09-14) ────────────────────────────────
+       검색 칸을 여닫고, 찾고, 붙이고, 뗀다. 다시 그릴 때 적던 검색어가 사라지면
+       안 되므로 입력값은 _refFound 에 그때그때 담아 둔다(모달이 아니라 같은 화면을
+       다시 그리는 구조라, 상태를 DOM 에만 두면 날아간다). */
+    box.querySelectorAll('[data-refopen]').forEach(el => el.addEventListener('click', () => {
+      const key = `${el.dataset.refq}|${el.dataset.refopen}`;
+      if (_refFound[key]) delete _refFound[key];
+      else _refFound[key] = { q: '', items: null };
+      rerender(r);
+    }));
+
+    box.querySelectorAll('[data-refinput]').forEach(el => {
+      el.addEventListener('input', () => {
+        const key = `${el.dataset.refq}|${el.dataset.refinput}`;
+        if (_refFound[key]) _refFound[key].q = el.value;
+      });
+      /* 엔터로도 찾는다 — 검색 칸에서 엔터가 안 먹으면 고장으로 읽힌다. */
+      el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        runRefSearch(r, el.dataset.refq, el.dataset.refinput, el.value);
+      });
+    });
+
+    box.querySelectorAll('[data-refgo]').forEach(el => el.addEventListener('click', () => {
+      const key = `${el.dataset.refq}|${el.dataset.refgo}`;
+      runRefSearch(r, el.dataset.refq, el.dataset.refgo, _refFound[key]?.q || '');
+    }));
+
+    box.querySelectorAll('[data-refadd]').forEach(el => el.addEventListener('click', () => {
+      const kind = el.dataset.refkind, qKey = el.dataset.refq;
+      const item = _refFound[`${qKey}|${kind}`]?.items?.[Number(el.dataset.refadd)];
+      if (!item) return;
+      const res = addQRef(qKey, kind, item);
+      if (res === 'full' && typeof toast === 'function') toast(`${Q_REF_MAX}건까지 붙일 수 있어요`, { icon: false });
+      if (res === 'dup' && typeof toast === 'function') toast('이미 붙인 자료예요', { icon: false });
+      if (res === 'ok' && typeof toast === 'function') toast('붙였어요 — AI 초안에 반영됩니다', { icon: false });
+      rerender(r);
+    }));
+
+    box.querySelectorAll('[data-refdel]').forEach(el => el.addEventListener('click', e => {
+      /* 칩 안의 버튼이라 위로 새면 칩(=떼기)과 원문 열기가 같이 돈다. */
+      e.preventDefault(); e.stopPropagation();
+      removeQRef(el.dataset.refq, el.dataset.refkind, el.dataset.refdel);
+      rerender(r);
+    }));
+
     // 지원동기 초안 — 담아 온 회사 근거로 문단을 만든다
     const motiveBtn = box.querySelector('[data-motive]');
     if (motiveBtn) motiveBtn.addEventListener('click', () => insertMotiveDraft(r, tabs));
@@ -3334,6 +3528,10 @@
         reads: list.map(c => c.reads).filter(Boolean).join(' / '),
         frame: list[0]?.frame || '',
         picks,
+        /* 이 문항에 붙인 자료(뉴스·기타) — '최근 이슈'·'존경하는 인물' 문항의 재료다.
+           서버가 제목·요약만 프롬프트에 넣고, "이건 네가 한 일이 아니다" 를 같이 못 박는다
+           (draft-coach.js refLines). 안 붙였으면 빈 배열이라 예전과 같다. */
+        refs: tab?.kind === 'question' ? qRefList(tab.key) : [],
         /* 사용자가 정한 분량 상한. byte 면 한글 2byte 기준으로 글자 수로 환산한다. */
         limit: charTarget(limitOf(tab?.key)),
         /* 켜 둔 '내 프롬프트' 가 있으면 그 규칙으로 쓴다. 없으면 빈 값 → 서버가 기본 규칙. */

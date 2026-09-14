@@ -38,6 +38,7 @@
    ══════════════════════════════════════════════════════════════ */
 const fs = require('fs');
 const path = require('path');
+const certReco = require('./cert-reco');   // 시행기관(카드 표지 로고)
 
 const QNET_PATH = path.join(__dirname, '..', 'data', 'qnet-certs.json');
 const DISQ_PATH = path.join(__dirname, '..', 'data', 'qnet-disq.json');
@@ -394,7 +395,11 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
               기존 한계다). 실측으로 '정보보안기사' 가 여기 걸렸다.
          ②를 "국가자격이 아니에요" 라고 적으면 **틀린 말을 자신 있게 하는 것**이 된다.
          그래서 우리가 아는 사실(못 찾았다)만 적고 확인할 곳을 준다. */
+      /* 시행기관은 카드 표지의 로고에 쓴다(사용자 지시 2026-09-14). 여기 오는 것은
+         국가자격 목록에서 못 찾은 종목이므로 민간자격 표에서만 찾는다 —
+         모르면 null 이고, 화면은 이모지 표지로 물러난다. 지어내지 않는다. */
       items.push({ name, code: null, matched: false,
+        issuer: certReco.issuerOf({ id: name, kind: 'private' }),
         note: '종목 목록에서 못 찾아 일정을 붙이지 못했어요. 민간자격이거나 목록에 빠진 종목일 수 있어요 — 시행기관 공지를 확인하세요.' });
       continue;
     }
@@ -430,6 +435,7 @@ async function certSchedules(certNames, { year, today = todayStr() } = {}) {
 
     items.push({
       name, code: meta.code, matched: true,
+      issuer: certReco.qnetIssuer(name),   // 카드 표지 로고용
       rounds: allRounds,        // 올해 회차 전부(지난 것 포함) — 상세 모달이 쓴다
       round: picked && {
         ...picked,

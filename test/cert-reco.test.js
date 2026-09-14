@@ -249,5 +249,24 @@ const names = r => r.items.map(i => i.name);
 try { if (fs.existsSync(CACHE)) fs.unlinkSync(CACHE); } catch { /* 이미 지웠다 */ }
 if (hadReal) fs.renameSync(BACKUP, CACHE);
 
+/* -- 시행기관 홈페이지 (스펙UP 카드 로고) ----------------------
+   카드 표지에 시행기관 로고를 붙이면서 생긴 표다. 지키려는 것은 하나 —
+   **모르는 기관에 주소를 지어내지 않는 것.** 틀린 주소를 넣으면 남의 기관 로고가
+   우리 카드에 붙는데, 그건 로고가 없는 것보다 나쁘다. */
+console.log('\n== 시행기관 홈페이지 ==');
+ok('국가기술자격의 기관은 한국산업인력공단', R.qnetIssuer('정보처리기사') === '한국산업인력공단');
+ok('그 기관의 주소를 안다', R.issuerSite('한국산업인력공단') === 'https://www.hrdkorea.or.kr');
+ok('민간자격도 기관을 거쳐 주소가 나온다',
+   R.issuerSite(R.issuerOf({ id: 'SQLD', kind: 'private' })) === 'https://www.kdata.or.kr');
+ok('모르는 기관은 null — 지어내지 않는다', R.issuerSite('없는기관') === null);
+ok('기관을 모르면(null) 주소도 null',
+   R.issuerSite(R.issuerOf({ id: '없는자격', kind: 'private' })) === null);
+ok('빈 이름도 null', R.issuerSite('') === null);
+
+/* 표에 적힌 주소는 전부 https 여야 한다 — http 로 받아 오면 중간에서 바꿔치기된
+   이미지를 그대로 카드에 띄우게 된다. */
+ok('모든 주소가 https', Object.values(R.ISSUER_SITES).every(u => u.startsWith('https://')),
+   `-> ${Object.keys(R.ISSUER_SITES).length}곳`);
+
 console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
 process.exit(fail ? 1 : 0);

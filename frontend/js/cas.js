@@ -135,6 +135,48 @@
     { id: 'flex',    lang: '다국어',   label: 'FLEX (응시 언어 선택)', kind: 'score', max: 1000, placeholder: '예: 700' },
   ];
 
+  /* ── 시험별 공식 접수 페이지 ────────────────────────────────
+     스펙UP 이 '접수' 버튼을 걸고, 서버가 **카드에 붙일 시행기관 로고**를 받아 올 때
+     같은 주소를 쓴다(routes/specup.js). 화면과 서버가 주소를 따로 들고 있으면
+     한쪽만 고쳐져서 링크와 로고가 다른 기관을 가리키므로 여기 하나만 둔다.
+
+     **주소를 추측해서 넣지 않는다.** 아래는 전부 공식 페이지에서 확인한 것이다
+     (2026-09-13 확인분에 2026-09-14 로고 수집 시 재확인). 모르는 시험은 안 적는다 —
+     화면은 주소가 없으면 접수 버튼과 로고를 함께 접는다. */
+  const LANG_URLS = {
+    toeic:         'https://exam.toeic.co.kr',
+    toeicSpeaking: 'https://exam.toeic.co.kr',
+    opic:          'https://www.opic.or.kr',
+    toefl:         'https://www.ets.org/toefl',
+    teps:          'https://www.teps.or.kr',
+    gtelp:         'https://www.gtelp.co.kr',
+    topik:         'https://www.topik.go.kr',
+    jlpt:          'https://www.jlpt.or.kr',
+    /* 아래 셋은 공식 페이지에서 확인했다(2026-09-13):
+         OPIc 은 opic.or.kr 에 영어·일본어·중국어·스페인어·러시아어·베트남어·한국어 명시
+         TestDaF 는 testdaf.de · TCF·DELF 는 시행기관 France Éducation international
+         FLEX 는 한국외대 flex.hufs.ac.kr — 전부 200 응답까지 확인하고 넣었다. */
+    tcf:           'https://www.france-education-international.fr',
+    delf:          'https://www.france-education-international.fr',
+    testdaf:       'https://www.testdaf.de',
+    opicEs:        'https://www.opic.or.kr',
+    opicRu:        'https://www.opic.or.kr',
+    opicVi:        'https://www.opic.or.kr',
+    flex:          'https://flex.hufs.ac.kr',
+    /* JPT·SJPT·TSC 는 YBM 이 시행한다. 주소는 jpt.co.kr 공식 페이지의 링크에서
+       확인했다(추측하지 않았다 — ybmsjpt / ybmtsc 로 따로 있다). */
+    jpt:           'https://www.jpt.co.kr',
+    sjpt:          'https://www.ybmsjpt.co.kr',
+    opicJa:        'https://www.opic.or.kr',
+    tsc:           'https://www.ybmtsc.co.kr',
+    opicZh:        'https://www.opic.or.kr',
+    hsk:           'https://www.hsk.or.kr',
+    hskk:          'https://www.hsk.or.kr',
+    dele:          'https://seul.cervantes.es',
+    goethe:        'https://www.goethe.de/ins/kr/ko/sta/seo.html',
+    torfl:         'https://www.torfl.kr',
+  };
+
   // ── 상대 채점 ───────────────────────────────────────────────
   /* 내 값과 합격자 평균의 비율로 0~1 을 낸다.
        평균과 같음        → 0.80
@@ -478,6 +520,47 @@
     return middleMajors.some(m => m.includes(mine) || mine.includes(m));
   }
 
+  /* ── 학과명 원문으로 대조한다 ────────────────────────────────
+     isMajorRelevant 는 dept(집계 분류 8개)를 거친다. dept 는 학과명에서 자동으로
+     정하는 값이라 **간호·기계·어문 같은 학과는 아예 null** 이고(hasAnySpec 주석의
+     실측과 같은 뿌리다), 그래서 '내 학과 맞춤' 화면이 시드 멘토에게만 내용이 차
+     있었다 — 멘토 시드는 dept 가 코드에 박혀 있기 때문이다(demo-seed.js).
+
+     여기서는 사용자가 직접 적은 **학과명 원문**(spec.major)을 쓴다. 규칙을 두 곳에
+     따로 적으면 한쪽만 고쳐지므로 대조 규칙 자체는 이 파일에만 둔다.
+
+     ── 꼬리를 떼고 본다 ──
+     ncs.js 는 '컴퓨터공학'·'소프트웨어학' 처럼 적고, 사용자는 '컴퓨터공학과'·
+     '컴퓨터소프트웨어학부' 라고 적는다. 양쪽에서 같은 꼬리(전공·과·부)를 떼고,
+     그래도 안 맞으면 '학' 까지 뗀 형태로 한 번 더 본다 —
+     '컴퓨터소프트웨어학부'(→컴퓨터소프트웨어) 와 '소프트웨어학'(→소프트웨어) 은
+     그 단계에서야 겹친다.
+
+     '학과'·'학부' 를 한 덩이로 떼지 않는 이유가 있다. 그렇게 하면 '법학과' 가
+     '법' 한 글자가 되어 아래 방어 규칙에 걸려 버린다(실측). '과'·'부' 만 떼면
+     '법학' 이 남아 ncs.js 의 '법학' 과 그대로 맞는다.
+
+     ── 한 글자는 버린다 ──
+     '법학' 에서 '학' 까지 떼면 '법' 한 글자가 남는다. 한 글자로 부분 일치를 보면
+     그 글자가 든 이름에 전부 걸리므로, 두 글자 미만인 형태는 후보에서 뺀다. */
+  const MAJOR_TAIL = /(전공|과|부)$/;
+
+  function majorForms(name) {
+    const base = String(name || '').replace(/\s+/g, '').replace(MAJOR_TAIL, '');
+    if (base.length < 2) return [];
+    const stem = base.replace(/학$/, '');
+    return stem !== base && stem.length >= 2 ? [base, stem] : [base];
+  }
+
+  function majorTextMatches(majorName, middleMajors) {
+    const mine = majorForms(majorName);
+    if (!mine.length || !middleMajors || !middleMajors.length) return false;
+    return middleMajors.some((m) => {
+      const theirs = majorForms(m);
+      return theirs.some((t) => mine.some((n) => t.includes(n) || n.includes(t)));
+    });
+  }
+
   /* ── 스펙을 '입력했다' 고 볼 수 있는가 ──────────────────────
      예전에는 화면들이 `spec.dept` 하나로 판단했다. 그런데 dept 는 **학과명에서
      자동으로 정하는 집계 분류**이고, 우리 통계는 8개 계열뿐이라 **간호·기계·어문
@@ -503,9 +586,9 @@
 
   const api = {
     computeQuant, resolveWeights, langIndex, relativeScore, certScore,
-    isMajorRelevant, hasAnySpec, DEPT_MAJOR,
+    isMajorRelevant, majorTextMatches, majorForms, hasAnySpec, DEPT_MAJOR,
     TARGETS, TOTAL_QUANT, MIN_N_FOR_RATE,
-    LANG_TESTS, FOREIGN_TESTS,
+    LANG_TESTS, FOREIGN_TESTS, LANG_URLS,
     // 정성
     computeQual, computeTotal, resolveSplit, scoreActivity, qualRaw, normalizeActivities,
     ACTIVITY_TYPES, TOTAL_QUAL, DURATION_MULT, ROLE_MULT, OUTCOME_MULT, STAGE_MULT,

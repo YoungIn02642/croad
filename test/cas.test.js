@@ -179,5 +179,33 @@ ok('학과 계열이 없는 사람의 실제 스펙도 입력이다',
      scores: { jlpt: 'N1' }, certs: [{ id: 'info-industrial' }],
      activities: [{ name: '교내 공모전' }, { name: '학회' }] }) === true);
 
+/* ── 학과명 원문 대조 (majorTextMatches) ──────────────────────
+   dept(집계 분류 8개)를 거치면 거기 안 걸리는 학과는 '내 학과 맞춤' 화면이
+   통째로 비었다. 원문으로 대조하도록 바꿨으므로, 꼬리 처리와 오탐 방어를 건다. */
+console.log('\n── 학과명 원문 대조 ──');
+const NCS_CS = ['컴퓨터공학', '소프트웨어학'];
+const NCS_BIZ = ['경영학'];
+
+ok("'과' 를 뗀다 — 컴퓨터공학과 ↔ 컴퓨터공학", CAS.majorTextMatches('컴퓨터공학과', NCS_CS));
+ok("'학부' 도 뗀다 — 경제학부 ↔ 경제학", CAS.majorTextMatches('경제학부', ['경제학']));
+ok("'전공' 도 뗀다", CAS.majorTextMatches('회계전공', ['회계학']));
+/* '학' 까지 떼야 겹치는 자리 — dept 방식으로는 절대 안 되던 경우다 */
+ok("'학' 까지 떼서 맞춘다 — 컴퓨터소프트웨어학부 ↔ 소프트웨어학",
+   CAS.majorTextMatches('컴퓨터소프트웨어학부', NCS_CS));
+ok('더 긴 학과명도 포함으로 잡힌다 — 경영정보학과 ↔ 경영학',
+   CAS.majorTextMatches('경영정보학과', NCS_BIZ));
+
+/* 한 글자 방어 — '법학과' 에서 '학과' 를 통째로 떼면 '법' 이 남아 아무 데나 걸린다.
+   '과' 만 떼어 '법학' 을 남긴다(실측으로 잡은 버그). */
+ok("법학과는 '법학' 으로 남아 맞는다", CAS.majorTextMatches('법학과', ['법학']));
+ok('한 글자 형태는 후보에서 빠진다', CAS.majorForms('과').length === 0);
+ok("'법학과' 의 후보는 '법학' 하나", CAS.majorForms('법학과').join() === '법학');
+
+/* 관련 없는 학과는 관련 없다고 해야 한다 — 다 맞다고 하면 화면이 거짓말을 한다 */
+ok('기계공학과는 컴퓨터 분류에 안 걸린다', CAS.majorTextMatches('기계공학과', NCS_CS) === false);
+ok('국어국문학과는 경영에 안 걸린다', CAS.majorTextMatches('국어국문학과', NCS_BIZ) === false);
+ok('학과명이 없으면 false', CAS.majorTextMatches('', NCS_CS) === false);
+ok('관련 전공 목록이 비면 false', CAS.majorTextMatches('컴퓨터공학과', []) === false);
+
 console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
 process.exit(fail ? 1 : 0);

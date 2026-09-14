@@ -364,6 +364,36 @@ async function buildDraft(body) {
          어느 쪽이든 아래 fitToLimit 이 마지막으로 상한을 보장한다. */
       if (shorter && DRAFT.lenOf(shorter.draft) < DRAFT.lenOf(out.draft)) out = shorter;
     }
+    /* ── 너무 짧게 오면 한 번만 더 부른다 (사용자 지시 2026-09-14) ──────────────
+       위 상한과 짝이다. 상한은 제출이 막히는 사고라 단단히 막고, 하한은 **한 번만**
+       권한다 — 짧게 온 것을 계속 다시 부르면 모델이 분량을 채우려고 지어낸다.
+
+       다시 부를 때 "더 써라" 만 시키면 그 지어내기가 바로 나온다. 그래서 재료를
+       못 박는다: **이미 준 사실만 더 풀고, 새 사건·새 수치는 만들지 말고, 모르면
+       대괄호로 비운다.** 초안의 빈칸은 이 기능의 정상 출력이다(draft-coach 규칙).
+
+       받아들이는 조건이 세 가지다 — 더 길고, 상한을 안 넘고, 예시를 안 베꼈다.
+       하나라도 틀리면 **처음 것을 그대로 쓴다.** 다시 부른 쪽이 더 나쁠 수 있는데
+       길다는 이유로 바꾸면, 고치려던 것보다 큰 것을 잃는다. */
+    const floor = Math.round(limit * DRAFT.MIN_FILL);
+    if (DRAFT.lenOf(out.draft) < floor) {
+      const short = floor - DRAFT.lenOf(out.draft);
+      let longer = null;
+      try {
+        longer = DRAFT.parseDraft(await callDraftModel(
+          `${prompt}
+
+# 다시
+방금 쓴 초안이 ${limit}자 칸에 ${DRAFT.lenOf(out.draft)}자뿐이다.`
+          + ` 최소 ${short}자를 더 채워 ${limit}자에 가깝게 다시 써라.`
+          + ` **새 사건·새 수치를 만들지 마라** — 위에 준 지원자 사실을 더 자세히 풀고,`
+          + ` 판단의 근거와 과정을 덧붙여 늘린다. 모르는 값은 지어내지 말고 대괄호로 비운다.`
+          + ` ${limit}자를 넘기지는 마라.`,
+          DRAFT.SYSTEM, { num_ctx: 8192, num_predict: 1100 }, used));
+      } catch { longer = null; }
+      if (longer && DRAFT.fillsBetter(out.draft, longer.draft, limit, ownStar)) out = longer;
+    }
+
     const fit = DRAFT.fitToLimit(out.draft, limit);
     if (fit.trimmed) {
       /* 자른 뒤에는 빈칸 수가 달라진다 — 화면이 세는 숫자와 어긋나지 않게 다시 만든다. */

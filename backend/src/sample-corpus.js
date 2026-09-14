@@ -49,7 +49,7 @@ function norm(q) {
     .trim();
 }
 
-/* 글자 2-gram 자카드. 한국어는 조사·어미가 붙어 어절이 잘 안 맞으므로 어절이 아니라
+/* 글자 2-gram. 한국어는 조사·어미가 붙어 어절이 잘 안 맞으므로 어절이 아니라
    글자로 자른다("지원동기" 와 "지원하는 동기" 가 어절로는 0, 2-gram 으로는 겹친다). */
 function bigrams(s) {
   const t = s.replace(/\s+/g, '');
@@ -57,18 +57,95 @@ function bigrams(s) {
   for (let i = 0; i + 2 <= t.length; i++) out.add(t.slice(i, i + 2));
   return out;
 }
+
+/* ── 흔한 말은 덜 세고, 짧은 쪽을 분모로 쓴다 (실측 2026-09-14) ────────────────
+   ── 무엇이 문제였나 ──
+   자카드였다: 겹친 2-gram ÷ 합집합. 그러면 **문항이 길수록 점수가 깎인다** — 분모가
+   커지기 때문이다. 실제 공고 문항은 조건·가이드가 붙어 길고, 표본 문항은 짧은 것이
+   섞여 있다. 표본끼리 재 보면 60자 넘는 문항의 적중이 38%로 떨어졌다(30자 미만은 75%).
+
+   ── 두 가지를 바꾼다 ──
+   ① 분모를 **짧은 쪽**으로 한다. 긴 문항이 짧은 문항을 담고 있으면 그건 닮은 것이다.
+   ② 2-gram 마다 **idf** 로 무게를 준다. '경험' '기술해' '주세요' 는 거의 모든 문항에
+      있어서 정보가 없고, 자카드에서는 그 흔한 조각들이 분모만 불렸다. 무게는 표본
+      102편의 등장 빈도로 낸다 — 밖에서 가져오는 값이 없다.
+
+   ── 얼마나 나아지나 (표본 leave-one-out) ──
+   전체 적중 54/80 → 55/80, 100자 넘는 문항 0% → 100%, 그러면서 **다른 유형끼리 문턱을
+   넘는 짝은 4.2% → 3.6% 로 줄었다**(더 붙는데 더 깐깐해졌다. idf 덕이다).
+
+   ── 협업 유형은 이걸로도 안 붙는다 ──
+   표본 11편이 서로 0.12~0.19 밖에 안 나온다. 같은 말을 다른 어휘로 묻기 때문이라
+   (`소통과 협력` · `조직문화` · `공동과제`) 글자 겹침으로는 못 잡는다. 문턱을 낮춰
+   붙이려다 **3-gram 짜리 표본('협업 경험')에 아무 문항이나 붙는 것**을 확인했다 —
+   점수는 0.57 이 나오지만 신호가 아니라 잡음이다. 그래서 문턱을 낮추는 대신
+   아래 structureBlock 이 **같은 유형의 중앙값**으로 답한다. */
+let idfCache;
+function idfTable() {
+  if (!idfCache) {
+    const samples = corpus()?.samples || [];
+    const df = new Map();
+    for (const s of samples) for (const g of bigrams(norm(s.question))) df.set(g, (df.get(g) || 0) + 1);
+    idfCache = { df, n: samples.length };
+  }
+  return idfCache;
+}
+
+/* ── 상투어는 아예 안 센다 ──────────────────────────────────────────────
+   idf 로 무게를 낮추는 것만으로는 **짧은 문항끼리** 가 안 걸러진다. '좋아하는 음식을
+   기술해 주세요' 와 '직무 관련 경험을 기술해 주세요' 는 겹치는 것이 '기술해 주세요'
+   뿐인데 0.29 가 나왔다(둘 다 짧아서 그 상투어가 내용의 대부분이다).
+   그래서 표본 40% 넘게 나오는 2-gram 은 **없는 셈 친다.** 0.4 는 실측으로 골랐다 —
+   적중 55/80 을 그대로 두면서 위 상투어 쌍이 0.21 로 내려가 문턱 아래가 되고,
+   긴 문항↔짧은 문항은 0.42 로 남는다(0.3 까지 내리면 적중이 53 으로 떨어진다). */
+const STOP_DF = 0.4;
+const informative = g => {
+  const { df, n } = idfTable();
+  return n ? (df.get(g) || 0) / n <= STOP_DF : true;
+};
+const idfOf = g => {
+  const { df, n } = idfTable();
+  return Math.log((n + 1) / ((df.get(g) || 0) + 0.5));
+};
+const weight = set => { let w = 0; for (const g of set) if (informative(g)) w += idfOf(g); return w; };
+
 function similarity(a, b) {
   const A = bigrams(norm(a)), B = bigrams(norm(b));
   if (!A.size || !B.size) return 0;
-  let inter = 0;
-  for (const g of A) if (B.has(g)) inter++;
-  return inter / (A.size + B.size - inter);
+  const min = Math.min(weight(A), weight(B));
+  if (!min) return 0;
+  let hit = 0;
+  for (const g of A) if (informative(g) && B.has(g)) hit += idfOf(g);
+  return hit / min;
 }
 
-/* 너무 안 닮은 것을 끌어오면 엉뚱한 구조를 시킨다. 표본이 72편뿐이라 문턱을 넘는
-   문항이 없는 일이 흔하고, 그때는 아무것도 주지 않는 편이 낫다. */
-const MIN_SIM = 0.12;
+/* 너무 안 닮은 것을 끌어오면 엉뚱한 구조를 시킨다. 문턱은 표본으로 재서 잡았다 —
+   0.25 에서 적중 55/80 · 다른 유형끼리 넘는 짝 3.6% 였고, 0.20 으로 내리면 적중이
+   60/80 으로 늘지만 그 짝이 7.7% 로 뛴다(그 늘어난 적중의 대부분이 아래 MIN_GRAMS
+   에 걸리는 짧은 표본이었다). 문턱을 못 넘어도 이제 빈손은 아니다 — 같은 유형의
+   중앙값이 나간다(structureBlock). */
+const MIN_SIM = 0.25;
 const TOP_N = 3;
+
+/* ── 검색 열쇠로 쓰기엔 너무 짧은 표본 ──────────────────────────────────
+   '협업 경험'(2-gram 3개) 같은 문항이 표본에 있다. 짧은 쪽이 분모라, 이런 표본은
+   **아무 협업 문항에나 0.5 넘게 붙는다**(실측). 겹친 것이 '협업' 하나뿐인데도 그렇다.
+   그래서 **검색 후보에서만** 뺀다 — 그 편의 구조(문단·숫자)는 멀쩡한 자료라
+   같은 유형 중앙값에는 그대로 들어간다. 8개면 한글 아홉 자쯤이다. */
+const MIN_GRAMS = 8;
+
+/* 유형 중앙값을 낼 최소 표본 수. 3편 이하면 중앙값이 한 편에 끌려다녀서,
+   '합격 자소서가 이렇다' 고 말할 근거가 못 된다. 지금 유형별 표본은 7~30편이다. */
+const MIN_POOL = 4;
+
+/* ── 한 편만 잡히면 그 한 편을 따르지 않는다 (실측 2026-09-14) ────────────────
+   이 파일은 이미 "표본이 3편 이하라 평균은 한 편이 길면 통째로 끌려간다" 고 적어
+   두고 중앙값을 쓴다. 그런데 **잡힌 표본이 1편이면 중앙값도 그 한 편이다.**
+   실제로 협업 800자에서 한 편만 잡혔을 때 '문단 5개 · 숫자 8개' 가 나왔다 —
+   같은 유형 11편으로 재면 '문단 3개 · 숫자 4개' 다. 800자에 숫자 8개를 요구하면
+   모델이 없는 수치를 지어내는 쪽으로 밀린다(이 저장소가 계속 막아 온 그 실패다).
+   그래서 2편 미만이면 '비슷한 문항' 이라고 부르지 않고 유형 중앙값으로 간다. */
+const MIN_HITS = 2;
 
 /* ── 비슷한 표본 찾기 ───────────────────────────────────────
    같은 유형 안에서만 찾는다. 유형이 다르면 구조가 다른 것이 당연하고(성격 장단점과
@@ -86,6 +163,7 @@ function nearest(question, typeId) {
   const pool = doc.samples.filter(s => s.typeId === type);
   if (!pool.length) return [];
   return pool
+    .filter(s => bigrams(norm(s.question)).size >= MIN_GRAMS)   // 짧은 표본은 열쇠로 못 쓴다
     .map(s => ({ s, sim: similarity(question, s.question) }))
     .filter(x => x.sim >= MIN_SIM)
     .sort((a, b) => b.sim - a.sim)
@@ -107,8 +185,29 @@ const med = a => {
    숫자 목표는 '개수' 가 아니라 '밀도 × 목표 글자수' 로 환산해서 준다. 표본은 500자,
    지금 문항은 900자일 수 있는데 개수를 그대로 주면 밀도가 절반이 된다. */
 function structureBlock(question, { limit, typeId } = {}) {
-  const hits = nearest(question, typeId);
-  if (!hits.length) return null;
+  const found = nearest(question, typeId);
+  const hits = found.length >= MIN_HITS ? found : [];
+  /* ── 문턱을 못 넘어도 빈손으로 두지 않는다 (사용자 지시 2026-09-14) ──────────
+     ── 왜 필요한가 ──
+     협업 유형은 표본이 11편이나 있는데 **문항끼리 말이 달라서** 하나도 안 붙는다
+     (similarity 주석의 실측). 그 11편의 구조는 멀쩡한 자료인데, 검색이 못 찾았다는
+     이유로 통째로 버리고 있었다 — 학생 화면에서는 '합격 자소서를 학습했다'고 해 놓고
+     정작 협업 문항에는 아무것도 안 나가던 자리다.
+
+     ── 무엇이 달라지나 ──
+     비슷한 문항을 찾으면 그 3편의 중앙값(specific), 못 찾으면 **같은 유형 전체**의
+     중앙값(type)이다. 둘은 근거의 세기가 다르므로 **블록이 스스로 어느 쪽인지 말한다** —
+     "비슷한 문항 3편" 과 "같은 유형 11편" 은 학생이 읽었을 때 다른 무게여야 한다.
+
+     ── 유형이 없으면 여전히 아무것도 안 준다 ──
+     유형을 모르면 분량표도 없어서 "분량표가 우선" 이라는 안내가 가리킬 곳이 없다.
+     표본이 너무 적은 유형(4편 미만)도 중앙값이 한 편에 끌려다니므로 그냥 뺀다. */
+  const type = typeId || QF.classify(question)?.id || null;
+  const doc = corpus();
+  const pool = (hits.length || !type || !doc)
+    ? hits
+    : doc.samples.filter(s => s.typeId === type);
+  if (!pool.length || (!hits.length && pool.length < MIN_POOL)) return null;
 
   const total = Number(limit) || 600;
 
@@ -120,25 +219,35 @@ function structureBlock(question, { limit, typeId } = {}) {
      숫자는 밀도(100자당)로 환산해 놓고 문단만 빠뜨렸다. 같은 방식으로 고친다 —
      **표본의 100자당 문단 수 × 목표 글자 수.**
      2~5로 가둔다: 1문단이면 구조가 없고, 6문단이면 위 증상이 돌아온다. */
-  const paraDensity = hits.reduce((a, h) => a + h.paras / h.chars, 0) / hits.length;
+  const paraDensity = pool.reduce((a, h) => a + h.paras / h.chars, 0) / pool.length;
   const paras = Math.min(5, Math.max(2, Math.round(paraDensity * total)));
-  const density = hits.reduce((a, h) => a + h.numberDensity, 0) / hits.length;
+  const density = pool.reduce((a, h) => a + h.numberDensity, 0) / pool.length;
   const nums = Math.max(1, Math.round(density * total / 100));
-  const subhead = hits.filter(h => h.subheads > 0).length;
-  const firstNum = hits.filter(h => h.firstSentHasNumber).length;
+  const subhead = pool.filter(h => h.subheads > 0).length;
+  const firstNum = pool.filter(h => h.firstSentHasNumber).length;
+  /* 소제목·첫 문장은 '있다/없다' 가 아니라 **몇 편이 그랬나** 로 판단한다. 비슷한
+     문항 3편일 때는 한 편만 달아도 '달아도 된다' 가 맞지만, 유형 전체 11편에서
+     한 편이면 그건 예외다. 그래서 중앙값 갈래에서는 과반을 본다. */
+  const many = n => (hits.length ? n > 0 : n * 2 > pool.length);
 
   const lines = [
-    `실제 합격 자소서 중 **이 문항과 비슷한 문항** ${hits.length}편을 재 본 결과다.`
-      + ` 문장은 주지 않는다(남의 글이다). **구조만 참고하고, 내용은 위 지원자 사실로만 써라.**`,
+    hits.length
+      ? `실제 합격 자소서 중 **이 문항과 비슷한 문항** ${pool.length}편을 재 본 결과다.`
+      : `이 문항과 비슷한 표본은 없었다. 대신 **같은 유형(${pool[0].typeLabel || type}) 합격 자소서 ${pool.length}편**을 재 본 결과다 — 문항별 특성은 못 담았으니 더 느슨하게 참고해라.`,
+    `문장은 주지 않는다(남의 글이다). **구조만 참고하고, 내용은 위 지원자 사실로만 써라.**`,
     `  · 문단: ${paras}개로 끊는다`
       + (paras <= 2 ? ' — 합격 자소서는 문단을 잘게 쪼개지 않는다' : ''),
     `  · 확인 가능한 숫자: 이 분량(${total}자)이면 **${nums}개** 정도가 실제 수준이다.`
       + ` 더 박으려고 없는 수치를 지어내지 마라 — 모르면 대괄호로 비운다`,
-    `  · 소제목(따옴표로 묶은 한 줄 제목): ${subhead ? '단 편이 있다. 달아도 된다' : '달지 않는다'}`,
-    `  · 첫 문장: ${firstNum ? '숫자로 시작하는 편이 있다' : '숫자로 시작하지 않는다. 결론·기준 선언으로 연다'}`,
+    `  · 소제목(따옴표로 묶은 한 줄 제목): ${many(subhead) ? '단 편이 있다. 달아도 된다' : '달지 않는다'}`,
+    `  · 첫 문장: ${many(firstNum) ? '숫자로 시작하는 편이 있다' : '숫자로 시작하지 않는다. 결론·기준 선언으로 연다'}`,
     `  ※ 위 **분량 배분표가 우선이다.** 이 값과 부딪히면 분량표를 따르고, 이건 참고만 한다.`,
   ];
   return lines.join('\n');
 }
 
-module.exports = { nearest, structureBlock, similarity, norm, isLoaded: () => !!corpus() };
+module.exports = {
+  nearest, structureBlock, similarity, norm,
+  MIN_SIM, MIN_GRAMS, MIN_POOL, MIN_HITS,
+  isLoaded: () => !!corpus(),
+};

@@ -1149,7 +1149,15 @@ window.CareerPage = (() => {
   function myMajorBlock() {
     const spec = DB.getSpec(DB.currentUser()?.username);
     const dept = spec?.dept || null;
-    const mine = dept ? CAS.DEPT_MAJOR[dept] : null;
+    const deptName = dept ? CAS.DEPT_MAJOR[dept] : null;
+
+    /* 대조는 **사용자가 적은 학과명 원문**으로 한다. 예전에는 dept 를 거쳤는데,
+       dept 는 우리가 학과명에서 자동으로 정하는 집계 분류 8개뿐이라 거기 안 걸리는
+       학과는 스펙을 다 채워도 "학과를 아직 몰라요" 가 떴다. 그래서 dept 가 코드에
+       박혀 있는 시드 멘토에게만 내용이 찼다(2026-09-14, 사용자 지적).
+       정작 이 화면은 '선배가 간 회사' 를 보여주는 곳이라 멘티 것이다.
+       원문이 없을 때만 dept 이름으로 물러선다. */
+    const mine = spec?.major || deptName;
 
     if (!mine) {
       return `
@@ -1165,11 +1173,12 @@ window.CareerPage = (() => {
         </div>`;
     }
 
-    /* 관련 전공 목록이 있는 분류 중 내 학과와 맞는 것만 모은다 */
+    /* 관련 전공 목록이 있는 분류 중 내 학과와 맞는 것만 모은다.
+       대조 규칙은 cas.js 에만 있다 — 두 곳에 적으면 한쪽만 고쳐진다. */
     const hits = [];
     KECO.MAJORS().forEach((M) => {
       M.middles.forEach((S) => {
-        if (S.majors?.length && CAS.isMajorRelevant(dept, S.majors)) hits.push({ M, S });
+        if (S.majors?.length && CAS.majorTextMatches(mine, S.majors)) hits.push({ M, S });
       });
     });
 
@@ -1177,9 +1186,9 @@ window.CareerPage = (() => {
       <div class="mj-hero">
         <div class="mj-hero-ico">🎓</div>
         <div>
-          <h2>${esc(spec.major || mine)} 전공이면 여기부터</h2>
+          <h2>${esc(mine)} 전공이면 여기부터</h2>
           <p>내 학과와 <b>관련 전공</b>이 겹치는 직무 ${hits.length}갈래예요.
-            ${spec.major && spec.major !== mine ? `통계는 <b>${esc(mine)}</b> 분류로 묶여요.` : ''}</p>
+            ${deptName && deptName !== mine ? `통계는 <b>${esc(deptName)}</b> 분류로 묶여요.` : ''}</p>
         </div>
       </div>`;
 

@@ -167,6 +167,16 @@ window.SpecUp = (() => {
 
   /* openCert 를 주면 **링크가 아니라 버튼**이 된다 — 눌러서 밖으로 나가는 대신
      모달을 연다(자격증 둘러보기, 2026-09-11). url 과 같이 주지 않는다. */
+  /* ── 카드 표지의 기관 로고 ────────────────────────────────
+     공모전 카드는 주관기관 로고를 달고 있었는데 자격증·어학 카드만 이모지였다
+     (사용자 지시 2026-09-14). 같은 라우트를 쓴다.
+
+     **주소가 아니라 이름을 보낸다.** 화면이 주소를 고를 수 있으면 우리 서버를 남의
+     주소로 조종하는 통로가 된다(company-logo.js 머리주석). 서버는 자기가 검증해 둔
+     표에 그 이름이 있을 때만 받아 오고, 없으면 204 를 준다 —
+     그러면 coverArt 가 이모지로 물러난다. 여기서 미리 걸러 낼 필요가 없다. */
+  const orgLogo = name => (name ? `/api/specup/logo?name=${encodeURIComponent(name)}` : null);
+
   function card({ emoji, poster, logo, coverTag, palKey, badges = [], title, org, foot, url, cta, openCert }) {
     const badgeHtml = badges.filter(Boolean)
       .map(b => `<span class="sup-badge ${b.cls || ''}">${esc(b.text)}</span>`).join('');
@@ -513,12 +523,12 @@ window.SpecUp = (() => {
     const G = window.Gap;
     if (!G) return '';
     const state = G.gapContext(ctx);
-    if (!state.ok) {
-      return `<div class="sup-note sup-note--muted">
-        <i class="ti ti-info-circle"></i>
-        <div><b>${esc(state.title)}</b><br>${esc(state.desc)}</div>
-      </div>`;
-    }
+    /* ── 표본이 모자랄 때의 안내 상자는 지웠다 (사용자 지시 2026-09-14) ────────
+       '선배 표본이 2명뿐이에요 / 5명은 모여야…' 를 띄우던 자리다. 화면 맨 위 설명문
+       (page-desc)이 이미 같은 사정을 말하고 있어서 같은 말이 두 번 나갔고, 정작
+       아래 목록은 멀쩡히 뜨는데 상단만 회색 경고라 고장처럼 읽혔다.
+       숫자 요약만 접고 목록은 그대로 둔다. */
+    if (!state.ok) return '';
     const rows = [
       ['cert',     '자격증'],
       ['activity', '활동·경험'],
@@ -680,8 +690,12 @@ window.SpecUp = (() => {
       else                                foot = `<span class="sup-foot-muted">${esc(round.stage)} 접수 마감 · 시험 ${esc(round.examStart || '-')}</span>`;
     }
 
+    /* 표지 로고는 시행기관 것이다. 추천 목록(rows)에는 기관이 없고 시험일정 응답에
+       들어 있다 — 아직 안 왔으면 이모지로 두고, 오면 그때 다시 그려진다.
+       목록에 없는 종목(민간자격)도 서버가 아는 것만 기관을 달아 준다. */
     return card({
       emoji: '📜',
+      logo: orgLogo(item?.issuer),
       coverTag: kind ? kind[1] : (item && !item.matched ? '' : ''),
       palKey: r.name,
       badges: [
@@ -849,6 +863,7 @@ window.SpecUp = (() => {
     const mine = (lastCtx?.spec?.certs || []).includes(c.id);
     return card({
       emoji: '📜',
+      logo: orgLogo(c.issuer),
       coverTag: c.kindLabel || '',
       palKey: c.id,
       badges: [
@@ -873,50 +888,21 @@ window.SpecUp = (() => {
      국가자격 시험일정에도 없다. 없는 것을 있는 척 정적 표로 박아 두면 다음 달에
      조용히 틀린 날짜가 된다 — 이 저장소가 제일 경계하는 부류라 넣지 않았다.
      대신 공식 접수 페이지로 바로 보낸다. */
-  /* ── 목록은 CAS 가 단일 출처다 (사용자 지시 2026-09-11) ────────────────────
+  /* ── 목록도 주소도 CAS 가 단일 출처다 ──────────────────────────────────
      예전에는 여기 네 줄을 따로 박아 뒀다. 그래서 **스펙 입력에는 있는 TEPS·G-TELP·
      TOPIK 과 제2외국어 7종이 이 화면에만 없었다** — 같은 목록이 두 벌이면 반드시 갈린다.
      `CAS.LANG_TESTS`(영어 등 7종)와 `CAS.FOREIGN_TESTS`(제2외국어 7종)를 그대로 쓴다.
-     여기서 더하는 것은 **접수 페이지 주소뿐**이다. 주소를 모르는 시험은 안 적는다 —
-     추측한 주소로 보내면 엉뚱한 데로 데려간다.
+
+     접수 주소(`CAS.LANG_URLS`)도 cas.js 로 옮겼다(2026-09-14). 카드에 **시행기관
+     로고**를 붙이면서 서버도 같은 주소가 필요해졌기 때문이다 — 주소를 양쪽에 따로
+     적으면 한쪽만 고쳐져서 링크와 로고가 다른 기관을 가리키게 된다.
 
      ── 시험 일정 API 가 없다 ──
      시행기관(YBM·크레듀·ETS·일본국제교류기금 …)이 공개 API 를 열지 않는다. 국가자격
      시험일정에도 없다. 없는 것을 있는 척 정적 표로 박아 두면 다음 달에 조용히 틀린
      날짜가 된다 — 이 저장소가 제일 경계하는 부류라 넣지 않았다. 공식 페이지로 보낸다. */
-  const LANG_URLS = {
-    toeic:         'https://exam.toeic.co.kr',
-    toeicSpeaking: 'https://exam.toeic.co.kr',
-    opic:          'https://www.opic.or.kr',
-    toefl:         'https://www.ets.org/toefl',
-    teps:          'https://www.teps.or.kr',
-    gtelp:         'https://www.gtelp.co.kr',
-    topik:         'https://www.topik.go.kr',
-    jlpt:          'https://www.jlpt.or.kr',
-    /* 아래 셋은 공식 페이지에서 확인했다(2026-09-13):
-         OPIc 은 opic.or.kr 에 영어·일본어·중국어·스페인어·러시아어·베트남어·한국어 명시
-         TestDaF 는 testdaf.de · TCF·DELF 는 시행기관 France Éducation international
-         FLEX 는 한국외대 flex.hufs.ac.kr — 전부 200 응답까지 확인하고 넣었다. */
-    tcf:           'https://www.france-education-international.fr',
-    delf:          'https://www.france-education-international.fr',
-    testdaf:       'https://www.testdaf.de',
-    opicEs:        'https://www.opic.or.kr',
-    opicRu:        'https://www.opic.or.kr',
-    opicVi:        'https://www.opic.or.kr',
-    flex:          'https://flex.hufs.ac.kr',
-    /* JPT·SJPT·TSC 는 YBM 이 시행한다. 주소는 jpt.co.kr 공식 페이지의 링크에서
-       확인했다(추측하지 않았다 — ybmsjpt / ybmtsc 로 따로 있다). */
-    jpt:           'https://www.jpt.co.kr',
-    sjpt:          'https://www.ybmsjpt.co.kr',
-    opicJa:        'https://www.opic.or.kr',
-    tsc:           'https://www.ybmtsc.co.kr',
-    opicZh:        'https://www.opic.or.kr',
-    hsk:           'https://www.hsk.or.kr',
-    hskk:          'https://www.hsk.or.kr',
-    dele:          'https://seul.cervantes.es',
-    goethe:        'https://www.goethe.de/ins/kr/ko/sta/seo.html',
-    torfl:         'https://www.torfl.kr',
-  };
+  const LANG_URLS = CAS.LANG_URLS;
+
 
   function langTab(ctx) {
     const mine = ctx.spec?.scores || {};
@@ -937,6 +923,7 @@ window.SpecUp = (() => {
 
       return card({
         emoji: '🗣️',
+        logo: orgLogo(t.label),
         coverTag: '어학',
         palKey: t.label,
         badges: [status, p ? { text: `표본 ${p.n}명`, cls: 'is-peer' } : null],
@@ -978,6 +965,7 @@ window.SpecUp = (() => {
       const shown = v ? (t.kind === 'score' ? `${v}점` : v) : '';
       return card({
         emoji: '🌏',
+        logo: orgLogo(t.label),
         coverTag: t.lang || '제2외국어',
         palKey: t.lang || t.label,          // 같은 언어면 같은 색 — 격자에서 묶여 보인다
         badges: [shown ? { text: shown, cls: 'is-have' } : { text: '미응시', cls: 'is-lack' }],

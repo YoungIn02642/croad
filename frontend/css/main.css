@@ -1041,6 +1041,23 @@ input.input-error { border-color: var(--c-red); }
   .sf-lang-unit { display: none; }
   .sf-lang-row .sf-act-remove { grid-column: 2; justify-self: end; }
 }
+/* ── 저장된 어학·제2외국어 줄 (사용자 지시 2026-09-14) ────────
+   자격증(.sf-cert-row--locked)과 같은 규칙 — 값을 글자로 굳히고 [수정]을 눌러야
+   열린다. 칸이 하나 늘어(이름·값·단위·수정·삭제) 그리드 열도 하나 더 필요하다. */
+.sf-lang-row--locked { grid-template-columns: 1.5fr 1.2fr auto auto auto; }
+.sf-lang-name {
+  font-size: 13px; font-weight: 600; color: var(--text-p);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 값은 이름보다 약하게 — 줄을 훑을 때 시험 이름이 먼저 읽혀야 한다. */
+.sf-lang-value { font-size: 13px; color: var(--text-s); min-width: 0; }
+@media (max-width: 720px) {
+  /* 좁은 화면에서는 이름·값을 한 줄에 두고 버튼을 오른쪽으로 민다.
+     기본 줄의 `.sf-act-remove { grid-column: 2 }` 규칙이 여기까지 오면 삭제가
+     값 자리로 올라타므로 되돌린다. */
+  .sf-lang-row--locked { grid-template-columns: 1fr auto auto; }
+  .sf-lang-row--locked .sf-act-remove { grid-column: auto; }
+}
 
 /* ── 검색 입력 + 드롭다운 (회사·관심기업·자격증·주최기관 공용) ──────
    datalist 를 대신한다. 항목 옆에 부가 정보(기업 유형·자격 구분)를 붙이고,

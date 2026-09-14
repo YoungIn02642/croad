@@ -13,8 +13,34 @@ const specup = require('../specup');
 const LOGO = require('../company-logo');
 const path = require('path');
 const WEVITY = require('../wevity');
+const CAS = require('../../../frontend/js/cas.js');
+const certReco = require('../cert-reco');
 
 const router = express.Router();
+
+/* ── 자격증·어학 카드에도 로고를 붙인다 (사용자 지시 2026-09-14) ──────────
+   공모전 카드는 주관기관 로고를 달고 있었는데 자격증·어학 카드만 이모지였다.
+
+   `/logo` 는 **이름만** 받고 주소는 서버가 찾는다(아래 라우트 주석의 SSRF 이야기).
+   그 '찾기'는 `LOGO.hostFor(이름)` 인데, 공모전은 수집할 때 `remember()` 로 적혀
+   있어서 찾아지고 자격증·어학은 적어 둔 적이 없어 못 찾았다. 그래서 여기서 한 번
+   적어 둔다.
+
+   주소는 **우리가 이미 검증해 둔 표**에서만 가져온다. 새로 지어내지 않는다 —
+   어학은 `CAS.LANG_URLS`(화면의 접수 버튼과 같은 출처), 자격증은
+   `certReco.ISSUER_SITES`(전부 열어서 확인한 것). 둘 다 모르는 항목은 아예 없어서
+   `hostFor` 가 null 을 주고 카드는 이모지로 물러난다.
+
+   이름을 키로 적는 이유는 `/logo?name=` 이 이름으로 오기 때문이다. 시험은 화면에
+   보이는 **label**(예: 'TOEIC')로, 자격증은 **시행기관명**으로 맞춘다. */
+function rememberExamSites() {
+  const urls = CAS.LANG_URLS || {};
+  [...(CAS.LANG_TESTS || []), ...(CAS.FOREIGN_TESTS || [])].forEach((t) => {
+    if (urls[t.id]) LOGO.remember(t.label, urls[t.id]);
+  });
+  Object.entries(certReco.ISSUER_SITES || {}).forEach(([name, url]) => LOGO.remember(name, url));
+}
+rememberExamSites();
 
 const ah = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 

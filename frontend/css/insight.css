@@ -466,6 +466,70 @@
 }
 .insight-prompt-field textarea:focus { outline: none; border-color: var(--brand); }
 
+/* ── 북마크 아이콘 (사용자 지시 2026-09-14) ─────────────────────────────────────
+   요청받은 원본은 React + framer-motion 컴포넌트였다. 이 프론트엔드는 **빌드가
+   없고 React 를 쓰지 않으므로**(careerly.html 이 스크립트를 직접 나열한다) 같은
+   동작을 CSS 애니메이션과 작은 JS 로 옮겼다 — 두 겹 아이콘 · 눌림 · 터짐 · 알갱이 5개.
+   색은 지시대로 노란색이다(원본은 파란색).
+
+   값 하나만 두는 이유: 채운 북마크·터짐·알갱이가 같은 노란색이어야 한 동작으로
+   읽힌다. 별점(#f5a524)과 같은 계열을 쓴다 — 한 화면에 노란색이 둘이면 무엇이
+   무엇인지 흐려진다. */
+.ins-bm-ic {
+  --ins-bm: #f5a524;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 1em; height: 1em; line-height: 1;
+}
+/* 두 겹 — 빈 북마크는 늘 깔려 있고, 채운 쪽이 투명도로 나타난다. 글리프를 갈아끼우면
+   변화가 안 보여서 눌렀는지 확신이 안 선다(insight.js bmIcon 주석). */
+.ins-bm-ic .ins-bm-base { opacity: .6; transition: opacity .2s; }
+.ins-bm-ic .ins-bm-fill {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--ins-bm); opacity: 0; transition: opacity .3s;
+}
+.ins-bm-ic.is-on .ins-bm-base { opacity: 0; }
+.ins-bm-ic.is-on .ins-bm-fill { opacity: 1; }
+/* 켜진 상태는 살짝 크다 — 목록을 훑을 때 색만으로는 덜 걸린다. */
+.ins-bm-ic.is-on { transform: scale(1.1); }
+
+/* 누르는 순간의 반동. 켜질 때만 JS 가 붙인다(끄는 것을 축하하지 않는다). */
+.ins-bm-ic.is-pop { animation: ins-bm-pop .45s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes ins-bm-pop {
+  0%   { transform: scale(.85) rotate(-10deg); }
+  55%  { transform: scale(1.25) rotate(0deg); }
+  100% { transform: scale(1.1) rotate(0deg); }
+}
+/* 터짐 — 원본의 radial-gradient 를 그대로 옮겼다. ::after 로 두면 노드를 안 만든다. */
+.ins-bm-ic.is-pop::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 2.4em; height: 2.4em;
+  margin: -1.2em 0 0 -1.2em; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(245, 165, 36, .45) 0%, rgba(245, 165, 36, 0) 80%);
+  animation: ins-bm-burst .7s ease-out;
+}
+@keyframes ins-bm-burst {
+  0%   { transform: scale(0);   opacity: 0; }
+  45%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+
+/* 알갱이 — 방향(--x·--y)·크기(--s)·시간은 JS 가 정한다. CSS 로는 각도를 못 구한다. */
+.ins-bm-dot {
+  position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%; background: var(--ins-bm); filter: blur(1px); pointer-events: none;
+  animation-name: ins-bm-fly; animation-timing-function: ease-out; animation-fill-mode: forwards;
+}
+@keyframes ins-bm-fly {
+  0%   { transform: translate(0, 0) scale(0); opacity: .3; }
+  50%  { opacity: .85; }
+  100% { transform: translate(var(--x), var(--y)) scale(var(--s)); opacity: 0; }
+}
+/* 움직임을 줄여 달라고 설정한 사람에게는 색만 바뀐다. JS 도 알갱이를 안 만들지만,
+   CSS 에도 적어 둔다 — 한쪽만 막으면 다른 경로로 애니메이션이 새어 나온다. */
+@media (prefers-reduced-motion: reduce) {
+  .ins-bm-ic, .ins-bm-ic.is-pop, .ins-bm-ic.is-pop::after, .ins-bm-dot { animation: none; }
+  .ins-bm-ic.is-pop::after { display: none; }
+}
+
 /* ── 평점 ──────────────────────────────────────────────────────────────
    평균은 왼쪽, 내가 매기는 별은 오른쪽. 둘을 섞으면 '표시'와 '입력'이 구분되지
    않아서, 남의 평균을 내가 누른 것으로 읽는다. */

@@ -513,12 +513,12 @@ window.SpecUp = (() => {
     const G = window.Gap;
     if (!G) return '';
     const state = G.gapContext(ctx);
-    if (!state.ok) {
-      return `<div class="sup-note sup-note--muted">
-        <i class="ti ti-info-circle"></i>
-        <div><b>${esc(state.title)}</b><br>${esc(state.desc)}</div>
-      </div>`;
-    }
+    /* ── 표본이 모자랄 때의 안내 상자는 지웠다 (사용자 지시 2026-09-14) ────────
+       '선배 표본이 2명뿐이에요 / 5명은 모여야…' 를 띄우던 자리다. 화면 맨 위 설명문
+       (page-desc)이 이미 같은 사정을 말하고 있어서 같은 말이 두 번 나갔고, 정작
+       아래 목록은 멀쩡히 뜨는데 상단만 회색 경고라 고장처럼 읽혔다.
+       숫자 요약만 접고 목록은 그대로 둔다. */
+    if (!state.ok) return '';
     const rows = [
       ['cert',     '자격증'],
       ['activity', '활동·경험'],

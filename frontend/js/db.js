@@ -294,7 +294,7 @@ window.DB = (() => {
      한다 — 두 곳에서 따로 만들면 스트리밍일 때만 재료가 빠지는 식으로 갈린다. */
   function draftBody({ competency, competencies = null, company = '', jobTitle = '', question = '',
                        quotes = [], reads = '', frame = '', limit = 600, star = null, picks = null,
-                       refs = null, customRules = '' } = {}) {
+                       refs = null, askPoint = '', customRules = '' } = {}) {
     /* 활동 목록은 고른 경험이 있을 때만 함께 보낸다 — 안 골랐는데 보내면 서버 프롬프트가
        그 활동을 끌어다 성취담을 지어냈다(사용자 지적 2026-09-01). 서버도 hasStar 로 한 번
        더 거르지만, 안 보내면 프롬프트가 짧아지고 의도도 분명해진다. */
@@ -312,6 +312,9 @@ window.DB = (() => {
       refs: Array.isArray(refs) && refs.length
         ? refs.map(x => ({ title: x.title, summary: x.summary || '', date: x.date || '', kind: x.kind || '' }))
         : undefined,
+      /* 이 문항으로 회사가 보려는 것(고용24 평가 포인트). 사실이 아니라 **기준**이라
+         서버가 다른 블록으로 넣는다(draft-coach askPoint). */
+      askPoint: askPoint || undefined,
       star,
       activities: hasExp ? (_mySpec?.activities || []) : [],
       /* 사용자가 켜 둔 '내 프롬프트'. 없으면 서버가 기본 규칙을 쓴다. */

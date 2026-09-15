@@ -331,6 +331,41 @@
      문항·갈래마다 따로 담아 둬야 탭을 옮겨도 남의 결과가 안 보인다. */
   const _refFound = {};                   // `${qKey}|${kind}` → { q, items, error, loading }
 
+  /* ── 문항의 평가 포인트 (사용자 지시 2026-09-15) ───────────────────────────────
+     고용24 자소서 작성가이드는 문항마다 **무엇을 보려는 문항인지**를 달아 둔다
+     ('회사 및 직무 이해도/목표 의식/입사 의지'). 지금까지 문항 글만 가져오고 이건
+     버렸는데, 실측해 보니 우리 6유형 분류기가 실제 공채 문항의 70%만 잡았고
+     **못 잡은 문항에 고용24는 이미 라벨을 달아 두었다**('산업 이해도/논리적 사고').
+     유형을 못 잡으면 골격·분량표가 통째로 안 붙어 초안이 얇아지는 자리다.
+
+     ── 문항 글로 키를 만든다 ──
+     questionDraftKey 는 '문항1' 처럼 **순서**로 만든 키다. 문항을 지우거나 순서를
+     바꾸면 남의 평가 포인트가 따라붙는다. 그래서 여기서는 문항 글 자체를 키로 쓴다.
+
+     ── 작성 가이드 원문(700자)은 화면에만 둔다 ──
+     거기에는 회사 사실이 섞여 있고('세계 최대 규모 생산시설', 미션 문구) 분량도 길다.
+     프롬프트에 넣으면 ① 뒤쪽 규칙이 밀리고 ② 모델이 요령 문장을 그대로 옮긴다.
+     학생이 읽는 자리에 원문 그대로 두고, AI 에는 평가 포인트만 넘긴다. */
+  const LS_QMETA = 'careerly_jd_qmeta_v1';
+  const qMetaKey = t => String(t || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  function loadQMeta() {
+    try { return JSON.parse(localStorage.getItem(LS_QMETA)) || {}; } catch { return {}; }
+  }
+  function qMetaOf(text) {
+    const m = loadQMeta()[draftScope()]?.[qMetaKey(text)];
+    return (m && (m.point || m.guide)) ? m : null;
+  }
+  function saveQMeta(list) {
+    const all = loadQMeta();
+    const byQ = all[draftScope()] || (all[draftScope()] = {});
+    for (const q of list || []) {
+      const k = qMetaKey(q.text);
+      if (!k || (!q.type && !q.guide)) continue;
+      byQ[k] = { point: String(q.type || '').slice(0, 120),
+                 guide: String(q.guide || '').slice(0, 2000), source: 'work24' };
+    }
+    try { localStorage.setItem(LS_QMETA, JSON.stringify(all)); } catch { /* 프라이빗 모드 */ }
+  }
   /* ── 문항마다 쓸 역량을 사용자가 고른다 (사용자 지시 2026-09-01) ──────────────
      ── 무엇이 문제였나 ──
      역량은 `competenciesFor` 가 자동으로 붙였다. 공고 요구 강도 순으로 앞에서 3개인데
@@ -1383,7 +1418,9 @@
 
      받는 길을 셋 다 연다. 사람마다 손에 익은 것이 다르고, 어느 쪽이든 같은 함수로 온다:
        · 버튼 → 파일 고르기   · 공고 칸에 Ctrl+V   · 공고 칸에 끌어다 놓기 */
-  const IMG_MAX = 2;                       // 서버 POSTING_OCR_MAX_IMAGES 와 같은 값
+  /* 사용자가 **올리는** 장수. 서버 상한(6)은 조각까지 센 값이라 다르다 —
+     긴 한 장이 조각 여섯이 될 수 있으므로 올리는 쪽은 2장으로 둔다. */
+  const IMG_MAX = 2;
   const IMG_MAX_BYTES = 5 * 1024 * 1024;   // 서버 MAX_IMAGE_BYTES 와 같은 값
 
   /* ── 보내기 전에 줄인다 ──────────────────────────────
@@ -1397,7 +1434,20 @@
      브라우저가 못 여는 형식(크롬의 HEIC)은 원본 그대로 보낸다. 서버가 HEIC 을 받고
      (Gemini 가 읽는다), 그 경로만 본문 한도가 12MB 다. */
   const SHRINK_OVER_BYTES = 1.2 * 1024 * 1024;
-  const SHRINK_MAX_EDGE = 2000;
+  /* ── 긴 변이 아니라 **가로**로 줄인다 (실측 2026-09-15, 사용자 제보) ──────────────
+     예전에는 긴 변을 2000 으로 맞췄다. 그런데 채용공고 표는 세로로 아주 길다 —
+     1240×4496 짜리 표를 그 규칙으로 줄이면 **552×2000** 이 된다. 가로가 44% 로
+     찌그러져 15px 글자가 6.7px 가 되고, 그 상태로 읽으면 항목을 놓친다.
+     글자 크기를 정하는 것은 **가로폭**이다. 가로만 상한을 두고 세로는 건드리지 않는다. */
+  const IMG_MAX_W = 1600;
+  /* 세로가 이보다 길면 조각으로 나눈다. 아주 긴 한 장은 모델이 아래로 갈수록 흘리고
+     시간도 오래 걸린다 — 실측(1240×4496)에서 조각 4장이 항목 20/20 으로 가장 정확했다. */
+  const SLICE_H = 1400;
+  /* 조각 겹침 — 경계에 걸린 줄이 양쪽에서 반 토막 나지 않게 한다. */
+  const SLICE_OVERLAP = 48;
+  /* 조각이 많아지면 한 번에 읽는 시간이 늘어난다. 상한을 넘으면 조각을 더 두껍게
+     잘라 **전체를 덮는다** — 잘라 버리면 공고 뒷부분이 통째로 사라진다. */
+  const SLICE_MAX = 6;
 
   const fileToBase64 = file => new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -1408,20 +1458,38 @@
     fr.readAsDataURL(file);
   });
 
-  async function shrinkImage(file) {
-    if (file.size <= SHRINK_OVER_BYTES) return null;      // 손댈 이유가 없다
+  /* ── 한 장을 읽기 좋은 조각들로 (사용자 지시 2026-09-15) ──────────────────────
+     돌려주는 것은 **배열**이다. 줄일 것도 나눌 것도 없으면 null 을 돌려주고 호출부가
+     원본을 그대로 보낸다(예전 shrinkImage 와 같은 규약).
+
+     조각 수는 세로 길이로 정하되 SLICE_MAX 에서 멈춘다. 멈출 때는 조각을 더 두껍게
+     잘라 **전체를 덮는다** — 앞 몇 조각만 보내면 공고 뒷부분이 조용히 사라진다.
+     JPEG 0.86 은 예전 값 그대로다(표 글자가 뭉개지지 않는 선에서 가장 작다). */
+  async function prepareImage(file) {
     try {
       const bmp = await createImageBitmap(file);
-      const edge = Math.max(bmp.width, bmp.height);
-      const scale = Math.min(1, SHRINK_MAX_EDGE / edge);
-      if (scale === 1) return null;                        // 이미 충분히 작다
-      const cv = document.createElement('canvas');
-      cv.width = Math.round(bmp.width * scale);
-      cv.height = Math.round(bmp.height * scale);
-      cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+      const w = bmp.width, h = bmp.height;
+      const scale = Math.min(1, IMG_MAX_W / w);
+      const outW = Math.round(w * scale), outH = Math.round(h * scale);
+      const needSlice = outH > SLICE_H;
+      /* 손댈 이유가 없으면 그대로 둔다 — 작은 캡처 한 장까지 다시 그리지 않는다. */
+      if (scale === 1 && !needSlice && file.size <= SHRINK_OVER_BYTES) { bmp.close?.(); return null; }
+
+      const count = needSlice ? Math.min(SLICE_MAX, Math.ceil(outH / SLICE_H)) : 1;
+      const part = Math.ceil(outH / count);
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const top = Math.max(0, i * part - (i ? SLICE_OVERLAP : 0));
+        const height = Math.min(outH - top, part + (i ? SLICE_OVERLAP : 0));
+        if (height <= 0) break;
+        const cv = document.createElement('canvas');
+        cv.width = outW; cv.height = height;
+        /* 원본에서 잘라 그린다 — 줄인 뒤 자르면 두 번 다시 그려 글자가 더 뭉개진다. */
+        cv.getContext('2d').drawImage(bmp, 0, top / scale, w, height / scale, 0, 0, outW, height);
+        out.push({ mime: 'image/jpeg', data: cv.toDataURL('image/jpeg', 0.86).split(',')[1] || '' });
+      }
       bmp.close?.();
-      const url = cv.toDataURL('image/jpeg', 0.86);
-      return { mime: 'image/jpeg', data: url.split(',')[1] || '' };
+      return out.length ? out : null;
     } catch {
       /* 브라우저가 못 여는 형식이면 원본을 그대로 보낸다 — 여기서 포기하지 않는다. */
       return null;
@@ -1513,18 +1581,31 @@
     urlMsg('', `이미지 ${use.length}장을 읽고 있어요 — 1분 남짓 걸립니다.`);
     try {
       const images = [];
+      let sliced = 0;
       for (const f of use) {
-        const small = await shrinkImage(f);
-        const data = small ? small.data : await fileToBase64(f);
-        /* 줄이지 못했는데 한 장이 상한을 넘으면 여기서 막는다 — 서버까지 보내 놓고
-           413 을 받으면 사용자는 무엇이 문제인지 알 수 없다. */
-        if (!small && f.size > IMG_MAX_BYTES) {
-          throw new Error(`"${f.name}" 이(가) 너무 커요 (${Math.round(f.size / 1024 / 1024)}MB). 5MB 아래로 줄여 주세요.`);
+        const parts = await prepareImage(f);
+        if (!parts) {
+          /* 손대지 않은 한 장이 상한을 넘으면 여기서 막는다 — 서버까지 보내 놓고
+             413 을 받으면 사용자는 무엇이 문제인지 알 수 없다. */
+          if (f.size > IMG_MAX_BYTES) {
+            throw new Error(`"${f.name}" 이(가) 너무 커요 (${Math.round(f.size / 1024 / 1024)}MB). 5MB 아래로 줄여 주세요.`);
+          }
+          images.push({ name: f.name, mime: f.type, data: await fileToBase64(f) });
+          continue;
         }
-        images.push({ name: f.name, mime: small ? small.mime : f.type, data });
+        if (parts.length > 1) sliced += parts.length;
+        parts.forEach((p, i) => images.push({
+          name: parts.length > 1 ? `${f.name} (${i + 1}/${parts.length})` : f.name,
+          mime: p.mime, data: p.data,
+        }));
       }
       const r = await DB.jdPostingImage(images);
       applyPosting(r);
+      /* 나눠 읽었으면 그 사실을 말한다 — 화면에는 한 장을 올렸는데 결과가 길게 나오면
+         무엇이 일어났는지 알 수 없다. */
+      if (sliced) {
+        urlMsg('warn', `${$('#jd-url-msg').textContent} (세로로 긴 이미지라 ${sliced}조각으로 나눠 읽었어요.)`);
+      }
       if (list.length > use.length) {
         urlMsg('warn', `${$('#jd-url-msg').textContent} (올리신 ${list.length}장 중 앞 ${use.length}장만 읽었어요.)`);
       }
@@ -1633,6 +1714,10 @@
         setQBoxes(g.questions.map(q => q.text));
         filled.push(`자소서 문항 ${g.questions.length}개`);
       }
+      /* ── 평가 포인트는 문항을 안 채웠어도 저장한다 (사용자 지시 2026-09-15) ────────
+         사용자가 이미 문항을 적어 뒀더라도, 그 문항이 이 가이드의 문항과 같은 글이면
+         키가 맞아 평가 포인트가 붙는다. 문항 글이 키다(qMetaKey) — 채우기와 무관하다. */
+      saveQMeta(g.questions);
 
       /* 채운 칸은 펼쳐서 보여준다 — 접힌 채로 "채웠다" 고만 하면 무엇이 들어갔는지
          확인할 수 없다. */
@@ -2379,7 +2464,7 @@
   }
 
   /* 이 문항에 고른 역량 칩 한 줄 (사용자 지시 2026-09-04).
-     '이 문항 경험' 과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
+     '경험' 줄과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
      역량 X — 왼쪽 목록에서 다른 역량을 누르면 바뀝니다" 라는 문장 한 줄이었는데,
      ① 한 개만 말하면서 실제로는 두 개까지 쓰이고 ② 바꾸는 법을 매번 설명했다.
      고르고 빼는 일은 오른쪽 요구 역량 목록에서 하므로 여기는 **표시만** 한다. */
@@ -2390,7 +2475,7 @@
        네 줄(역량·경험·뉴스·기타)이 한 묶음으로 읽혀야 한다. 비면 줄을 지우던 예전
        방식으로는 문항마다 줄 수가 달라져서, 무엇을 더 붙일 수 있는지 보이지 않는다. */
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 역량</span>
+      <span class="jd-dspec-lab">역량</span>
       ${comps.length
         ? comps.map(c => `<span class="jd-dspec-chip is-on is-static">${esc(c.label)}</span>`).join('')
         : '<span class="jd-dspec-none">오른쪽 요구 역량 목록에서 이 문항에 쓸 역량을 고르세요</span>'}
@@ -2404,12 +2489,12 @@
     const picked = qPicks(qKey);
     if (!acts.length) {
       return `<div class="jd-dspec">
-        <span class="jd-dspec-lab">이 문항 경험</span>
+        <span class="jd-dspec-lab">경험</span>
         <span class="jd-dspec-none">스펙 입력에서 정성스펙(활동)을 넣으면 여기서 고를 수 있어요</span>
       </div>`;
     }
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 경험</span>
+      <span class="jd-dspec-lab">경험</span>
       ${acts.map(a => {
         const k = actKeyOf(a);
         const on = picked.includes(k);
@@ -2418,6 +2503,30 @@
           data-dqpick="${esc(k)}" data-dqkey="${esc(qKey)}" ${full ? 'disabled' : ''}>
           <i class="ti ti-${on ? 'check' : 'plus'}"></i>${esc(actTitle(a))}</button>`;
       }).join('')}
+    </div>`;
+  }
+
+  /* ── 이 문항으로 회사가 보려는 것 (사용자 지시 2026-09-15) ──────────────────────
+     고용24 가이드에서 가져온 평가 포인트다. 우리 6유형 분류가 못 잡은 문항일수록
+     값이 크다 — 그때는 화면에 골격도 분량표도 안 뜨는데, 이 한 줄이 "무엇을 답해야
+     하는가" 를 대신 말해 준다.
+
+     작성 가이드 원문은 **접어 둔다.** 700자짜리라 펼쳐 두면 문항 글을 밀어내고,
+     학생이 읽을지 말지는 학생이 정할 일이다. 원문 그대로 보여준다(요약하지 않는다 —
+     요약은 없는 사실을 만든다). */
+  function qAskPointHtml(tab) {
+    if (tab?.kind !== 'question') return '';
+    const meta = qMetaOf(tab.text);
+    if (!meta) return '';
+    const points = String(meta.point || '').split(/[\/·,]/).map(x => x.trim()).filter(Boolean);
+    return `<div class="jd-askpoint">
+      ${points.length ? `<span class="jd-askpoint-lab">이 문항으로 보는 것</span>
+        ${points.map(p => `<span class="jd-askpoint-chip">${esc(p)}</span>`).join('')}` : ''}
+      ${meta.guide ? `<details class="jd-askpoint-more">
+        <summary>회사가 준 작성 가이드 보기</summary>
+        <div class="jd-askpoint-body">${esc(meta.guide)}</div>
+      </details>` : ''}
+      <span class="jd-askpoint-src">고용24 자소서 작성가이드</span>
     </div>`;
   }
 
@@ -2470,7 +2579,7 @@
       </div>` : '';
 
     return `<div class="jd-dspec jd-dspec--ref">
-      <span class="jd-dspec-lab">이 문항 ${esc(k.label)}</span>
+      <span class="jd-dspec-lab">${esc(k.label)}</span>
       ${chips || '<span class="jd-dspec-none">' + (kind === 'news'
         ? '최근 이슈를 묻는 문항이면 기사를 붙이세요'
         : '인물·개념을 묻는 문항이면 자료를 붙이세요') + '</span>'}
@@ -2825,7 +2934,7 @@
     /* 지원동기만 맥락 한 줄을 남긴다 — 담아 온 근거가 몇 건인지는 화면 어디에도 없다.
        그 밖의 문항에 있던 "AI 초안 기준 역량 X — 왼쪽 목록에서 다른 역량을 누르면
        바뀝니다" 는 지웠다(사용자 지시 2026-09-04). 고른 역량은 아래 칩 줄이
-       '이 문항 경험' 과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
+       '경험' 줄과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
     const ctx = isMotive
       ? `<div class="jd-qctx">${ev.length
            ? `담아 온 회사 근거 <b>${ev.length}건</b>으로 지원동기를 씁니다`
@@ -2850,6 +2959,7 @@
         ${tab.kind === 'question' ? `<p class="jd-qprompt-how">${tab.type
           ? esc(tab.type.how)
           : '문항 유형을 알아보지 못했어요. 왼쪽 역량 중 이 문항과 가까운 것을 직접 고르세요.'}</p>` : ''}
+        ${qAskPointHtml(tab)}
         ${qCompChipsHtml(tab)}
         ${qSpecChipsHtml(tab.key)}
         ${tab.kind === 'question' ? REF_KINDS.map(k => qRefRowHtml(tab.key, k.id)).join('') : ''}
@@ -3396,7 +3506,7 @@
      오른쪽 작성칸의 커서·스크롤을 잃지 않으려는 것이다
      (레퍼런스 A: 왼쪽은 목록+상세, 초안은 그대로).
      초안 머리의 'AI 초안 기준 역량' 줄을 같이 고치던 일은 없앴다 — 그 줄 자체를
-     지웠고(2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. */
+     지웠고(2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. */
   function focusItem(i) {
     if (!Number.isInteger(i) || i < 0 || !_last) return;
     _focused = i;
@@ -3415,7 +3525,7 @@
     }
 
     /* 예전에는 여기서 초안 머리의 '기준 역량' 문장 줄을 같이 고쳤다. 그 줄은 없앴고
-       (사용자 지시 2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. 그 칩은
+       (사용자 지시 2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. 그 칩은
        고를 때마다 화면을 다시 그리므로(bind 의 data-key 핸들러) 여기서 손댈 것이 없다. */
   }
 
@@ -3541,6 +3651,9 @@
            서버가 제목·요약만 프롬프트에 넣고, "이건 네가 한 일이 아니다" 를 같이 못 박는다
            (draft-coach.js refLines). 안 붙였으면 빈 배열이라 예전과 같다. */
         refs: tab?.kind === 'question' ? qRefList(tab.key) : [],
+        /* 이 문항으로 회사가 보려는 것(고용24 라벨). **작성 가이드 원문은 안 보낸다** —
+           700자라 뒤쪽 규칙이 밀리고, 요령 문장을 모델이 그대로 옮긴다(qMetaOf 주석). */
+        askPoint: tab?.kind === 'question' ? (qMetaOf(tab.text)?.point || '') : '',
         /* 사용자가 정한 분량 상한. byte 면 한글 2byte 기준으로 글자 수로 환산한다. */
         limit: charTarget(limitOf(tab?.key)),
         /* 켜 둔 '내 프롬프트' 가 있으면 그 규칙으로 쓴다. 없으면 빈 값 → 서버가 기본 규칙. */

@@ -76,7 +76,55 @@ console.log('── 4. 프롬프트가 자료로 길어지지 않게 자른다 �
 }
 
 console.log('');
-console.log('── 5. 검색 통로 (네트워크 없이 되는 것만) ──');
+console.log('── 5. 문항의 평가 포인트 (사용자 지시 2026-09-15) ──');
+/* 고용24 자소서 작성가이드는 문항마다 '무엇을 보려는 문항인지' 를 달아 둔다.
+   실측: 실제 공채 문항의 30%는 우리 6유형 분류에 안 걸리는데, 그때는 골격도
+   분량표도 안 붙어 '무엇을 답해야 하는가' 가 프롬프트에 하나도 없었다. */
+{
+  const ask = '회사 이해도/가치관/조직 및 직무 적합성';
+  const p = D.buildPrompt({ ...base, askPoint: ask });
+  const none = D.buildPrompt({ ...base });
+
+  ok('평가 포인트가 프롬프트에 들어간다', p.includes('이 문항으로 회사가 보려는 것'));
+  ok('  슬래시를 가운뎃점으로 편다', p.includes('회사 이해도 · 가치관 · 조직 및 직무 적합성'));
+  ok('없으면 그 줄이 없다', !none.includes('이 문항으로 회사가 보려는 것'));
+
+  /* Context 한 줄만으로는 초안이 안 바뀌었다(실측: 같은 문항 2회 모두 경험만 늘어놓음).
+     규칙 목록에 적어야 모델이 따른다 — 자료 1-5 에서 확인한 것과 같다. */
+  ok('규칙에도 적는다', p.includes('1-6. 이 문항은'), 'Context 한 줄만으로는 안 따랐다');
+  ok('  첫 문단에서 그 축을 건드리라고 한다', p.includes('첫 문단에서 그 축을 건드려라'));
+  ok('없으면 1-6 도 없다', !none.includes('1-6.'));
+
+  /* 평가 포인트는 채점 기준이지 사실이 아니다. 그대로 옮기면
+     '저는 산업 이해도와 논리적 사고를 갖추었습니다' 가 된다. */
+  ok('사실이 아니라 기준이라고 못 박는다', p.includes('채점 기준이지 사실이 아니다'));
+  ok('  그 말을 옮기지 말라고 한다', p.includes('이 말을 문장에 그대로 옮기지 마라'));
+
+  ok('길면 자른다', D.buildPrompt({ ...base, askPoint: '가'.repeat(400) }).split('가가가').length > 1
+    && !D.buildPrompt({ ...base, askPoint: '가'.repeat(400) }).includes('가'.repeat(200)));
+}
+
+console.log('');
+console.log('── 6. 화면이 평가 포인트를 담고 넘기는가 ──');
+/* 작성 가이드 원문(700자)에는 회사 사실이 섞여 있다 — 화면에만 두고 AI 에는 안 보낸다. */
+{
+  const path = require('path');
+  const FRONT = require('fs').readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'jd-coach.js'), 'utf8');
+  const DBJS = require('fs').readFileSync(path.join(__dirname, '..', 'frontend', 'js', 'db.js'), 'utf8');
+
+  ok('가이드를 고를 때 평가 포인트를 저장한다', FRONT.includes('saveQMeta(g.questions)'));
+  ok('  문항 글을 키로 쓴다', FRONT.includes('qMetaKey'),
+    '순서(문항1)를 키로 쓰면 문항을 지웠을 때 남의 포인트가 따라붙는다');
+  ok('화면에 이 문항으로 보는 것을 띄운다', FRONT.includes('qAskPointHtml'));
+  ok('초안 호출에 평가 포인트를 싣는다', /askPoint: tab\?\.kind === 'question'/.test(FRONT));
+  ok('작성 가이드 원문은 안 보낸다', !/askPoint:.*guide/.test(FRONT) && !DBJS.includes('guide:'),
+    '700자에 회사 사실이 섞여 있다 — 뒤쪽 규칙이 밀리고 요령을 그대로 옮긴다');
+  ok('서버가 받아 넘긴다', require('fs')
+    .readFileSync(path.join(__dirname, '..', 'backend', 'src', 'routes', 'jdCoach.js'), 'utf8')
+    .includes('req.body?.askPoint'));
+}
+console.log('');
+console.log('── 7. 검색 통로 (네트워크 없이 되는 것만) ──');
 /* 빈 검색어로는 외부를 부르지 않는다. 인물은 기사로 안 잡혀서(실측: 이순신 → 뉴스 0건,
    웹 3건) 통로가 둘이어야 한다 — 그 둘이 있는지까지 본다. */
 Promise.all([NEWS.searchNews(''), NEWS.searchRef('   ')]).then(([a, b]) => {

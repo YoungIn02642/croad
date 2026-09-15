@@ -280,6 +280,11 @@ async function buildDraft(body) {
     kind: String(r?.kind || '').trim().slice(0, 10),
   })).filter(r => r.title);
   const question = String(req.body?.question || '').trim();
+  /* ── 이 문항으로 회사가 보려는 것 (사용자 지시 2026-09-15) ────────────────────
+     고용24 자소서 작성가이드가 문항마다 달아 둔 평가 포인트다('산업 이해도/논리적 사고').
+     우리 유형 분류가 못 잡는 문항일수록 값이 크다 — 그때는 골격도 분량표도 안 붙는다.
+     **사실이 아니라 기준이다.** 짧게 자른다: 라벨이라 한 줄을 넘지 않는다. */
+  const askPoint = String(req.body?.askPoint || '').trim().slice(0, 120);
 
   /* ── 400 이 막는 것은 '역량의 부재' 가 아니라 '재료의 부재' 다 (심사 지적 2026-09-01) ──
      예전에는 역량이 없으면 400 이었다. 역량 0개를 여는 김에 그 조건을 없애면 **재료가
@@ -309,6 +314,7 @@ async function buildDraft(body) {
   const prompt = DRAFT.buildPrompt({
     customRules,
     refs,
+    askPoint,
     company: String(req.body?.company || '').trim(),
     jobTitle: String(req.body?.jobTitle || '').trim(),
     competencies: comps,

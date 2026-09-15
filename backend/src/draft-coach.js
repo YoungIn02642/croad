@@ -157,7 +157,7 @@ function starLines(star) {
 }
 
 /* ── 프롬프트 조립 (P.C.R.O) ──────────────────────────────── */
-function buildPrompt({ company, jobTitle, competency, competencies, quotes, reads, frame, activities, question, limit, star, picks, refs, customRules }) {
+function buildPrompt({ company, jobTitle, competency, competencies, quotes, reads, frame, activities, question, limit, star, picks, refs, askPoint, customRules }) {
   /* ── 역량은 0~2개다 (사용자 지시 2026-09-01) ──────────────────────────────
      예전에는 문자열 하나만 받았고 라우트가 없으면 400 을 냈다. 그런데 지원동기·성격
      장단점처럼 **역량 축이 필요 없는 문항**이 있다(question-prompts.js 의 starMode).
@@ -172,6 +172,10 @@ function buildPrompt({ company, jobTitle, competency, competencies, quotes, read
      (모델이 열어 볼 수 없다) 길이만 먹어 뒤쪽 규칙을 밀어낸다. 날짜는 '최근 이슈'
      문항에서 의미가 있어 있을 때만 붙인다. 요약은 잘라 둔다: 자료 넷이 붙으면
      프롬프트가 통째로 길어져 규칙이 밀린다(실측으로 겪은 그 문제다). */
+  /* 평가 포인트 한 줄. 슬래시로 나열된 라벨을 가운뎃점으로 바꿔 읽기 좋게만 한다 —
+     내용은 고치지 않는다(회사가 적은 말이다). */
+  const askLine = String(askPoint || '').replace(/[/|]/g, ' · ').replace(/\s+/g, ' ').trim().slice(0, 120);
+
   const refLines = (Array.isArray(refs) ? refs : []).slice(0, 4).map(r => {
     const title = String(r?.title || '').replace(/\s+/g, ' ').trim().slice(0, 120);
     if (!title) return null;
@@ -260,6 +264,27 @@ function buildPrompt({ company, jobTitle, competency, competencies, quotes, read
           + picked.map((p, i) => `  [경험 ${i + 1}${p.name ? ': ' + p.name : ''}]\n`
               + starLines(p.star).map(l => `    ${l}`).join('\n')).join('\n')),
 
+    /* ── 이 문항으로 회사가 보려는 것 (사용자 지시 2026-09-15) ──────────────────
+       고용24 자소서 작성가이드가 문항마다 달아 둔 평가 포인트다
+       ('회사 및 직무 이해도/목표 의식/입사 의지'). 그 회사가 직접 적어 둔 기준이라
+       우리가 추측한 것보다 정확하다.
+
+       ── 왜 골격(frame)만으로는 모자란가 ──
+       골격은 **유형이 잡혔을 때만** 붙는다. 실측으로 실제 공채 문항의 30%는 우리
+       6유형에 안 걸렸고(산업 이해도·인재상 부합 같은 문항), 그때는 '무엇을 답해야
+       하는가' 가 프롬프트에 하나도 없었다. 이 한 줄이 그 자리를 메운다.
+
+       ── 사실이 아니라 기준이다 ──
+       자료(refs)와 다른 자리에 둔다. 저건 '무엇이 있었나' 이고 이건 '무엇을 보려
+       하는가' 다. 섞으면 모델이 평가 포인트를 사실처럼 문장에 옮긴다 —
+       "저는 산업 이해도와 논리적 사고를 갖추었습니다" 가 그 꼴이다. */
+    askLine ? `이 문항으로 회사가 보려는 것: **${askLine}**
+`
+      + `  ※ 이건 채점 기준이지 사실이 아니다. **이 말을 문장에 그대로 옮기지 마라** —
+`
+      + `     기준을 만족하는 내용을 지원자 사실로 보여라.`
+      : null,
+
     /* ── 문항에 붙인 자료 (사용자 지시 2026-09-14) ─────────────────────────────
        ── 왜 필요한가 ──
        '최근 이슈', '존경하는 인물' 문항은 **내 경험보다 바깥 사실이 재료**다. 그런
@@ -326,6 +351,16 @@ function buildPrompt({ company, jobTitle, competency, competencies, quotes, read
        이쪽은 Context 에 '지원 회사: OO' 한 줄만 주고 규율을 안 줬다. 회사 이름만 주고
        규율을 안 주면 모델은 사전지식에서 채운다 — 실측으로 삼성전자에 없는
        '타깃 커스터마이징 전략' 이 단정문으로 나왔다. 면접에서 그대로 무너지는 문장이다. */
+    /* ── 문항이 보려는 축을 건드리게 한다 (실측 2026-09-15) ──────────────────────
+       Context 에 '이 문항으로 보려는 것' 한 줄을 넣어 봤더니 **초안이 거의 안 바뀌었다.**
+       같은 조건으로 두 번씩 돌려 비교했는데, 문항이 '인재상과 얼마나 부합하는지' 를
+       물었는데도 두 판 다 학생회 경험만 늘어놓고 그 축을 건드리지 않았다.
+       STAR 블록이 훨씬 강한 재료라 한 줄짜리 문맥은 밀린다 — 규칙 목록에 적어야
+       모델이 따른다(자료 1-5 에서 확인한 것과 같다). */
+    askLine ? `1-6. 이 문항은 **${askLine}** 을 본다. 첫 문단에서 그 축을 건드려라 —`
+      + ` 내 경험만 늘어놓고 끝내면 이 문항에 답한 것이 아니다.`
+      + ` 다만 그 말을 문장에 그대로 옮기지 말고, 회사 사실이 필요하면 규칙 1-3 을 따른다.` : null,
+
     /* ── 자료가 있으면 그것이 주재료다 (실측 2026-09-14) ─────────────────────────
        Context 블록만으로도 모델은 자료를 대개 쓴다. 다만 **어디서 출발하는지가 흔들린다** —
        같은 자료로 3회 돌려 자료의 핵심 낱말 4개 중 3·4·3개를 담았고, 첫 문장이

@@ -331,6 +331,41 @@
      문항·갈래마다 따로 담아 둬야 탭을 옮겨도 남의 결과가 안 보인다. */
   const _refFound = {};                   // `${qKey}|${kind}` → { q, items, error, loading }
 
+  /* ── 문항의 평가 포인트 (사용자 지시 2026-09-15) ───────────────────────────────
+     고용24 자소서 작성가이드는 문항마다 **무엇을 보려는 문항인지**를 달아 둔다
+     ('회사 및 직무 이해도/목표 의식/입사 의지'). 지금까지 문항 글만 가져오고 이건
+     버렸는데, 실측해 보니 우리 6유형 분류기가 실제 공채 문항의 70%만 잡았고
+     **못 잡은 문항에 고용24는 이미 라벨을 달아 두었다**('산업 이해도/논리적 사고').
+     유형을 못 잡으면 골격·분량표가 통째로 안 붙어 초안이 얇아지는 자리다.
+
+     ── 문항 글로 키를 만든다 ──
+     questionDraftKey 는 '문항1' 처럼 **순서**로 만든 키다. 문항을 지우거나 순서를
+     바꾸면 남의 평가 포인트가 따라붙는다. 그래서 여기서는 문항 글 자체를 키로 쓴다.
+
+     ── 작성 가이드 원문(700자)은 화면에만 둔다 ──
+     거기에는 회사 사실이 섞여 있고('세계 최대 규모 생산시설', 미션 문구) 분량도 길다.
+     프롬프트에 넣으면 ① 뒤쪽 규칙이 밀리고 ② 모델이 요령 문장을 그대로 옮긴다.
+     학생이 읽는 자리에 원문 그대로 두고, AI 에는 평가 포인트만 넘긴다. */
+  const LS_QMETA = 'careerly_jd_qmeta_v1';
+  const qMetaKey = t => String(t || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  function loadQMeta() {
+    try { return JSON.parse(localStorage.getItem(LS_QMETA)) || {}; } catch { return {}; }
+  }
+  function qMetaOf(text) {
+    const m = loadQMeta()[draftScope()]?.[qMetaKey(text)];
+    return (m && (m.point || m.guide)) ? m : null;
+  }
+  function saveQMeta(list) {
+    const all = loadQMeta();
+    const byQ = all[draftScope()] || (all[draftScope()] = {});
+    for (const q of list || []) {
+      const k = qMetaKey(q.text);
+      if (!k || (!q.type && !q.guide)) continue;
+      byQ[k] = { point: String(q.type || '').slice(0, 120),
+                 guide: String(q.guide || '').slice(0, 2000), source: 'work24' };
+    }
+    try { localStorage.setItem(LS_QMETA, JSON.stringify(all)); } catch { /* 프라이빗 모드 */ }
+  }
   /* ── 문항마다 쓸 역량을 사용자가 고른다 (사용자 지시 2026-09-01) ──────────────
      ── 무엇이 문제였나 ──
      역량은 `competenciesFor` 가 자동으로 붙였다. 공고 요구 강도 순으로 앞에서 3개인데
@@ -1633,6 +1668,10 @@
         setQBoxes(g.questions.map(q => q.text));
         filled.push(`자소서 문항 ${g.questions.length}개`);
       }
+      /* ── 평가 포인트는 문항을 안 채웠어도 저장한다 (사용자 지시 2026-09-15) ────────
+         사용자가 이미 문항을 적어 뒀더라도, 그 문항이 이 가이드의 문항과 같은 글이면
+         키가 맞아 평가 포인트가 붙는다. 문항 글이 키다(qMetaKey) — 채우기와 무관하다. */
+      saveQMeta(g.questions);
 
       /* 채운 칸은 펼쳐서 보여준다 — 접힌 채로 "채웠다" 고만 하면 무엇이 들어갔는지
          확인할 수 없다. */
@@ -2379,7 +2418,7 @@
   }
 
   /* 이 문항에 고른 역량 칩 한 줄 (사용자 지시 2026-09-04).
-     '이 문항 경험' 과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
+     '경험' 줄과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
      역량 X — 왼쪽 목록에서 다른 역량을 누르면 바뀝니다" 라는 문장 한 줄이었는데,
      ① 한 개만 말하면서 실제로는 두 개까지 쓰이고 ② 바꾸는 법을 매번 설명했다.
      고르고 빼는 일은 오른쪽 요구 역량 목록에서 하므로 여기는 **표시만** 한다. */
@@ -2390,7 +2429,7 @@
        네 줄(역량·경험·뉴스·기타)이 한 묶음으로 읽혀야 한다. 비면 줄을 지우던 예전
        방식으로는 문항마다 줄 수가 달라져서, 무엇을 더 붙일 수 있는지 보이지 않는다. */
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 역량</span>
+      <span class="jd-dspec-lab">역량</span>
       ${comps.length
         ? comps.map(c => `<span class="jd-dspec-chip is-on is-static">${esc(c.label)}</span>`).join('')
         : '<span class="jd-dspec-none">오른쪽 요구 역량 목록에서 이 문항에 쓸 역량을 고르세요</span>'}
@@ -2404,12 +2443,12 @@
     const picked = qPicks(qKey);
     if (!acts.length) {
       return `<div class="jd-dspec">
-        <span class="jd-dspec-lab">이 문항 경험</span>
+        <span class="jd-dspec-lab">경험</span>
         <span class="jd-dspec-none">스펙 입력에서 정성스펙(활동)을 넣으면 여기서 고를 수 있어요</span>
       </div>`;
     }
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 경험</span>
+      <span class="jd-dspec-lab">경험</span>
       ${acts.map(a => {
         const k = actKeyOf(a);
         const on = picked.includes(k);
@@ -2418,6 +2457,30 @@
           data-dqpick="${esc(k)}" data-dqkey="${esc(qKey)}" ${full ? 'disabled' : ''}>
           <i class="ti ti-${on ? 'check' : 'plus'}"></i>${esc(actTitle(a))}</button>`;
       }).join('')}
+    </div>`;
+  }
+
+  /* ── 이 문항으로 회사가 보려는 것 (사용자 지시 2026-09-15) ──────────────────────
+     고용24 가이드에서 가져온 평가 포인트다. 우리 6유형 분류가 못 잡은 문항일수록
+     값이 크다 — 그때는 화면에 골격도 분량표도 안 뜨는데, 이 한 줄이 "무엇을 답해야
+     하는가" 를 대신 말해 준다.
+
+     작성 가이드 원문은 **접어 둔다.** 700자짜리라 펼쳐 두면 문항 글을 밀어내고,
+     학생이 읽을지 말지는 학생이 정할 일이다. 원문 그대로 보여준다(요약하지 않는다 —
+     요약은 없는 사실을 만든다). */
+  function qAskPointHtml(tab) {
+    if (tab?.kind !== 'question') return '';
+    const meta = qMetaOf(tab.text);
+    if (!meta) return '';
+    const points = String(meta.point || '').split(/[\/·,]/).map(x => x.trim()).filter(Boolean);
+    return `<div class="jd-askpoint">
+      ${points.length ? `<span class="jd-askpoint-lab">이 문항으로 보는 것</span>
+        ${points.map(p => `<span class="jd-askpoint-chip">${esc(p)}</span>`).join('')}` : ''}
+      ${meta.guide ? `<details class="jd-askpoint-more">
+        <summary>회사가 준 작성 가이드 보기</summary>
+        <div class="jd-askpoint-body">${esc(meta.guide)}</div>
+      </details>` : ''}
+      <span class="jd-askpoint-src">고용24 자소서 작성가이드</span>
     </div>`;
   }
 
@@ -2470,7 +2533,7 @@
       </div>` : '';
 
     return `<div class="jd-dspec jd-dspec--ref">
-      <span class="jd-dspec-lab">이 문항 ${esc(k.label)}</span>
+      <span class="jd-dspec-lab">${esc(k.label)}</span>
       ${chips || '<span class="jd-dspec-none">' + (kind === 'news'
         ? '최근 이슈를 묻는 문항이면 기사를 붙이세요'
         : '인물·개념을 묻는 문항이면 자료를 붙이세요') + '</span>'}
@@ -2825,7 +2888,7 @@
     /* 지원동기만 맥락 한 줄을 남긴다 — 담아 온 근거가 몇 건인지는 화면 어디에도 없다.
        그 밖의 문항에 있던 "AI 초안 기준 역량 X — 왼쪽 목록에서 다른 역량을 누르면
        바뀝니다" 는 지웠다(사용자 지시 2026-09-04). 고른 역량은 아래 칩 줄이
-       '이 문항 경험' 과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
+       '경험' 줄과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
     const ctx = isMotive
       ? `<div class="jd-qctx">${ev.length
            ? `담아 온 회사 근거 <b>${ev.length}건</b>으로 지원동기를 씁니다`
@@ -2850,6 +2913,7 @@
         ${tab.kind === 'question' ? `<p class="jd-qprompt-how">${tab.type
           ? esc(tab.type.how)
           : '문항 유형을 알아보지 못했어요. 왼쪽 역량 중 이 문항과 가까운 것을 직접 고르세요.'}</p>` : ''}
+        ${qAskPointHtml(tab)}
         ${qCompChipsHtml(tab)}
         ${qSpecChipsHtml(tab.key)}
         ${tab.kind === 'question' ? REF_KINDS.map(k => qRefRowHtml(tab.key, k.id)).join('') : ''}
@@ -3396,7 +3460,7 @@
      오른쪽 작성칸의 커서·스크롤을 잃지 않으려는 것이다
      (레퍼런스 A: 왼쪽은 목록+상세, 초안은 그대로).
      초안 머리의 'AI 초안 기준 역량' 줄을 같이 고치던 일은 없앴다 — 그 줄 자체를
-     지웠고(2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. */
+     지웠고(2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. */
   function focusItem(i) {
     if (!Number.isInteger(i) || i < 0 || !_last) return;
     _focused = i;
@@ -3415,7 +3479,7 @@
     }
 
     /* 예전에는 여기서 초안 머리의 '기준 역량' 문장 줄을 같이 고쳤다. 그 줄은 없앴고
-       (사용자 지시 2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. 그 칩은
+       (사용자 지시 2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. 그 칩은
        고를 때마다 화면을 다시 그리므로(bind 의 data-key 핸들러) 여기서 손댈 것이 없다. */
   }
 
@@ -3541,6 +3605,9 @@
            서버가 제목·요약만 프롬프트에 넣고, "이건 네가 한 일이 아니다" 를 같이 못 박는다
            (draft-coach.js refLines). 안 붙였으면 빈 배열이라 예전과 같다. */
         refs: tab?.kind === 'question' ? qRefList(tab.key) : [],
+        /* 이 문항으로 회사가 보려는 것(고용24 라벨). **작성 가이드 원문은 안 보낸다** —
+           700자라 뒤쪽 규칙이 밀리고, 요령 문장을 모델이 그대로 옮긴다(qMetaOf 주석). */
+        askPoint: tab?.kind === 'question' ? (qMetaOf(tab.text)?.point || '') : '',
         /* 사용자가 정한 분량 상한. byte 면 한글 2byte 기준으로 글자 수로 환산한다. */
         limit: charTarget(limitOf(tab?.key)),
         /* 켜 둔 '내 프롬프트' 가 있으면 그 규칙으로 쓴다. 없으면 빈 값 → 서버가 기본 규칙. */

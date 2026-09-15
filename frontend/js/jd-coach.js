@@ -2418,7 +2418,7 @@
   }
 
   /* 이 문항에 고른 역량 칩 한 줄 (사용자 지시 2026-09-04).
-     '이 문항 경험' 과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
+     '경험' 줄과 같은 모양으로 **고른 것만** 보여 준다 — 예전에는 "AI 초안 기준
      역량 X — 왼쪽 목록에서 다른 역량을 누르면 바뀝니다" 라는 문장 한 줄이었는데,
      ① 한 개만 말하면서 실제로는 두 개까지 쓰이고 ② 바꾸는 법을 매번 설명했다.
      고르고 빼는 일은 오른쪽 요구 역량 목록에서 하므로 여기는 **표시만** 한다. */
@@ -2429,7 +2429,7 @@
        네 줄(역량·경험·뉴스·기타)이 한 묶음으로 읽혀야 한다. 비면 줄을 지우던 예전
        방식으로는 문항마다 줄 수가 달라져서, 무엇을 더 붙일 수 있는지 보이지 않는다. */
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 역량</span>
+      <span class="jd-dspec-lab">역량</span>
       ${comps.length
         ? comps.map(c => `<span class="jd-dspec-chip is-on is-static">${esc(c.label)}</span>`).join('')
         : '<span class="jd-dspec-none">오른쪽 요구 역량 목록에서 이 문항에 쓸 역량을 고르세요</span>'}
@@ -2443,12 +2443,12 @@
     const picked = qPicks(qKey);
     if (!acts.length) {
       return `<div class="jd-dspec">
-        <span class="jd-dspec-lab">이 문항 경험</span>
+        <span class="jd-dspec-lab">경험</span>
         <span class="jd-dspec-none">스펙 입력에서 정성스펙(활동)을 넣으면 여기서 고를 수 있어요</span>
       </div>`;
     }
     return `<div class="jd-dspec">
-      <span class="jd-dspec-lab">이 문항 경험</span>
+      <span class="jd-dspec-lab">경험</span>
       ${acts.map(a => {
         const k = actKeyOf(a);
         const on = picked.includes(k);
@@ -2533,7 +2533,7 @@
       </div>` : '';
 
     return `<div class="jd-dspec jd-dspec--ref">
-      <span class="jd-dspec-lab">이 문항 ${esc(k.label)}</span>
+      <span class="jd-dspec-lab">${esc(k.label)}</span>
       ${chips || '<span class="jd-dspec-none">' + (kind === 'news'
         ? '최근 이슈를 묻는 문항이면 기사를 붙이세요'
         : '인물·개념을 묻는 문항이면 자료를 붙이세요') + '</span>'}
@@ -2888,7 +2888,7 @@
     /* 지원동기만 맥락 한 줄을 남긴다 — 담아 온 근거가 몇 건인지는 화면 어디에도 없다.
        그 밖의 문항에 있던 "AI 초안 기준 역량 X — 왼쪽 목록에서 다른 역량을 누르면
        바뀝니다" 는 지웠다(사용자 지시 2026-09-04). 고른 역량은 아래 칩 줄이
-       '이 문항 경험' 과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
+       '경험' 줄과 같은 모양으로 보여 주므로, 같은 말을 문장으로 또 할 이유가 없다. */
     const ctx = isMotive
       ? `<div class="jd-qctx">${ev.length
            ? `담아 온 회사 근거 <b>${ev.length}건</b>으로 지원동기를 씁니다`
@@ -3460,7 +3460,7 @@
      오른쪽 작성칸의 커서·스크롤을 잃지 않으려는 것이다
      (레퍼런스 A: 왼쪽은 목록+상세, 초안은 그대로).
      초안 머리의 'AI 초안 기준 역량' 줄을 같이 고치던 일은 없앴다 — 그 줄 자체를
-     지웠고(2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. */
+     지웠고(2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. */
   function focusItem(i) {
     if (!Number.isInteger(i) || i < 0 || !_last) return;
     _focused = i;
@@ -3479,7 +3479,7 @@
     }
 
     /* 예전에는 여기서 초안 머리의 '기준 역량' 문장 줄을 같이 고쳤다. 그 줄은 없앴고
-       (사용자 지시 2026-09-04), 고른 역량은 '이 문항 역량' 칩이 보여 준다. 그 칩은
+       (사용자 지시 2026-09-04), 고른 역량은 '역량' 칩이 보여 준다. 그 칩은
        고를 때마다 화면을 다시 그리므로(bind 의 data-key 핸들러) 여기서 손댈 것이 없다. */
   }
 

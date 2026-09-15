@@ -18,6 +18,10 @@ const ALIO = require('./alio-jobs');
 const sectors = require('./company-sectors');
 const POSTING = require('./posting-fetch');
 const POSTING_IMG = require('./posting-image');
+/* 가져온 공고에서 자소서와 상관없는 구간을 빼는 데 쓴다(usefulText). 분석 쪽과
+   **같은 함수**를 써야 칸에 담긴 글과 분석이 본 글이 같다 — 두 벌로 두면 화면에는
+   있는데 분석에는 없는 문장이 생긴다. */
+const JD_SECTIONS = require('./jd-competency');
 const dailyRefresh = require('./daily-refresh');
 const OAuth = require('./oauth');
 const NiceAuth = require('./nice-auth');
@@ -441,6 +445,19 @@ function postingRateLimited(key) {
   return hit.count > POSTING_MAX_PER_WINDOW;
 }
 
+/* ── 칸에 담기 전에 한 번 거른다 (사용자 지시 2026-09-15) ──────────────────────
+   복리후생·결격사유·전형절차·근무조건은 자소서를 쓰는 데 쓰이지 않는다. 분석에서만
+   빼 두었더니 **칸에는 그대로 남아** 사용자가 직접 지워야 했다.
+
+   얼마나 뺐는지 같이 돌려준다. 조용히 줄여 놓으면 "가져온 글이 왜 이것뿐이지" 가
+   되고, 잘못 잘렸을 때 되돌릴 실마리도 없다 — 화면이 그 숫자를 말한다.
+   구간을 못 가른 공고는 usefulText 가 원문을 그대로 돌려주므로 trimmed 는 0 이다. */
+function trimPosting(text) {
+  const src = String(text || '');
+  const kept = JD_SECTIONS.usefulText(src);
+  return { text: kept, trimmed: Math.max(0, src.length - kept.length) };
+}
+
 app.post('/api/jd/posting', requireAuth, ah(async (req, res) => {
   const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
   if (!url) return res.status(400).json({ error: '공고 주소를 입력해 주세요.', kind: 'bad-url' });
@@ -482,10 +499,13 @@ app.post('/api/jd/posting', requireAuth, ah(async (req, res) => {
        공고 낱말이 하나라도 있으면 남긴다 — 요약표(모집분야·경력·마감일)는 지원 가능
        여부를 판단하는 데 쓰인다. 하나도 없으면 그건 메뉴다. */
     const base = r.ok && POSTING.postingHits(r.text) >= 1 ? r.text : '';
-    const text = base ? `${base}\n\n[이미지에서 읽은 내용]\n${img.text}` : img.text;
+    const joined = base ? `${base}\n\n[이미지에서 읽은 내용]\n${img.text}` : img.text;
+    const cut = trimPosting(joined);
     return res.json({
-      ok: true, text, title: r.title || null, url: r.url || url,
-      weak: POSTING.postingHits(text) < 2,
+      ok: true, text: cut.text, trimmed: cut.trimmed, title: r.title || null, url: r.url || url,
+      /* weak 판정은 **거르기 전 글**로 한다 — 거르고 나면 공고 낱말이 줄어들어
+         멀쩡히 가져온 공고가 '본문이 아닌 것 같다' 로 뒤집힌다. */
+      weak: POSTING.postingHits(joined) < 2,
       fromImage: img.count, imageModel: img.model,
     });
   }
@@ -542,8 +562,10 @@ app.post('/api/jd/posting-image', requireAuth, ah(async (req, res) => {
     return res.status(img.why === 'ai-failed' ? 502 : 422).json({ error: msg, kind: img.why });
   }
 
+  /* 주소 경로와 같은 규칙으로 거른다 — 받는 방법만 다르지 담기는 칸은 같다. */
+  const cut = trimPosting(img.text);
   res.json({
-    ok: true, text: img.text, title: null, url: null,
+    ok: true, text: cut.text, trimmed: cut.trimmed, title: null, url: null,
     weak: POSTING.postingHits(img.text) < 2,
     fromImage: img.count, imageModel: img.model,
   });

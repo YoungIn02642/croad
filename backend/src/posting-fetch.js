@@ -146,15 +146,37 @@ function postingHits(text) {
 
 /* 머리쪽 메뉴를 걷어낸다. 공고 낱말이 처음 나오는 자리부터가 본문일 확률이 높다 —
    그 앞이 짧으면 굳이 손대지 않는다(제목까지 날릴 수 있다). */
+/* ── 앞을 자를 때는 **본문 시작 낱말**만 본다 (실측 2026-09-15, 사용자 제보) ────────
+   trimLead 는 '첫 공고 낱말이 나오는 줄부터 본문' 이라고 보고 그 앞을 잘랐다. 그런데
+   POSTING_WORDS 에는 꼬리 낱말(근무조건·전형절차·접수기간·지원방법)도 들어 있다.
+   그래서 **본문이 그 낱말들을 안 쓰는 공고**에서 사고가 났다.
+
+   실측(사람인 동원개발 공고): 본문이 '민간수주 ○명 / 직 급 / 4년제 정규대학 이상 /
+   재건축 수주 업무 경력 20년 이상' 처럼 적혀 있어 '담당업무' 라는 말이 없었다.
+   그래서 첫 공고 낱말이 한참 뒤의 '전형절차' 였고, trimLead 가 **본문 1,114자 중
+   앞 710자를 통째로 잘라** 접수·제출서류 안내만 남겼다. 사용자가 받은 그 글이다.
+
+   꼬리 낱말은 본문의 시작점이 될 수 없다. 여기서는 그것만 뺀 목록을 쓴다 —
+   못 자르면 메뉴가 조금 남을 뿐이고, 그건 denoise 와 weak 가 다시 거른다.
+   잘못 자르면 본문이 사라지는데, 그건 아무도 못 찾는다. */
+const LEAD_WORDS = /^[\s\-–—*○◦▪>·•◆■□▶●▣☞#\[\(【<]*(담당\s?업무|주요\s?업무|자격\s?요건|지원\s?자격|우대\s?사항|모집\s?분야|모집\s?부문)/;
+
 function trimLead(text) {
-  const m = text.match(POSTING_WORDS);
-  if (!m) return text;
-  const at = text.indexOf(m[0]);
-  if (at < 120) return text;
-  /* 낱말이 든 줄부터 살린다 — 줄 중간에서 자르면 첫 줄이 반토막 난다. */
-  const lineStart = text.lastIndexOf('\n', at) + 1;
-  return text.slice(lineStart).trim();
+  const lines = String(text || '').split('\n');
+  /* **머리말인 줄에서만** 자른다. 낱말이 문장 안에 있으면 그건 본문이지 시작점이 아니다 —
+     실측으로 'ㆍ이력서 모집부문 및 연락처 반드시 기재 바람.' 이라는 꼬리 문장에서 잘렸다.
+     24자는 jd-competency 의 구간 머리말 판정과 같은 기준이다(머리말은 짧은 줄이다). */
+  const at = lines.findIndex(l => {
+    const t = l.trim();
+    return LEAD_WORDS.test(t) && (t.length <= 24 || t.indexOf(':') >= 0 || t.indexOf('：') >= 0);
+  });
+  if (at < 0) return text;
+  const head = lines.slice(0, at).join('\n');
+  /* 앞이 짧으면 제목일 수 있다 — 굳이 자르지 않는다. */
+  if (head.length < 120) return text;
+  return lines.slice(at).join('\n').trim();
 }
+
 
 /* ── 공고가 아닌 것을 걷어낸다 (사용자 지적 2026-08-21) ────────
    가져오기가 되고 나서 본 진짜 문제. 사람인 공고 한 장에서 4,800자가 나오는데
@@ -188,7 +210,7 @@ const BLOCK_MAX_LINES = 40;
 const BODY_WORDS = /담당업무|주요업무|수행업무|직무내용|업무내용/;
 /* 버튼·아이콘 글자만 남은 줄. **정확히 그 낱말일 때만** 지운다 — 부분일치로 지우면
    "지도 보기 편한 자료를 만들었습니다" 같은 본문이 날아간다. */
-const NOISE_LINE = /^(닫기|TOP|공유하기|페이스북|트위터|URL복사|SMS발송|신고하기|인쇄하기|지도|지도보기|지도 보기|스카이뷰|지도초기화|크게보기|길찾기|이전공고|다음공고|도움말|내용 전체보기|기업정보 전체보기|기업정보 더보기|태그 더보기|나 님|경쟁자|더보기|목록|인근지하철|궁금해요|홈페이지 바로가기|남은기간|남은 기간)$/;
+const NOISE_LINE = /^(닫기|TOP|공유하기|포지션 제안|이어보는 Ai매치 채용정보|채용정보|기업·연봉|신입·인턴|커뮤니티|페이스북|트위터|URL복사|SMS발송|신고하기|인쇄하기|지도|지도보기|지도 보기|스카이뷰|지도초기화|크게보기|길찾기|이전공고|다음공고|도움말|내용 전체보기|기업정보 전체보기|기업정보 더보기|태그 더보기|나 님|경쟁자|더보기|목록|인근지하철|궁금해요|홈페이지 바로가기|남은기간|남은 기간)$/;
 const NOISE_PREFIX = /^(조회수 |닫기 - |로그인\s*하(고|시고) |어떻게 .*분석됐나요|이 공고의 경쟁자|비교할 경쟁자|스토어 바로가기|막막한 취업준비|채용정보에 잘못된|마감일은 기업의 사정)/;
 const NOISE_SUFFIX = /(상세보기|찾아오시는길)$/;
 
@@ -279,6 +301,29 @@ function canonicalOf(html, base) {
    후보를 최대 셋만 보고, **공고 낱말이 더 많이 든 것만** 채택한다. 길이로 재지
    않는다 — 잡코리아는 요약표(693자)보다 본문(516자)이 짧은데도 담당업무가 거기 있다.
    후보 주소도 fetchPosting 이 처음부터 다시 검사하므로 SSRF 안전은 그대로다. */
+/* ── 주소를 JS 가 만드는 사이트 (실측 2026-09-15, 사용자 제보) ────────────────
+   embedUrls 는 **HTML 안에 적혀 있는 주소**만 본다. 그런데 사람인은 상세 본문을
+   `<div class="wrap_jview"></div>` 빈 칸에 JS 로 그려 넣고, 그 주소도 JS 가 만든다 —
+   HTML 에는 `view-detail` 이라는 글자가 한 번도 안 나온다. 그래서 후보가 0개였고,
+   우리는 공고의 **꼬리**(전형절차·제출서류·근무지·접수기간)만 가져왔다.
+   실측(동원개발 공고): 가져온 592자에 담당업무·자격요건이 한 글자도 없었다.
+
+   ── 사이트별 파서를 만들지 않는다 ──
+   선택자를 짜는 대신 **주소 모양 규칙** 하나만 더한다: 경로가 `/view` 로 끝나면
+   `/view-detail` 도 열어 본다(쿼리는 그대로 붙인다 — 실측으로 통했다).
+   이건 '사람인 HTML 을 안다' 가 아니라 '흔한 주소 관습을 안다' 라, 다른 사이트에
+   걸려도 404 로 조용히 버려진다. 채택 조건은 아래 그대로다 —
+   **담당업무 낱말이 있고 공고 낱말이 2개 이상일 때만** 이어 붙인다. */
+function guessedDetailUrls(base) {
+  try {
+    const u = new URL(base);
+    if (!/\/view$/.test(u.pathname)) return [];
+    const d = new URL(u.toString());
+    d.pathname = u.pathname.replace(/\/view$/, '/view-detail');
+    return [d.toString()];
+  } catch { return []; }
+}
+
 function embedUrls(html, base) {
   let host;
   try { host = new URL(base).host; } catch { return []; }
@@ -486,10 +531,17 @@ async function fetchPosting(raw, deepTried = false) {
 
     const html = (await res.text()).slice(0, MAX_BYTES);
     const text = denoise(trimLead(extractText(html)));
-    const weak = postingHits(text) < 2;
 
     /* 담당업무가 어디에도 없으면 본문이 딴 데 있다는 신호다. 요약표만 온 것이다. */
     const hasBody = BODY_WORDS.test(text);
+
+    /* ── 꼬리만 와도 '멀쩡한 공고' 로 세던 자리 (실측 2026-09-15, 사용자 제보) ──────
+       POSTING_WORDS 에는 근무조건·전형절차·접수기간·지원방법이 들어 있다. 그래서
+       상세가 JS 로 그려지는 페이지에서 **꼬리 안내문만 가져와도 4점**이 나왔고,
+       weak 가 false 라 화면이 "본문을 가져왔어요" 라고 답했다. 사용자는 그 말을 믿고
+       그대로 분석을 눌렀다.
+       담당업무를 말하는 낱말이 하나도 없으면 그건 본문이 아니다 — 몇 점이든 weak 다. */
+    const weak = postingHits(text) < 2 || !hasBody;
 
     /* ── 이미지는 대개 **끼워 넣은 쪽**에 있다 (실측 2026-09-07) ───────────
        사람인은 상세가 iframe(`user_html`) 안에 있는데, 이미지로 만든 공고는 바로 그
@@ -511,13 +563,32 @@ async function fetchPosting(raw, deepTried = false) {
          지원 가능 여부를 판단하는 데 쓰이므로 버리지 않는다.
          길이로 재지 않는다 — 잡코리아는 요약표보다 본문이 짧은데 담당업무는 거기 있다. */
       if (!hasBody) {
-        for (const cand of embedUrls(html, url)) {
+        /* ── 채택 문턱을 후보 종류에 따라 다르게 둔다 (실측 2026-09-15) ──────────────
+           embedUrls 는 HTML 안의 **아무 주소나** 모양으로 고른 것이라 엉뚱한 페이지가
+           섞인다 — 그래서 '담당업무 낱말이 있을 것' 을 요구한다.
+           guessedDetailUrls 는 우리가 **상세 주소라고 짚어서 만든 것**이라 성격이 다르다.
+           게다가 실측한 공고는 본문이 '민간수주 / 직 급 / 4년제 정규대학 이상' 처럼
+           적혀 있어 담당업무라는 말 자체가 없었다 — 그 조건을 걸면 영원히 못 붙인다.
+           대신 **길이와 공고 낱말**로 본다(200자 이상 · 낱말 2개 이상). */
+        const cands = [
+          ...embedUrls(html, url).map(u => ({ u, strict: true })),
+          ...guessedDetailUrls(url).map(u => ({ u, strict: false })),
+        ];
+        for (const { u: cand, strict } of cands) {
           const part = await fetchPosting(cand, true);
           if (part.images) deepImages.push(...part.images);
-          if (part.ok && BODY_WORDS.test(part.text) && postingHits(part.text) >= 2) {
-            const merged = `${text}\n\n${part.text}`;
-            return { ok: true, text: merged, title: titleOf(html), url, weak: false, images: pickImages(deepImages, html, url) };
-          }
+          if (!part.ok || postingHits(part.text) < 2) continue;
+          const good = strict
+            ? BODY_WORDS.test(part.text)
+            : (part.text.length >= 200 && !text.includes(part.text.slice(0, 80)));
+          if (!good) continue;
+          const merged = `${text}\n\n${part.text}`;
+          /* 이어 붙였어도 담당업무 낱말이 없으면 weak 다 — 화면이 '확인하라' 고 말해야 한다. */
+          return {
+            ok: true, text: merged, title: titleOf(html), url,
+            weak: !BODY_WORDS.test(merged) && postingHits(merged) < 4,
+            images: pickImages(deepImages, html, url),
+          };
         }
       }
     }

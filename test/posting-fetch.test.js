@@ -8,6 +8,8 @@
 
    IP 를 그대로 쓴 주소는 dns.lookup 이 네트워크 없이 그대로 돌려주므로 여기서 검사된다. */
 const P = require('../backend/src/posting-fetch.js');
+/* 라우트·소스 수준 보장은 글자로 확인한다(draft-limit.test.js 와 같은 방식). */
+const SRCF = require('fs').readFileSync(require('path').join(__dirname, '..', 'backend', 'src', 'posting-fetch.js'), 'utf8');
 
 let pass = 0, fail = 0;
 function ok(name, cond, extra = '') {
@@ -275,6 +277,39 @@ function ok(name, cond, extra = '') {
   ok('http·https 가 아닌 스킴은 후보가 아니다',
      P.imageUrls('<img src="javascript:alert(1)"><img src="file:///etc/passwd">', 'https://a.com/').length === 0);
 
+  console.log('');
+  console.log('── 본문이 JS 로 그려지는 공고 (실측 2026-09-15, 사용자 제보) ──');
+  /* 사람인 공고를 넣었더니 **꼬리**(전형절차·제출서류·근무지·접수기간)만 왔다.
+     상세는 빈 <div class="wrap_jview"></div> 에 JS 가 그려 넣고, 그 주소도 JS 가 만든다. */
+  {
+    /* ① 앞을 자를 때는 본문 시작 낱말만 본다 — 꼬리 낱말을 시작점으로 보면 본문이 날아간다. */
+    const 꼬리로시작 = ['㈜동원개발 [1군 종합건설] 신입 및 경력사원 채용',
+      '민간수주 ○명 직 급 ㆍ고급간부 ㆍ4년제 정규대학 이상인 자',
+      'ㆍ전공 : 상경계열, 부동산 및 도시계획 등 관련 학과',
+      'ㆍ재건축 및 재개발 수주 업무 경력 20년 이상인 자',
+      '우리의 전형절차는 단계별로 이루어져 있습니다.',
+      'ㆍ접수기간 : 2026년 09월 23일까지'].join('\n');
+    const cut = P.trimLead(꼬리로시작);
+    ok('꼬리 낱말(전형절차·접수기간)에서 앞을 자르지 않는다', cut.includes('민간수주'),
+       '본문이 담당업무라는 말을 안 쓰면 첫 공고 낱말이 꼬리에 있다');
+
+    /* ② 낱말이 문장 안에 있어도 자르면 안 된다 — 머리말인 줄에서만 자른다. */
+    const 문장속낱말 = ['메뉴'.repeat(60), 'ㆍ이력서 모집부문 및 연락처 반드시 기재 바람.',
+      'ㆍ국가보훈대상자는 관계법령에 의거 우대함.'].join('\n');
+    ok('문장 안의 낱말에서는 자르지 않는다', P.trimLead(문장속낱말) === 문장속낱말);
+
+    /* ③ 머리말인 줄에서는 여전히 자른다(원래 하던 일). */
+    const 머리말 = ['메뉴'.repeat(60), '[주요업무]', '- 서비스 기획'].join('\n');
+    ok('머리말 줄에서는 자른다', P.trimLead(머리말).startsWith('[주요업무]'));
+
+    /* ④ 상세 주소를 우리가 만들어 본다 — 경로가 /view 로 끝나면 /view-detail 도 연다. */
+    ok('상세 주소를 짐작해 후보에 넣는다', /\/view-detail/.test(SRCF));
+    ok('  쿼리는 그대로 붙인다', SRCF.includes("pathname.replace("), '실측으로 통했다');
+
+    /* ⑤ 꼬리만 와도 '본문을 가져왔다' 고 하던 자리 — 담당업무 낱말이 없으면 weak 다. */
+    ok('본문 낱말이 없으면 weak', SRCF.includes('postingHits(text) < 2 || !hasBody'),
+       '꼬리 낱말만으로 4점이 나와 화면이 "본문을 가져왔어요" 라고 했다');
+  }
   console.log('');
   console.log('── 칸에 담기 전에 자소서와 상관없는 구간을 뺀다 (사용자 지시 2026-09-15) ──');
   /* 걸러내는 규칙 자체는 jd-competency.test.js 가 검증한다. 여기서 지키는 것은

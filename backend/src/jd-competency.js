@@ -232,6 +232,74 @@ const SECTION_HEAD = /^[\[\(【<]?\s*(주요\s*)?(업무|담당업무|자격요�
    자기를 소개하는 '우리는/저희는 …' 꼴이 대상이다(직무 요건은 이렇게 쓰지 않는다). */
 const BOILERPLATE = /(인재|사람|분)\s*(을|를)?\s*(찾|모시|모집합|우대|환영|바랍|기다)|인재상|우리\s*(회사|팀)?\s*는|저희\s*(회사|팀)?\s*는|비전에\s*공감/;
 
+/* ── 자소서에 쓸 구간만 남긴다 (사용자 지시 2026-09-15) ────────────────────────
+   ── 무엇이 문제였나 ──
+   공고 주소·이미지를 넣으면 본문을 잘 뽑아 오는데, **자소서와 상관없는 구간까지**
+   같이 들어온다. 복리후생의 '자기계발비 지원', 결격사유의 '병역 기피 사실이 없는
+   자', 전형절차의 '인성검사' 같은 문장이 역량 근거로 인용되고, 그 안의 낱말이
+   키워드로 잡히기도 했다(사용자 지적).
+
+   문장 단위로 거르는 장치는 이미 둘 있다 — 머리말(SECTION_HEAD)과 인재상 상투어
+   (BOILERPLATE). 하지만 복리후생 본문은 멀쩡한 문장이라 그 그물에 안 걸린다.
+   구간째로 빼는 수밖에 없다.
+
+   ── 무엇을 남기고 무엇을 버리나 ──
+   남긴다: 회사소개 · 담당업무 · 자격요건 · 우대사항 · 필요역량
+   버린다: 복리후생 · 결격사유 · 전형절차 · 근무조건 · 급여 · 접수방법 · 문의처
+
+   **자격요건은 남긴다.** 사용자가 적어 준 목록(회사소개·담당업무·우대사항)에는
+   없지만, 요구 역량 근거의 절반 이상이 이 구간에서 나온다 — 빼면 이 기능의 재료가
+   사라진다. 정말 빼야 한다면 KEEP_HEAD 에서 한 줄만 지우면 된다.
+
+   ── 못 가른 글은 건드리지 않는다 ──
+   머리말이 하나도 없는 공고(줄글로만 쓴 것)가 흔하다. 그때는 원문을 그대로 돌려준다.
+   걸러낸 결과가 너무 짧아져도 마찬가지다 — 잘못 잘라 재료를 통째로 없애는 것보다
+   잡음을 조금 남기는 편이 낫다. */
+const DROP_HEAD = /^(채용\s*)?결격\s*사유|^복리\s*후생|^복지(\s*제도)?$|^사내\s*복지|^혜택|^근무\s*(조건|시간|형태|지역|장소|환경|요일)|^급여|^연봉|^보수|^처우|^전형\s*(절차|방법|일정|단계)|^채용\s*(절차|방법|일정|전형)|^모집\s*기간|^접수|^지원\s*(방법|절차|서류|기간)|^제출\s*서류|^서류\s*접수|^유의\s*사항|^기타\s*사항|^참고\s*사항|^문의|^담당자|^취업\s*지원\s*대상자|^장애인/;
+const KEEP_HEAD = /^(회사|기업)\s*(소개|개요)|^사업\s*소개|^담당\s*업무|^주요\s*업무|^수행\s*업무|^직무\s*(내용|소개|개요)|^업무\s*내용|^모집\s*(분야|부문)|^자격\s*(요건|조건)|^지원\s*자격|^필수\s*(사항|요건|자격|조건)|^우대\s*(사항|조건|요건)|^필요\s*역량|^전공\s*분야|^인재상/;
+
+/* 머리말 장식(■ ◆ [ ] 1. 등)을 걷어낸 알맹이. 구간을 가르는 데만 쓴다. */
+const bareHead = line => String(line)
+  .replace(/^[\s\-–—*○◦▪>·•◆■□▶●▣☞#0-9.)\]]+/, '')
+  .replace(/^[\[\(【<]/, '')
+  .replace(/[\]\)】>:：]+\s*$/, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+/* 이 줄이 구간 머리말인가. **짧은 줄이거나 콜론이 앞쪽에 있을 때만** 머리말로 본다 —
+   그러지 않으면 '근무 중 배운 것을 …' 같은 본문 문장이 구간을 뒤집는다.
+   24자는 실제 공고 머리말이 대개 10자 안쪽인 것을 감안한 여유값이다. */
+function headKind(line) {
+  const t = bareHead(line);
+  if (!t) return null;
+  const colonAt = Math.max(line.indexOf(':'), line.indexOf('：'));
+  const looksHead = t.length <= 24 || (colonAt >= 0 && colonAt <= 20);
+  if (!looksHead) return null;
+  if (DROP_HEAD.test(t)) return 'drop';
+  if (KEEP_HEAD.test(t)) return 'keep';
+  return null;
+}
+
+function usefulText(jdText) {
+  const src = String(jdText || '');
+  const lines = src.split(/\r?\n/);
+  let keeping = true;            // 첫 머리말 전까지는 남긴다 — 제목·회사소개가 대개 거기 있다
+  let sawHead = false;
+  const out = [];
+  for (const line of lines) {
+    const kind = headKind(line);
+    if (kind === 'drop') { keeping = false; sawHead = true; continue; }
+    if (kind === 'keep') { keeping = true; sawHead = true; }
+    if (keeping) out.push(line);
+  }
+  const kept = out.join('\n').trim();
+  if (!sawHead) return src;                                 // 구간을 못 가른 공고
+  /* 많이 잘리는 것 자체는 정상이다 — 복리후생·전형절차가 공고의 절반인 경우가 흔하다.
+     막으려는 것은 **통째로 사라지는 것**뿐이라 문턱을 낮게 잡는다(두 문장 남짓). */
+  if (kept.replace(/\s/g, '').length < 60) return src;
+  return kept;
+}
+
 function splitSentences(text) {
   return String(text)
     .split(/[\n·•]+|(?<=[.!?])\s+/)
@@ -256,7 +324,8 @@ const WEAK_KEYWORDS = new Set([
    수식어가 아니다("프로모션 기획", "성과 분석"). 약하게 세면 실제 요구가 빠진다. */
 
 function ruleExtract(jdText) {
-  const sentences = splitSentences(jdText);
+  /* 자소서와 상관없는 구간(복리후생·결격사유·전형절차…)을 먼저 뺀다 — usefulText 주석. */
+  const sentences = splitSentences(usefulText(jdText));
   const lower = s => s.toLowerCase();
   const hits = new Map();
 
@@ -409,5 +478,6 @@ function buildCustom(entry) {
 module.exports = {
   ARCHETYPES, BY_ID, ARCHETYPE_IDS: ARCHETYPES.map(a => a.id),
   splitSentences, ruleExtract, buildGuide, buildCustom, matchMyActivities,
+  usefulText, headKind, DROP_HEAD, KEEP_HEAD,
   spreadMaterials, makeLead, WEAK_KEYWORDS,
 };

@@ -139,6 +139,14 @@ router.post('/coach', async (req, res) => {
     return res.status(400).json({ error: '직무기술서(채용공고) 내용을 30자 이상 붙여넣어 주세요.' });
   }
 
+  /* ── 자소서와 상관없는 구간은 규칙에도 AI 에도 넣지 않는다 (사용자 지시 2026-09-15) ──
+     복리후생·결격사유·전형절차·근무조건이 섞여 들어와 역량 근거로 인용되고 키워드까지
+     만들었다(실측: 근무조건의 '유관부서와 소통이 잦은 자리' 가 협업 역량으로 잡혔다).
+     규칙 쪽은 ruleExtract 가 스스로 거르지만, **AI 에는 우리가 넣어 주는 글이 전부**라
+     여기서 같이 걸러야 한다 — 한쪽만 거르면 규칙과 AI 가 서로 다른 글을 본다.
+     구간을 못 가른 공고(머리말 없는 줄글)는 usefulText 가 원문을 그대로 돌려준다. */
+  const useful = JD.usefulText(text);
+
   const rule = JD.ruleExtract(text);
   let entries = rule.found.map(f => ({ ...f, source: 'rule' }));
   let aiError = null;
@@ -146,7 +154,7 @@ router.post('/coach', async (req, res) => {
 
   if (useAi && entries.length < ENOUGH) {
     try {
-      const raw = await callModel(text, SYSTEM, { num_ctx: 8192, num_predict: 700 });
+      const raw = await callModel(useful, SYSTEM, { num_ctx: 8192, num_predict: 700 });
       const aiEntries = coerceAi(JSON.parse(raw).competencies)
         .filter(a => !entries.some(e => e.id === a.id));      // 규칙이 이미 잡은 건 그대로 둔다
       entries = entries.concat(aiEntries);

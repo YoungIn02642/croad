@@ -275,6 +275,43 @@ function ok(name, cond, extra = '') {
   ok('http·https 가 아닌 스킴은 후보가 아니다',
      P.imageUrls('<img src="javascript:alert(1)"><img src="file:///etc/passwd">', 'https://a.com/').length === 0);
 
+  console.log('');
+  console.log('── 칸에 담기 전에 자소서와 상관없는 구간을 뺀다 (사용자 지시 2026-09-15) ──');
+  /* 걸러내는 규칙 자체는 jd-competency.test.js 가 검증한다. 여기서 지키는 것은
+     **라우트가 그 규칙을 실제로 태우는가** 다 — 두 경로(주소·이미지) 모두. */
+  {
+    const SRC = require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'backend', 'src', 'server.js'), 'utf8');
+    const JD = require('../backend/src/jd-competency.js');
+
+    ok('분석과 같은 함수를 쓴다', SRC.includes('JD_SECTIONS.usefulText'),
+       '칸에 담긴 글과 분석이 본 글이 같아야 한다');
+    ok('주소로 가져온 글을 거른다', /text: cut\.text, trimmed: cut\.trimmed/.test(SRC));
+    ok('  거른 횟수가 두 곳 이상이다(주소·이미지·이미지합침)',
+       (SRC.match(/trimPosting\(/g) || []).length >= 3);
+    /* 거르고 나면 공고 낱말이 줄어든다. weak 를 거른 글로 재면 멀쩡한 공고가
+       '본문이 아닌 것 같다' 로 뒤집힌다. */
+    ok('weak 판정은 거르기 전 글로 한다', SRC.includes('POSTING.postingHits(joined) < 2'));
+
+    /* 화면이 '몇 자를 뺐다' 고 말할 수 있어야 한다 — 조용히 줄이면 되돌릴 실마리가 없다. */
+    const FRONT = require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'frontend', 'js', 'jd-coach.js'), 'utf8');
+    ok('화면이 뺀 분량을 말한다', /r\.trimmed/.test(FRONT) && FRONT.includes('빼고 담았어요'));
+    /* 회사 소개는 이제 일부러 남긴다(지원동기 재료) — 지우라고 하면 안 된다. */
+    ok('회사 소개를 지우라고 하지 않는다', !FRONT.includes('회사 소개·메뉴)은 지우고'));
+
+    /* 끝에서 끝까지 한 번 — 가짜 공고를 넣어 실제로 줄어드는지 본다. */
+    const posting = ['[담당업무]', '- 데이터 분석과 리포트 작성을 맡습니다. 관련 도구를 활용합니다.',
+      '- 유관부서와 협업하여 캠페인을 운영합니다.',
+      '[우대사항]', '- SQL·시각화 도구 경험자 우대합니다.',
+      '[복리후생]', '- 자기계발비 연 100만원과 식대를 지원합니다. 열정적인 동료가 있습니다.',
+      '[전형절차]', '서류전형 후 1차 실무면접과 인성검사를 진행합니다.'].join('\n');
+    const kept = JD.usefulText(posting);
+    ok('실제로 줄어든다', kept.length < posting.length,
+       `→ ${posting.length}자 → ${kept.length}자`);
+    ok('  담당업무·우대사항은 남고', kept.includes('유관부서') && kept.includes('SQL'));
+    ok('  복리후생·전형절차는 빠진다', !kept.includes('자기계발비') && !kept.includes('인성검사'));
+  }
   console.log(`\n결과: ${pass} 통과 / ${fail} 실패`);
   process.exit(fail ? 1 : 0);
 })();

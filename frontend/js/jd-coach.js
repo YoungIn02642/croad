@@ -1383,7 +1383,9 @@
 
      받는 길을 셋 다 연다. 사람마다 손에 익은 것이 다르고, 어느 쪽이든 같은 함수로 온다:
        · 버튼 → 파일 고르기   · 공고 칸에 Ctrl+V   · 공고 칸에 끌어다 놓기 */
-  const IMG_MAX = 2;                       // 서버 POSTING_OCR_MAX_IMAGES 와 같은 값
+  /* 사용자가 **올리는** 장수. 서버 상한(6)은 조각까지 센 값이라 다르다 —
+     긴 한 장이 조각 여섯이 될 수 있으므로 올리는 쪽은 2장으로 둔다. */
+  const IMG_MAX = 2;
   const IMG_MAX_BYTES = 5 * 1024 * 1024;   // 서버 MAX_IMAGE_BYTES 와 같은 값
 
   /* ── 보내기 전에 줄인다 ──────────────────────────────
@@ -1397,7 +1399,20 @@
      브라우저가 못 여는 형식(크롬의 HEIC)은 원본 그대로 보낸다. 서버가 HEIC 을 받고
      (Gemini 가 읽는다), 그 경로만 본문 한도가 12MB 다. */
   const SHRINK_OVER_BYTES = 1.2 * 1024 * 1024;
-  const SHRINK_MAX_EDGE = 2000;
+  /* ── 긴 변이 아니라 **가로**로 줄인다 (실측 2026-09-15, 사용자 제보) ──────────────
+     예전에는 긴 변을 2000 으로 맞췄다. 그런데 채용공고 표는 세로로 아주 길다 —
+     1240×4496 짜리 표를 그 규칙으로 줄이면 **552×2000** 이 된다. 가로가 44% 로
+     찌그러져 15px 글자가 6.7px 가 되고, 그 상태로 읽으면 항목을 놓친다.
+     글자 크기를 정하는 것은 **가로폭**이다. 가로만 상한을 두고 세로는 건드리지 않는다. */
+  const IMG_MAX_W = 1600;
+  /* 세로가 이보다 길면 조각으로 나눈다. 아주 긴 한 장은 모델이 아래로 갈수록 흘리고
+     시간도 오래 걸린다 — 실측(1240×4496)에서 조각 4장이 항목 20/20 으로 가장 정확했다. */
+  const SLICE_H = 1400;
+  /* 조각 겹침 — 경계에 걸린 줄이 양쪽에서 반 토막 나지 않게 한다. */
+  const SLICE_OVERLAP = 48;
+  /* 조각이 많아지면 한 번에 읽는 시간이 늘어난다. 상한을 넘으면 조각을 더 두껍게
+     잘라 **전체를 덮는다** — 잘라 버리면 공고 뒷부분이 통째로 사라진다. */
+  const SLICE_MAX = 6;
 
   const fileToBase64 = file => new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -1408,20 +1423,38 @@
     fr.readAsDataURL(file);
   });
 
-  async function shrinkImage(file) {
-    if (file.size <= SHRINK_OVER_BYTES) return null;      // 손댈 이유가 없다
+  /* ── 한 장을 읽기 좋은 조각들로 (사용자 지시 2026-09-15) ──────────────────────
+     돌려주는 것은 **배열**이다. 줄일 것도 나눌 것도 없으면 null 을 돌려주고 호출부가
+     원본을 그대로 보낸다(예전 shrinkImage 와 같은 규약).
+
+     조각 수는 세로 길이로 정하되 SLICE_MAX 에서 멈춘다. 멈출 때는 조각을 더 두껍게
+     잘라 **전체를 덮는다** — 앞 몇 조각만 보내면 공고 뒷부분이 조용히 사라진다.
+     JPEG 0.86 은 예전 값 그대로다(표 글자가 뭉개지지 않는 선에서 가장 작다). */
+  async function prepareImage(file) {
     try {
       const bmp = await createImageBitmap(file);
-      const edge = Math.max(bmp.width, bmp.height);
-      const scale = Math.min(1, SHRINK_MAX_EDGE / edge);
-      if (scale === 1) return null;                        // 이미 충분히 작다
-      const cv = document.createElement('canvas');
-      cv.width = Math.round(bmp.width * scale);
-      cv.height = Math.round(bmp.height * scale);
-      cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+      const w = bmp.width, h = bmp.height;
+      const scale = Math.min(1, IMG_MAX_W / w);
+      const outW = Math.round(w * scale), outH = Math.round(h * scale);
+      const needSlice = outH > SLICE_H;
+      /* 손댈 이유가 없으면 그대로 둔다 — 작은 캡처 한 장까지 다시 그리지 않는다. */
+      if (scale === 1 && !needSlice && file.size <= SHRINK_OVER_BYTES) { bmp.close?.(); return null; }
+
+      const count = needSlice ? Math.min(SLICE_MAX, Math.ceil(outH / SLICE_H)) : 1;
+      const part = Math.ceil(outH / count);
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const top = Math.max(0, i * part - (i ? SLICE_OVERLAP : 0));
+        const height = Math.min(outH - top, part + (i ? SLICE_OVERLAP : 0));
+        if (height <= 0) break;
+        const cv = document.createElement('canvas');
+        cv.width = outW; cv.height = height;
+        /* 원본에서 잘라 그린다 — 줄인 뒤 자르면 두 번 다시 그려 글자가 더 뭉개진다. */
+        cv.getContext('2d').drawImage(bmp, 0, top / scale, w, height / scale, 0, 0, outW, height);
+        out.push({ mime: 'image/jpeg', data: cv.toDataURL('image/jpeg', 0.86).split(',')[1] || '' });
+      }
       bmp.close?.();
-      const url = cv.toDataURL('image/jpeg', 0.86);
-      return { mime: 'image/jpeg', data: url.split(',')[1] || '' };
+      return out.length ? out : null;
     } catch {
       /* 브라우저가 못 여는 형식이면 원본을 그대로 보낸다 — 여기서 포기하지 않는다. */
       return null;
@@ -1513,18 +1546,31 @@
     urlMsg('', `이미지 ${use.length}장을 읽고 있어요 — 1분 남짓 걸립니다.`);
     try {
       const images = [];
+      let sliced = 0;
       for (const f of use) {
-        const small = await shrinkImage(f);
-        const data = small ? small.data : await fileToBase64(f);
-        /* 줄이지 못했는데 한 장이 상한을 넘으면 여기서 막는다 — 서버까지 보내 놓고
-           413 을 받으면 사용자는 무엇이 문제인지 알 수 없다. */
-        if (!small && f.size > IMG_MAX_BYTES) {
-          throw new Error(`"${f.name}" 이(가) 너무 커요 (${Math.round(f.size / 1024 / 1024)}MB). 5MB 아래로 줄여 주세요.`);
+        const parts = await prepareImage(f);
+        if (!parts) {
+          /* 손대지 않은 한 장이 상한을 넘으면 여기서 막는다 — 서버까지 보내 놓고
+             413 을 받으면 사용자는 무엇이 문제인지 알 수 없다. */
+          if (f.size > IMG_MAX_BYTES) {
+            throw new Error(`"${f.name}" 이(가) 너무 커요 (${Math.round(f.size / 1024 / 1024)}MB). 5MB 아래로 줄여 주세요.`);
+          }
+          images.push({ name: f.name, mime: f.type, data: await fileToBase64(f) });
+          continue;
         }
-        images.push({ name: f.name, mime: small ? small.mime : f.type, data });
+        if (parts.length > 1) sliced += parts.length;
+        parts.forEach((p, i) => images.push({
+          name: parts.length > 1 ? `${f.name} (${i + 1}/${parts.length})` : f.name,
+          mime: p.mime, data: p.data,
+        }));
       }
       const r = await DB.jdPostingImage(images);
       applyPosting(r);
+      /* 나눠 읽었으면 그 사실을 말한다 — 화면에는 한 장을 올렸는데 결과가 길게 나오면
+         무엇이 일어났는지 알 수 없다. */
+      if (sliced) {
+        urlMsg('warn', `${$('#jd-url-msg').textContent} (세로로 긴 이미지라 ${sliced}조각으로 나눠 읽었어요.)`);
+      }
       if (list.length > use.length) {
         urlMsg('warn', `${$('#jd-url-msg').textContent} (올리신 ${list.length}장 중 앞 ${use.length}장만 읽었어요.)`);
       }

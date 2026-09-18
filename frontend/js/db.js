@@ -77,6 +77,10 @@ window.DB = (() => {
   // ── 읽기 (동기 · 캐시) ─────────────────────────────────────
   const currentUser = () => _me;
   const getAllSpecs = () => _specs;
+  /* 현재 로그인한 사람의 상세 스펙. 화면마다 username 을 다시 맞춰 보게 하면
+     소셜 로그인·닉네임 변경 뒤처럼 식별자가 갱신되는 순간에 내 스펙을 못 찾을 수 있다.
+     내 화면은 서버가 이미 인증해 내려 준 이 캐시를 직접 쓴다. */
+  const mySpec = () => _mySpec;
   const getUsers    = () => _users;
   const countByRole = () => _counts;
   const stats       = () => _stats;
@@ -621,7 +625,7 @@ window.DB = (() => {
 
   return {
     hydrate, refreshSpecs, refreshUsers,
-    currentUser, getAllSpecs, getSpec, myActivities, getUsers, countByRole, stats,
+    currentUser, getAllSpecs, getSpec, mySpec, myActivities, getUsers, countByRole, stats,
     checkUsername, verifyStatus, verifyRequest,
     createUser, login, logout, withdraw, changePassword, completeOnboarding, confirmPayment, updateUser, requestRoleChange, upsertSpec, saveActivityStar, getProfile, updateProfile,
     classifyCompany, suggestCompanies, suggestCerts, recommendCerts, suggestMajors, suggestUniversities, classifyMajor, jobCatalog,

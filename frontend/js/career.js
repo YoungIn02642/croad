@@ -1147,7 +1147,9 @@ window.CareerPage = (() => {
 
      대표 회사는 그 분류 선배들이 실제로 적은 회사명을 센다(peerSection 과 같은 규칙). */
   function myMajorBlock() {
-    const spec = DB.getSpec(DB.currentUser()?.username);
+    /* 이 화면은 '내' 스펙만 쓴다. username 으로 다시 찾아 비교하면 소셜 로그인이나
+       계정 정보 갱신 직후 식별자가 달라진 경우 저장된 학과를 빈 값으로 읽을 수 있다. */
+    const spec = DB.mySpec();
     const dept = spec?.dept || null;
     const deptName = dept ? CAS.DEPT_MAJOR[dept] : null;
 
@@ -1469,7 +1471,14 @@ window.CareerPage = (() => {
     /* ── 내 학과 맞춤 보기 ─────────────────────────────────── */
     showMyMajor() {
       majorView = true;
+      /* 로드맵은 처음 열 때의 캐시를 쓰지만, '내 학과 맞춤'은 사용자가 방금 저장한
+         학과가 바로 보여야 한다. 여기서 본인 스펙을 다시 받아 오면 다른 탭·새 창에서
+         저장했거나 초기 요청이 늦었던 경우에도 빈 화면으로 떨어지지 않는다. */
       render();
+      const refresh = DB.currentUser() ? DB.refreshSpecs() : Promise.resolve();
+      Promise.resolve(refresh)
+        .catch(() => null) // 네트워크가 잠깐 불안정해도 이미 있는 캐시로는 계속 보여 준다
+        .finally(() => render());
     },
     closeMyMajor() {
       majorView = false;

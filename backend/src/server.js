@@ -1355,7 +1355,14 @@ async function insertSeedUser(u, s, passwordHash, p) {
   const user = await repo.users.create({
     id: nanoid(),
     username: u.username, passwordHash,
-    name: u.name, email: u.email, role: u.role, nickname: null,
+    /* ── 닉네임을 버리고 있었다 (2026-09-18) ──────────────────────
+       `nickname: null` 이 박혀 있어서, demo-seed.js 가 일부러 만들어 넘기는
+       닉네임이 전부 버려졌다(makeRandomEntry 의 주석이 왜 필요한지까지 적어
+       둔 값이다). 이 저장소는 **화면에 닉네임만 내보내고 실명은 내부 데이터로
+       두는데**, 그래서 '내 멘토링' 신청 카드에 멘토 실명이 찍혔다 — 멘토 카드
+       쪽은 mentoring.js 의 nickOf 가 id 로 하나 지어내 가려 주고 있어서
+       한참 안 보였다. 넘어온 값을 그대로 쓴다. */
+    name: u.name, email: u.email, role: u.role, nickname: u.nickname ?? null,
   });
   if (s) await repo.specs.upsert(user.id, s);
   /* 멘토 프로필(소개글·전문분야·타임라인·가능 일정). 이게 있어야 '멘토 찾기'

@@ -50,11 +50,24 @@ body.dir-c .home-hero-dark { display: block; }
 /* ─────────────────────── DIR B · hero ─────────────────────── */
 .home-hero {
   grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center;
-  padding: 64px 0 48px;
+  position: relative; isolation: isolate; overflow: hidden;
+  /* 본문은 최대 폭으로 가운데 정렬돼도 배너 배경은 화면 끝까지 이어져야 한다.
+     --page-pad 만큼만 벌리면 넓은 화면에서 오른쪽에 흰 띠가 남을 수 있다. */
+  width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+  padding: 80px max(36px, calc((100vw - var(--page-w)) / 2 + var(--page-pad))) 66px;
+}
+.home-hero::before {
+  content: ''; position: absolute; z-index: -2; inset: 0;
+  background: radial-gradient(ellipse at 68% 42%, rgba(225, 219, 255, 0.76), transparent 40%),
+    linear-gradient(118deg, #fff 8%, #f8f7ff 52%, #f1efff 100%);
+}
+.home-hero::after {
+  content: ''; position: absolute; z-index: -1; width: 75%; height: 120%; bottom: -76%; left: -19%;
+  border-radius: 50%; border: 1px solid rgba(112, 83, 255, 0.18); transform: rotate(8deg);
 }
 .home-hero-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
 .home-hero h1 {
-  font-size: 64px; font-weight: 600; line-height: 1.04;
+  font-size: clamp(48px, 4.3vw, 68px); font-weight: 750; line-height: 1.08;
   letter-spacing: -1.6px; color: var(--ink); margin: 0;
 }
 .home-hero h1 em { font-style: normal; color: var(--brand); }
@@ -146,6 +159,8 @@ body.dir-c .home-hero-dark { display: block; }
 .hcard-row { display: flex; justify-content: space-between; font-size: 13px; }
 .hcard-row span { color: var(--text-s); }
 .hcard-row b { font-family: var(--font-num); font-weight: 700; color: var(--ink); }
+.hcard-cta { width: 100%; margin-top: 18px; padding: 12px 14px; border: 0; border-radius: 10px; display: flex; align-items: center; gap: 8px; background: var(--brand-soft); color: var(--brand); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
+.hcard-cta .ti-chevron-right { margin-left: auto; }
 
 /* ─────────────────────── DIR C · dark hero band ─────────────────────── */
 .home-hero-dark {
@@ -180,7 +195,7 @@ body.dir-c .home-hero-dark { display: block; }
 /* ─────────────────────── QUICK LINKS (shared) ─────────────────────── */
 .home-quick {
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
-  padding: 40px 0 8px;
+  padding: 40px 0 28px;
 }
 .ql {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -194,6 +209,7 @@ body.dir-c .home-hero-dark { display: block; }
   font-size: 34px; background: transparent; color: var(--acc);
 }
 .ql-label { font-size: 14px; font-weight: 500; color: var(--ink2, var(--ink)); text-align: center; }
+.ql p { margin: -4px 0 0; color: var(--text-m); font-size: 12px; line-height: 1.55; text-align: center; }
 
 /* ─────────────────────── SECTION ─────────────────────── */
 .home-sec { padding: 44px 0 8px; }
@@ -320,6 +336,7 @@ body.dir-c .home-hero-dark { display: block; }
 }
 @media (max-width: 560px) {
   .home { padding: 0 18px 32px; }
+  .home-hero { padding: 56px 18px 48px; }
   .home-quick { grid-template-columns: repeat(2, 1fr); }
   .home-articles { grid-template-columns: 1fr; }
   .navbar { padding: 0 18px; gap: 16px; }

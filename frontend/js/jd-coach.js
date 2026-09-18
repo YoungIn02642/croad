@@ -2536,7 +2536,12 @@
      가 읽히고, 모달을 닫는 동작이 하나 줄어든다.
 
      칩을 누르면 **뗀다.** 원문은 칩 안의 화살표로 새 창에 연다 — 붙인 기사가 무슨
-     내용이었는지 확인하지 못하면, 자기가 안 읽은 기사로 자소서를 쓰게 된다. */
+     내용이었는지 확인하지 못하면, 자기가 안 읽은 기사로 자소서를 쓰게 된다.
+
+     검색 결과도 **붙이기 전에 읽을 수 있어야 한다** (사용자 지시 2026-09-18).
+     예전에는 제목과 90자 요약이 한 줄로 잘려 있고 원문 링크는 오른쪽 끝 화살표
+     아이콘뿐이라, 붙여서 칩이 되기 전에는 기사 내용을 볼 방법이 사실상 없었다.
+     이제 제목 자체가 원문 링크이고, 요약은 두 줄로 접고, '원문 보기' 를 글자로 적는다. */
   function qRefRowHtml(qKey, kind) {
     const k = REF_KINDS.find(x => x.id === kind);
     const list = qRefs(qKey, kind);
@@ -2569,11 +2574,17 @@
                   data-refq="${esc(qKey)}" ${full ? 'disabled title="3건까지 붙일 수 있어요"' : ''}>
                   <i class="ti ti-plus"></i></button>
                 <div class="jd-refitem">
-                  <div class="jd-refitem-t">${esc(it.title)}</div>
-                  <div class="jd-refitem-m">${it.date ? esc(String(it.date).slice(0, 10)) + ' · ' : ''}${esc((it.summary || '').slice(0, 90))}</div>
+                  ${it.url
+                    ? `<a class="jd-refitem-t" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer"
+                        title="원문 보기">${esc(it.title)}</a>`
+                    : `<div class="jd-refitem-t">${esc(it.title)}</div>`}
+                  ${it.summary ? `<p class="jd-refitem-s">${esc(it.summary.slice(0, 220))}</p>` : ''}
+                  <div class="jd-refitem-m">
+                    ${it.date ? `<span>${esc(String(it.date).slice(0, 10))}</span>` : ''}
+                    ${it.url ? `<a class="jd-refitem-go" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">
+                      <i class="ti ti-external-link"></i> 원문 보기</a>` : ''}
+                  </div>
                 </div>
-                ${it.url ? `<a class="jd-refitem-go" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer"
-                  aria-label="원문 보기"><i class="ti ti-external-link"></i></a>` : ''}
               </li>`).join('')}</ul>`
           : `<p class="jd-refhint">찾은 것이 없어요. 낱말을 바꿔 보세요.</p>`) : ''}
       </div>` : '';
